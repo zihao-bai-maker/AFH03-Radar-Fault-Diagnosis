@@ -1,0 +1,28 @@
+{
+  "_readme": [
+    "汉字识别率测试用的标定页配置（配合 tools/ocr_rate_test.py 与 tools/make_templates.py）。",
+    "标定页是 Windows 用中文字体渲染的等宽格子图：17 个字、每格 100px、整页 1700x140。",
+    "换成相机拍的现场文本时，把 roi 改成文本条的实际位置、n_chars 改成实际字数即可。"
+  ],
+  "ocr": {
+    "enabled": true,
+    "template_npz": "models/cn_templates_rate.npz",
+    "items": [
+      {
+        "name": "text0",
+        "engine": "template",
+        "split": "fixed",
+        "roi": [0, 0, 1700, 140],
+        "n_chars": 17,
+        "fixed_boxes": [],
+        "fixed_chars": "北京欢迎你杭州西湖美丽中国科技强国",
+        "char_size": [32, 32],
+        "threshold": 0.55
+      }
+    ]
+  },
+  "led": {"enabled": false, "items": []},
+  "scope": {"enabled": false},
+  "video": {"enabled": false},
+  "display": false
+}

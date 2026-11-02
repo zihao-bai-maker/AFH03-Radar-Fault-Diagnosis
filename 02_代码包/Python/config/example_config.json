@@ -1,0 +1,161 @@
+{
+  "_readme": [
+    "AFH03 SoC 侧视觉/AI 配置模板。所有现场相关的数字都在这里，改标定不用改代码。",
+    "启动：python3 -m soc_vision.main_runtime --config config/example_config.json",
+    "标定顺序建议：① 先用 capture_probe.sh 抓帧 ② 量 ROI ③ 锁曝光 ④ 采 LED 基线 ⑤ 调阈值",
+    "标定辅助：tools/selftest_offline.py（无相机也能验算法）、soc_vision.scope_wave --draw（单帧调参）"
+  ],
+
+  "video": {
+    "_comment": "FPGA 经 MIPI CSI3 是 /dev/video22 的 YUYV；SoC 直连 imx415 走 rkisp 节点（NV12，Lead 实测 /dev/video51）",
+    "source": "/dev/video22",
+    "pixfmt": "YUYV",
+    "width": 1920,
+    "height": 1080,
+    "fps": 30,
+    "buffersize": 1,
+    "raw_status": true,
+    "warmup_frames": 5,
+    "reopen_after_fails": 30
+  },
+
+  "scope": {
+    "_comment": [
+      "【判据来源】本项目用户明确选定：**直接读示波器 SCPI 数据为主判据**（网线接板子网口），",
+      "  相机拍屏的图像法降级为交叉校验/离线能力。source: scpi | image | both（both=有 IP 走 SCPI，没相机也能给结论）。",
+      "【判定规则】雷达方波：**20 MHz 与 40 MHz = 正常(PASS/NORMAL)，其余 Hz = 不正常(FAIL/ABNORMAL)**。",
+      "  白名单写在 expect_hz_list；expect_hz_tol_pct 是容差（本项目取 1.0）。",
+      "  expect_hz(单值) 也支持，等价于只有一项的白名单；两者同时给时白名单优先。",
+      "【SCPI】scpi_host 填示波器 IP（DS2302A 在 Utility->IO->LAN 里看）；端口 5555；",
+      "  不知道 IP 时可以自动找：python3 -m soc_vision.scpi_scope --scan 192.168.1.0/24",
+      "  通道/探头/V/div/时基都用 SCPI 自己读，不用人工填（:CHANnel1:PROBe? 等）。",
+      "【图像法交叉校验】要用图像法时必须填三个标定量：time_per_div_s / volt_per_div_v / probe_atten。",
+      "  高频（20/40 MHz）不能再用 time/div ≈ 1/f：那样一屏 14 个周期、每周期只有 ~50 px，",
+      "  1 px 就是 2% 误差。正确的是 **time/div ≈ 0.3~0.5/f**，让一个周期占 2~3 个大格：",
+      "  20 MHz -> 20 ns/div（周期 2.5 格 ≈ 140~180 px）、40 MHz -> 10 ns/div（周期 2.5 格）。",
+      "  下面默认就按 20 ns/div 填（能同时覆盖 20 与 40 MHz：5.6 / 11.2 个周期）。",
+      "px_per_div_x/y 留 null 会自动从网格测；测不准就用 tools/calib_scope_grid.py 单帧标定。",
+      "DS2302A 屏幕 8.0\" WVGA 800×480、14 大格；右侧菜单栏/底部状态栏要避开。",
+      "wave_hsv_lo/hi 是 OpenCV HSV（H 0-179）。DS2302A 默认 CH1 黄色约 H=20~40，CH2 青色约 80~100。"
+    ],
+    "enabled": true,
+    "model": "RIGOL DS2302A",
+    "source": "both",
+    "scpi_host": "",
+    "scpi_port": 5555,
+    "scpi_ch": 1,
+    "scpi_timeout_s": 3.0,
+    "scpi_retries": 2,
+    "scpi_repeat": 1,
+    "scpi_read_wave": true,
+    "scpi_every_n": 15,
+    "roi": [1120, 240, 640, 480],
+    "time_per_div_s": 2e-8,
+    "volt_per_div_v": 0.5,
+    "probe_atten": 10.0,
+    "h_div": 14.0,
+    "v_div": 8.0,
+    "grid_h_div_hint": 14.0,
+    "grid_subdiv": 5,
+    "px_per_div_x": null,
+    "px_per_div_y": null,
+    "gnd_y_px": null,
+    "wave_hsv_lo": [20, 90, 120],
+    "wave_hsv_hi": [40, 255, 255],
+    "invert_wave": false,
+    "robust_percentile": true,
+    "min_valid_col_ratio": 0.35,
+    "bright_fallback": true,
+    "expect_hz": null,
+    "expect_hz_list": [20000000, 40000000],
+    "expect_hz_tol_pct": 1.0,
+    "expect_hz_table": []
+  },
+
+  "led": {
+    "_comment": [
+      "顺序即 FPGA ROI 编号：第 i 个 item 对应 FPGA 的 ROI_i（fpga_status 融合时按此顺序）。",
+      "on_thr/off_thr 是迟滞双阈值；基线噪声大时会被自动抬高（3 sigma）。",
+      "expect 只给自测脚本用，现场可留 null。"
+    ],
+    "enabled": true,
+    "baseline_frames": 20,
+    "debounce_n": 3,
+    "use_fpga_status": true,
+    "software_fallback": true,
+    "items": [
+      {"name": "led0", "roi": [200, 300, 60, 60], "mode": "mixed",
+       "hsv_lo": [0, 80, 120], "hsv_hi": [12, 255, 255],
+       "on_thr": 25.0, "off_thr": 15.0, "min_color_ratio": 0.15, "expect": null},
+      {"name": "led1", "roi": [300, 300, 60, 60], "mode": "mixed",
+       "hsv_lo": [40, 60, 120], "hsv_hi": [85, 255, 255],
+       "on_thr": 25.0, "off_thr": 15.0, "min_color_ratio": 0.15, "expect": null},
+      {"name": "led2", "roi": [400, 300, 60, 60], "mode": "bright",
+       "hsv_lo": [0, 0, 200], "hsv_hi": [179, 60, 255],
+       "on_thr": 25.0, "off_thr": 15.0, "expect": null},
+      {"name": "led3", "roi": [500, 300, 60, 60], "mode": "bright",
+       "hsv_lo": [0, 0, 200], "hsv_hi": [179, 60, 255],
+       "on_thr": 25.0, "off_thr": 15.0, "expect": null},
+      {"name": "led4", "roi": [600, 300, 60, 60], "mode": "bright",
+       "hsv_lo": [0, 0, 200], "hsv_hi": [179, 60, 255],
+       "on_thr": 25.0, "off_thr": 15.0, "expect": null},
+      {"name": "led5", "roi": [700, 300, 60, 60], "mode": "bright",
+       "hsv_lo": [0, 0, 200], "hsv_hi": [179, 60, 255],
+       "on_thr": 25.0, "off_thr": 15.0, "expect": null},
+      {"name": "led6", "roi": [800, 300, 60, 60], "mode": "bright",
+       "hsv_lo": [0, 0, 200], "hsv_hi": [179, 60, 255],
+       "on_thr": 25.0, "off_thr": 15.0, "expect": null},
+      {"name": "led7", "roi": [900, 300, 60, 60], "mode": "bright",
+       "hsv_lo": [0, 0, 200], "hsv_hi": [179, 60, 255],
+       "on_thr": 25.0, "off_thr": 15.0, "expect": null}
+    ]
+  },
+
+  "ocr": {
+    "_comment": [
+      "≤20 个汉字：推荐 engine=template（先用模板匹配跑通），split=fixed（固定格子最稳）。",
+      "fixed_boxes 为空时按 roi 宽度对 n_chars 等分；有标定框就填满 20 个 [x,y,w,h]（roi 内坐标）。",
+      "升级到 CRNN：把 engine 改成 rknn_crnn，并准备好 models/crnn_ctc_20.rknn 与 charset_20.txt。"
+    ],
+    "enabled": true,
+    "template_npz": "models/cn_templates.npz",
+    "rknn_crnn_path": "models/crnn_ctc_20.rknn",
+    "charset_path": "models/charset_20.txt",
+    "ppocr_det_path": "models/ppocrv4_det.rknn",
+    "ppocr_rec_path": "models/ppocrv4_rec.rknn",
+    "ppocr_keys_path": "models/ppocr_keys_v1.txt",
+    "npu_core": 0,
+    "items": [
+      {
+        "name": "text0",
+        "engine": "template",
+        "split": "fixed",
+        "roi": [300, 860, 1400, 120],
+        "n_chars": 20,
+        "fixed_boxes": [],
+        "fixed_chars": "",
+        "char_size": [32, 32],
+        "threshold": 0.55
+      }
+    ]
+  },
+
+  "sink": {
+    "_comment": "stdout 输出 JSONL，systemd 会收进 journal；也可同时写文件/串口/UDP",
+    "stdout_json": true,
+    "file_path": "/tmp/afh03_result.jsonl",
+    "serial_dev": "",
+    "udp_host": "",
+    "udp_port": 5005,
+    "print_every_n": 1
+  },
+
+  "display": true,
+  "display_scale": 0.5,
+  "scope_every_n": 3,
+  "ocr_every_n": 5,
+  "fps_limit": 0.0,
+  "fpga_magic": 2781043200,
+  "led_indicator_path": "/sys/class/leds/work/brightness",
+  "led_indicator_on_pass": true
+}

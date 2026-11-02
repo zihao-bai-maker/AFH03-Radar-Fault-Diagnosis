@@ -1,0 +1,573 @@
+{
+ "_note": "版本 2：6 个模块（G1..G6），A4 上 9 张纸片。marker_id = 检测器 detect_markers().mid = 字典下标（0-based，G1 对应 0）。板端请**读 markers_modules.json 的 modules[].bitmap 字段**，不要用 glob 扫 markers/*.png。markers/ 根目录当前**只有 G1..G6 六个文件**；已弃用的旧版方案 A（M1..M9）已挪到 markers/_old_M1_M9/ 物理隔离。",
+ "version": 2,
+ "scheme": "6 modules / 9 sheets (user picked option B on 2026-10-05)",
+ "marker_side_mm": 25.02,
+ "module_mm": 4.17,
+ "total_with_quiet_mm": 33.36,
+ "dictionary": {
+  "n": 24,
+  "used": 6,
+  "dmin_rotational_hamming": 4,
+  "source": "led_tool/marker.py build_dictionary(24,4)"
+ },
+ "print": {
+  "sheet": "out/markers_A4_modules6.png",
+  "pdf": "out/markers_A4_modules6.pdf",
+  "dpi": 300,
+  "scale": "100% (do not fit-to-page)",
+  "paper": "A4 matte",
+  "layout": "3x3 = 9 sheets; row1 G1-1 G1-2 G2-1; row2 G2-2 G3-1 G3-2; row3 G4 G5 G6",
+  "placement": "贴在该模块旁边或下方，保持镜头可见，不要覆盖指示灯"
+ },
+ "print_small": {
+  "sheet": "out/markers_A4_small_G5G6.png",
+  "pdf": "out/markers_A4_small_G5G6.pdf",
+  "dpi": 300,
+  "scale": "100% (do not fit-to-page)",
+  "paper": "A4 matte",
+  "layout": "2 cols x 3 rows; col1 = G5 15mm x3; col2 = G6 15mm x3 (1 in use + 2 spares)",
+  "why": "G5/G6 的目标（汉字状态屏 / 配电盘）比标记大 8~10 倍；板端尺寸门要求标记 <= 画面短边 25%，25mm 标记与整块目标无法同框（用户实测 reject: 尺寸超限 0.35>0.25, 总边长=505px, 短边=1426）",
+  "size": {
+   "total_with_quiet_mm": 15.0,
+   "black_frame_mm": 11.25,
+   "module_mm": 1.875
+  },
+  "min_recognizable_px": {
+   "G5": 24,
+   "G6": 24
+  },
+  "min_recognizable_note": "含静区的总边长(px)；在 1920x1080 合成画面（渐变+噪声底）上实测",
+  "measured_px_table": {
+   "G5": {
+    "16": null,
+    "20": null,
+    "24": 4,
+    "28": 4,
+    "32": 4,
+    "40": 4,
+    "48": 4,
+    "56": 4,
+    "64": 4,
+    "80": 4,
+    "100": 4,
+    "128": 4,
+    "160": 4,
+    "200": 4,
+    "240": 4
+   },
+   "G6": {
+    "16": null,
+    "20": null,
+    "24": 5,
+    "28": 5,
+    "32": 5,
+    "40": 5,
+    "48": 5,
+    "56": 5,
+    "64": 5,
+    "80": 5,
+    "100": 5,
+    "128": 5,
+    "160": 5,
+    "200": 5,
+    "240": 5
+   }
+  }
+ },
+ "quality_check": {
+  "a4_detected": 9,
+  "a4_expected": 9,
+  "a4_sequence_mid": [
+   0,
+   0,
+   1,
+   1,
+   2,
+   2,
+   3,
+   4,
+   5
+  ],
+  "a4_sequence_expected": [
+   0,
+   0,
+   1,
+   1,
+   2,
+   2,
+   3,
+   4,
+   5
+  ],
+  "single_ok": 6,
+  "single_total": 6,
+  "rotation_ok": 24,
+  "rotation_total": 24,
+  "small_a4_detected": 6,
+  "small_a4_expected": 6,
+  "small_a4_sequence_mid": [
+   4,
+   5,
+   4,
+   5,
+   4,
+   5
+  ],
+  "small_a4_expected_seq": [
+   4,
+   5,
+   4,
+   5,
+   4,
+   5
+  ],
+  "min_px_small": 24,
+  "pass": true
+ },
+ "sheets": [
+  {
+   "sheet_index": 1,
+   "label": "G1①",
+   "module": "G1",
+   "marker_id": 0,
+   "placement": "电源指示（空调·市电面板）",
+   "cell": [
+    0,
+    0
+   ]
+  },
+  {
+   "sheet_index": 2,
+   "label": "G1②",
+   "module": "G1",
+   "marker_id": 0,
+   "placement": "电源指示（稳压工频面板）",
+   "cell": [
+    1,
+    0
+   ]
+  },
+  {
+   "sheet_index": 3,
+   "label": "G2①",
+   "module": "G2",
+   "marker_id": 1,
+   "placement": "工频/天线电源（工频电源）",
+   "cell": [
+    2,
+    0
+   ]
+  },
+  {
+   "sheet_index": 4,
+   "label": "G2②",
+   "module": "G2",
+   "marker_id": 1,
+   "placement": "工频/天线电源（天线启动）",
+   "cell": [
+    0,
+    1
+   ]
+  },
+  {
+   "sheet_index": 5,
+   "label": "G3①",
+   "module": "G3",
+   "marker_id": 2,
+   "placement": "换向/发射机控制（天线换向）",
+   "cell": [
+    1,
+    1
+   ]
+  },
+  {
+   "sheet_index": 6,
+   "label": "G3②",
+   "module": "G3",
+   "marker_id": 2,
+   "placement": "换向/发射机控制（发射机控制）",
+   "cell": [
+    2,
+    1
+   ]
+  },
+  {
+   "sheet_index": 7,
+   "label": "G4",
+   "module": "G4",
+   "marker_id": 3,
+   "placement": "发射机状态",
+   "cell": [
+    0,
+    2
+   ]
+  },
+  {
+   "sheet_index": 8,
+   "label": "G5",
+   "module": "G5",
+   "marker_id": 4,
+   "placement": "汉字状态屏",
+   "cell": [
+    1,
+    2
+   ]
+  },
+  {
+   "sheet_index": 9,
+   "label": "G6",
+   "module": "G6",
+   "marker_id": 5,
+   "placement": "配电盘",
+   "cell": [
+    2,
+    2
+   ]
+  },
+  {
+   "sheet_index": 1,
+   "label": "G5(15mm)#1",
+   "module": "G5",
+   "marker_id": 4,
+   "side_mm": 15.0,
+   "copy": 1,
+   "placement": "汉字状态屏 屏框右下角（不挡字段）",
+   "cell": [
+    0,
+    0
+   ]
+  },
+  {
+   "sheet_index": 2,
+   "label": "G6(15mm)#1",
+   "module": "G6",
+   "marker_id": 5,
+   "side_mm": 15.0,
+   "copy": 1,
+   "placement": "配电盘 4 个指示下方（相序指示/充电控制/电池电压/市电电压）",
+   "cell": [
+    1,
+    0
+   ]
+  },
+  {
+   "sheet_index": 3,
+   "label": "G5(15mm)#2",
+   "module": "G5",
+   "marker_id": 4,
+   "side_mm": 15.0,
+   "copy": 2,
+   "placement": "汉字状态屏 屏框右下角（不挡字段）",
+   "cell": [
+    0,
+    1
+   ]
+  },
+  {
+   "sheet_index": 4,
+   "label": "G6(15mm)#2",
+   "module": "G6",
+   "marker_id": 5,
+   "side_mm": 15.0,
+   "copy": 2,
+   "placement": "配电盘 4 个指示下方（相序指示/充电控制/电池电压/市电电压）",
+   "cell": [
+    1,
+    1
+   ]
+  },
+  {
+   "sheet_index": 5,
+   "label": "G5(15mm)#3",
+   "module": "G5",
+   "marker_id": 4,
+   "side_mm": 15.0,
+   "copy": 3,
+   "placement": "汉字状态屏 屏框右下角（不挡字段）",
+   "cell": [
+    0,
+    2
+   ]
+  },
+  {
+   "sheet_index": 6,
+   "label": "G6(15mm)#3",
+   "module": "G6",
+   "marker_id": 5,
+   "side_mm": 15.0,
+   "copy": 3,
+   "placement": "配电盘 4 个指示下方（相序指示/充电控制/电池电压/市电电压）",
+   "cell": [
+    1,
+    2
+   ]
+  }
+ ],
+ "modules": {
+  "G1": {
+   "label": "G1",
+   "name": "电源指示",
+   "marker_id": 0,
+   "code_hex": "0x0007",
+   "bits": [
+    "1110",
+    "0000",
+    "0000",
+    "0000"
+   ],
+   "bitmap": "markers/G1.png",
+   "bitmap_px": [
+    393,
+    393
+   ],
+   "side_mm": 25.02,
+   "rule_key": "led_all_on:3",
+   "rule_text": "3 颗全亮=正常（任一不亮=故障）",
+   "instances": [
+    "空调电源指示 / 市电电源 / 控制（空调·市电面板）",
+    "稳压工频电源指示 / 发电机电源 / 控制（稳压工频面板）"
+   ],
+   "n_sheets": 2,
+   "variants": [
+    {
+     "side_mm": 25.02,
+     "side_definition": "black_frame_outer",
+     "bitmap": "markers/G1.png",
+     "bitmap_px": [
+      393,
+      393
+     ],
+     "recommended": true
+    }
+   ]
+  },
+  "G2": {
+   "label": "G2",
+   "name": "工频/天线电源",
+   "marker_id": 1,
+   "code_hex": "0x0019",
+   "bits": [
+    "1001",
+    "1000",
+    "0000",
+    "0000"
+   ],
+   "bitmap": "markers/G2.png",
+   "bitmap_px": [
+    393,
+    393
+   ],
+   "side_mm": 25.02,
+   "rule_key": "led_on:1",
+   "rule_text": "红灯亮=正常",
+   "instances": [
+    "工频电源（红灯）",
+    "天线启动（红灯）"
+   ],
+   "n_sheets": 2,
+   "variants": [
+    {
+     "side_mm": 25.02,
+     "side_definition": "black_frame_outer",
+     "bitmap": "markers/G2.png",
+     "bitmap_px": [
+      393,
+      393
+     ],
+     "recommended": true
+    }
+   ]
+  },
+  "G3": {
+   "label": "G3",
+   "name": "换向/发射机控制",
+   "marker_id": 2,
+   "code_hex": "0x002A",
+   "bits": [
+    "0101",
+    "0100",
+    "0000",
+    "0000"
+   ],
+   "bitmap": "markers/G3.png",
+   "bitmap_px": [
+    393,
+    393
+   ],
+   "side_mm": 25.02,
+   "rule_key": "led_exactly_one_of:2",
+   "rule_text": "恰好一亮一灭",
+   "instances": [
+    "天线换向控制（位置指示 左向/右向）",
+    "发射机控制（发射机工作 I/II）"
+   ],
+   "n_sheets": 2,
+   "variants": [
+    {
+     "side_mm": 25.02,
+     "side_definition": "black_frame_outer",
+     "bitmap": "markers/G3.png",
+     "bitmap_px": [
+      393,
+      393
+     ],
+     "recommended": true
+    }
+   ]
+  },
+  "G4": {
+   "label": "G4",
+   "name": "发射机状态",
+   "marker_id": 3,
+   "code_hex": "0x0034",
+   "bits": [
+    "0010",
+    "1100",
+    "0000",
+    "0000"
+   ],
+   "bitmap": "markers/G4.png",
+   "bitmap_px": [
+    393,
+    393
+   ],
+   "side_mm": 25.02,
+   "rule_key": "led_green_all_on_red_all_off:3+2",
+   "rule_text": "3 绿全亮 + 2 红全灭=正常",
+   "instances": [
+    "发射机状态 5 灯下方（工作/本路/发射通/发射断/故障）"
+   ],
+   "n_sheets": 1,
+   "variants": [
+    {
+     "side_mm": 25.02,
+     "side_definition": "black_frame_outer",
+     "bitmap": "markers/G4.png",
+     "bitmap_px": [
+      393,
+      393
+     ],
+     "recommended": true
+    }
+   ]
+  },
+  "G5": {
+   "label": "G5",
+   "name": "汉字状态屏",
+   "marker_id": 4,
+   "code_hex": "0x0052",
+   "bits": [
+    "0100",
+    "1010",
+    "0000",
+    "0000"
+   ],
+   "bitmap": "markers/G5.png",
+   "bitmap_px": [
+    393,
+    393
+   ],
+   "side_mm": 25.02,
+   "rule_key": "screen_fields_ok:2",
+   "rule_text": "天线方向=正常 且 自检状态=正常",
+   "instances": [
+    "汉字状态屏 屏框右下角（不挡字段）"
+   ],
+   "n_sheets": 1,
+   "variants": [
+    {
+     "side_mm": 25.02,
+     "side_definition": "black_frame_outer",
+     "bitmap": "markers/G5.png",
+     "bitmap_px": [
+      393,
+      393
+     ],
+     "recommended": true,
+     "note": "默认 25mm（黑框外沿）"
+    },
+    {
+     "side_mm": 15.0,
+     "side_definition": "total_including_quiet_zone",
+     "black_frame_mm": 11.25,
+     "module_mm": 1.875,
+     "bitmap": "markers/G5_15mm.png",
+     "bitmap_px": [
+      177,
+      177
+     ],
+     "recommended": false,
+     "min_recognizable_px": 24,
+     "when": "目标比标记大 8~10 倍、25mm 无法与目标同框时用（G5 屏 / G6 配电盘）"
+    }
+   ]
+  },
+  "G6": {
+   "label": "G6",
+   "name": "配电盘",
+   "marker_id": 5,
+   "code_hex": "0x0061",
+   "bits": [
+    "1000",
+    "0110",
+    "0000",
+    "0000"
+   ],
+   "bitmap": "markers/G6.png",
+   "bitmap_px": [
+    393,
+    393
+   ],
+   "side_mm": 25.02,
+   "rule_key": "seq_green_on+charge_red_on+voltage_in_tol",
+   "rule_text": "相序绿亮 + 充电红亮 + 电池/市电电压在容差内",
+   "instances": [
+    "配电盘 4 个指示下方（相序指示/充电控制/电池电压/市电电压）"
+   ],
+   "n_sheets": 1,
+   "variants": [
+    {
+     "side_mm": 25.02,
+     "side_definition": "black_frame_outer",
+     "bitmap": "markers/G6.png",
+     "bitmap_px": [
+      393,
+      393
+     ],
+     "recommended": true,
+     "note": "默认 25mm（黑框外沿）"
+    },
+    {
+     "side_mm": 15.0,
+     "side_definition": "total_including_quiet_zone",
+     "black_frame_mm": 11.25,
+     "module_mm": 1.875,
+     "bitmap": "markers/G6_15mm.png",
+     "bitmap_px": [
+      177,
+      177
+     ],
+     "recommended": false,
+     "min_recognizable_px": 24,
+     "when": "目标比标记大 8~10 倍、25mm 无法与目标同框时用（G5 屏 / G6 配电盘）"
+    }
+   ]
+  }
+ },
+ "_old_unused": {
+  "note": "方案 A（9 模块 M1..M9）已弃用，文件已挪到 markers/_old_M1_M9/ 物理隔离，请勿使用。注意 M1..M9 与 G1..G6 取自同一字典前段、码字相同（M1 与 G1 都是 0x0007），混用会造成 G/M 无法区分。",
+  "dir": "markers/_old_M1_M9/",
+  "paths": [
+   "markers/_old_M1_M9/M1.png",
+   "markers/_old_M1_M9/M2.png",
+   "markers/_old_M1_M9/M3.png",
+   "markers/_old_M1_M9/M4.png",
+   "markers/_old_M1_M9/M5.png",
+   "markers/_old_M1_M9/M6.png",
+   "markers/_old_M1_M9/M7.png",
+   "markers/_old_M1_M9/M8.png",
+   "markers/_old_M1_M9/M9.png"
+  ]
+ }
+}

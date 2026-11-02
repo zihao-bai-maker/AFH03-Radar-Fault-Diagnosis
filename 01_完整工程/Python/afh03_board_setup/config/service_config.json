@@ -1,0 +1,69 @@
+{
+  "_readme": [
+    "AFH03 自启动专用配置：**纯 SCPI 波形判定**，不打开任何视频设备（低负载、不需要相机）。",
+    "用途：波形判定只需要「网线接到示波器」，所以在示波器到位后，服务用这份配置就能独立工作；",
+    "      LED/颜色/汉字 这些图像类识别需要相机，用 config/example_config.json（video.enabled=true）。",
+    "安装：AFH03_USER=root AFH03_CONFIG=config/service_config.json sudo bash systemd/install_service.sh system",
+    "板载 LED 指示写 /sys/class/leds/work/brightness 需要 root -> 服务用 AFH03_USER=root。",
+    "真机把 scpi_host 填成示波器 IP 即可；不知道 IP 时先 python3 -m soc_vision.scpi_scope --scan 192.168.1.0/24"
+  ],
+  "video": {
+    "_comment": "enabled=false -> main_runtime 连 /dev/video* 都不打开（纯 SCPI 模式）",
+    "enabled": false,
+    "source": "/dev/video22",
+    "pixfmt": "YUYV",
+    "width": 1920,
+    "height": 1080,
+    "fps": 30,
+    "buffersize": 1,
+    "raw_status": true,
+    "warmup_frames": 5,
+    "reopen_after_fails": 30
+  },
+  "scope": {
+    "_comment": [
+      "波形判定：SCPI 直读为主判据；20 MHz / 40 MHz 方波 = 正常(PASS/NORMAL)，其余 = 不正常(FAIL/ABNORMAL)。"
+    ],
+    "enabled": true,
+    "model": "RIGOL DS2302A",
+    "source": "scpi",
+    "scpi_host": "",
+    "scpi_port": 5555,
+    "scpi_ch": 1,
+    "scpi_timeout_s": 3.0,
+    "scpi_retries": 2,
+    "scpi_repeat": 1,
+    "scpi_read_wave": true,
+    "scpi_every_n": 15,
+    "expect_hz": null,
+    "expect_hz_list": [20000000, 40000000],
+    "expect_hz_tol_pct": 1.0,
+    "expect_hz_table": []
+  },
+  "led": {
+    "enabled": false,
+    "_comment": "纯 SCPI 模式不做图像 LED 判定；真要用图像法就换 example_config.json",
+    "items": []
+  },
+  "ocr": {
+    "enabled": false,
+    "_comment": "同上：无图像，不做汉字识别",
+    "items": []
+  },
+  "sink": {
+    "stdout_json": true,
+    "file_path": "/home/rock/afh03_result.jsonl",
+    "serial_dev": "",
+    "udp_host": "",
+    "udp_port": 5005,
+    "print_every_n": 1
+  },
+  "display": false,
+  "display_scale": 0.5,
+  "scope_every_n": 3,
+  "ocr_every_n": 5,
+  "fps_limit": 0.0,
+  "fpga_magic": 2781043200,
+  "led_indicator_path": "/sys/class/leds/work/brightness",
+  "led_indicator_on_pass": true
+}

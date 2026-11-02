@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<PackProject Version="110">
+    <ProjectName Name="uihdmi_tx" Path="G:/02_Ding/02_AN/AN_IP/uihdmi_tx/uihdmi_tx" Step="0"/>
+    <CompFile Filename="Component.xml"/>
+    <Dependency Filename="Dependency.tcl"/>
+    <Layout Filename="Layout.tcl"/>
+    <AbstractionInfo Count="0"/>
+    <Filesets Path="G:/02_Ding/02_AN/AN_IP/uihdmi_tx/uihdmi_tx">
+        <Fileset Name="uihdmi_tx_files"/>
+    </Filesets>
+    <Ports>
+        <Port Name="I_pixel_clk" Width="1"/>
+        <Port Name="I_serial_clk" Width="1"/>
+        <Port Name="I_rst" Width="1"/>
+        <Port Name="I_video_in_data" Width="24"/>
+        <Port Name="I_video_in_de" Width="1"/>
+        <Port Name="I_video_in_vs" Width="1"/>
+        <Port Name="I_video_in_hs" Width="1"/>
+        <Port Name="O_hdmi_clk_p" Width=""/>
+        <Port Name="O_hdmi_tx_p" Width="3"/>
+    </Ports>
+</PackProject>

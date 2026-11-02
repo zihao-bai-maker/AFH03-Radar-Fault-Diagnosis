@@ -1,0 +1,49 @@
+============================================================
+   Tang Dynasty, V6.2.168116
+   Copyright (c) 2012-2025 Anlogic Inc.
+   Executable = D:/xuexishengshou/TD/bin/td_commands_prompt.exe
+   Built at =   16:32:07 Jun 12 2025
+   Run by =     lenovo
+   Run Date =   Fri Oct  2 09:47:12 2026
+
+   Run on =     NUYOAH
+============================================================
+RUN-1002 : start command "import_device ph1_90.db -package PH1A90SEG324"
+RUN-1001 : Using default speed grade: 2
+ARC-1001 : Device Initialization.
+ARC-1001 : ----------------------------------------------------------------
+ARC-1001 :           OPTION          |          IO           |   SETTING   
+ARC-1001 : ----------------------------------------------------------------
+ARC-1001 :   non_jtag_persist(none)  |        36 IOs         |    gpio    
+ARC-1001 :            jtag           |  C10/D11/A10/B11/E11  |  dedicate  
+ARC-1001 : ----------------------------------------------------------------
+RUN-1003 : finish command "import_device ph1_90.db -package PH1A90SEG324" in  4.581304s wall, 2.734375s user + 0.296875s system = 3.031250s CPU (66.2%)
+
+RUN-1004 : used memory is 1117 MB, reserved memory is 1115 MB, peak memory is 1117 MB
+RUN-1002 : start command "set_param flow ooc_flow on"
+RUN-1002 : start command "read_verilog -dir D:/xuexishengshou/TD/ip/apm/apm_cwc -global_include debug_hub_define.v -top top_debug_hub"
+HDL-1007 : analyze verilog file debug_hub_define.v
+HDL-1007 : analyze verilog file D:/xuexishengshou/TD/ip/apm/apm_cwc\apm_cwc.sv
+Copyright (c) 1998-2019 The OpenSSL Project.  All rights reserved.
+This product includes software developed by the OpenSSL Project
+for use in the OpenSSL Toolkit (http://www.openssl.org/)
+Copyright (C) 1995-1998 Eric Young (eay@cryptsoft.com)
+All rights reserved.
+This product includes cryptographic software written by Eric Young (eay@cryptsoft.com)
+HDL-1007 : undeclared symbol '**', assumed default net type '**' in D:/xuexishengshou/TD/ip/apm/apm_cwc\apm_cwc.sv(492)
+HDL-1007 : undeclared symbol '**', assumed default net type '**' in D:/xuexishengshou/TD/ip/apm/apm_cwc\apm_cwc.sv(493)
+HDL-1007 : back to file 'D:/xuexishengshou/TD/ip/apm/apm_cwc\apm_cwc.sv' in D:/xuexishengshou/TD/ip/apm/apm_cwc\apm_cwc.sv(1)
+HDL-1007 : analyze verilog file D:/xuexishengshou/TD/ip/apm/apm_cwc\apm_debughub.sv
+HDL-1007 : back to file 'D:/xuexishengshou/TD/ip/apm/apm_cwc\apm_debughub.sv' in D:/xuexishengshou/TD/ip/apm/apm_cwc\apm_debughub.sv(1)
+HDL-1007 : analyze verilog file D:/xuexishengshou/TD/ip/apm/apm_cwc\apm_vpi.sv
+HDL-1007 : back to file 'D:/xuexishengshou/TD/ip/apm/apm_cwc\apm_vpi.sv' in D:/xuexishengshou/TD/ip/apm/apm_cwc\apm_vpi.sv(1)
+HDL-1007 : elaborate module ** in D:/xuexishengshou/TD/ip/apm/apm_cwc\apm_debughub.sv(3)
+HDL-1007 : elaborate module ** in D:/xuexishengshou/TD/ip/apm/apm_cwc\apm_debughub.sv(6718)
+HDL-1007 : elaborate module AL_MAP_LUT1(INIT=2'b01,EQN="(~A)") in D:\xuexishengshou\TD\arch/al_lmacro.v(60)
+HDL-1007 : elaborate module ** in D:/xuexishengshou/TD/ip/apm/apm_cwc\apm_debughub.sv(6437)
+HDL-8007 ERROR: index ** is out of range [**:**] for '**' in D:/xuexishengshou/TD/ip/apm/apm_cwc\apm_debughub.sv(6681)
+HDL-1007 : ** '**' remains a black box due to errors in its contents in D:/xuexishengshou/TD/ip/apm/apm_cwc\apm_debughub.sv(6437)
+HDL-1007 : elaborate module ** in D:/xuexishengshou/TD/ip/apm/apm_cwc\apm_debughub.sv(6057)
+HDL-1007 : elaborate module ** in D:/xuexishengshou/TD/ip/apm/apm_cwc\apm_debughub.sv(6214)
+HDL-1007 : elaborate module ** in D:/xuexishengshou/TD/ip/apm/apm_cwc\apm_debughub.sv(6135)
+HDL-1007 : elaborate module ** in D:/xuexishengshou/TD/ip/apm/apm_cwc\apm_debughub.sv(6312)

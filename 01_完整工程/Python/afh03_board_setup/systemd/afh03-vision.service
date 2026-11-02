@@ -1,0 +1,48 @@
+[Unit]
+# AFH03 SoC 侧视觉/AI 运行时（system 级服务，无界面，结果走 journal/JSON）
+# 这个单元里的 @USER@ / @DIR@ 由 systemd/install_service.sh 自动替换。
+# 手工安装时把两处占位符改成实际值即可，例如 @USER@=rock  @DIR@=/home/rock/afh03_board_setup
+Description=AFH03 SoC vision runtime (SCPI scope verdict + LED / color / OCR)
+Documentation=file:@DIR@/README.md
+After=network-online.target
+Wants=network-online.target
+# 需要摄像头/ISP 驱动先就绪；不要抢在 udev 之前
+After=systemd-udev-settle.service
+# 取帧失败/驱动没起来时不要疯狂重启（注意：这两个键属于 [Unit]，放 [Service] 会被忽略）
+StartLimitIntervalSec=60
+StartLimitBurst=6
+
+[Service]
+Type=simple
+User=@USER@
+Group=@USER@
+WorkingDirectory=@DIR@
+# 【注意】没有视频节点时**不能**让 ExecStartPre 失败：
+# 波形判据现在以 SCPI 直读为主（只需要网线到示波器，不需要相机），
+# 所以这里只提示不拦（FPGA 没配 bit / 相机没插时服务照样要起）。
+ExecStartPre=/bin/sh -c 'test -c /dev/video22 -o -c /dev/video51 || echo "[WARN] 没有视频节点：按 SCPI 主判据模式启动（无图像/无 OCR）"'
+# 无界面模式：结果以 JSONL 打到 stdout（journalctl -u afh03-vision -f 看）
+# 判据来源/示波器 IP/白名单都在 config 里（scope.source / scpi_host / expect_hz_list）
+# @CONFIG@ 由 install_service.sh 按 AFH03_CONFIG 渲染：
+#   config/example_config.json  完整版（SCPI + 相机 LED/颜色/汉字）
+#   config/service_config.json  纯 SCPI 版（video.enabled=false，不开相机，低负载）
+ExecStart=/usr/bin/python3 -u -m soc_vision.main_runtime --config @DIR@/@CONFIG@ --no-display
+Restart=always
+RestartSec=5
+# 取帧失败/驱动没起来时不要疯狂重启（StartLimit* 在 [Unit] 段）
+# 停机：先 SIGTERM（main_runtime 会优雅释放 V4L2 流），超时才 SIGKILL
+KillSignal=SIGTERM
+KillMode=mixed
+TimeoutStopSec=15
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=afh03-vision
+# 内存优先（2G 内存版容易紧张），不要让内核把图像缓冲区换出去
+OOMScoreAdjust=-200
+Nice=-5
+# 现场调试可用：
+#   日志  journalctl -u afh03-vision -f
+#   停止  systemctl stop afh03-vision
+
+[Install]
+WantedBy=multi-user.target

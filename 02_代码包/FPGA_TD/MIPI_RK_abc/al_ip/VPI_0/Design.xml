@@ -1,0 +1,172 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ipxact:design xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:ipxact="http://www.accellera.org/XMLSchema/IPXACT/1685-2014" xmlns:anlogic="http" xsi:schemaLocation="http://www.accellera.org/XMLSchema/IPXACT/1685-2014 http://www.accellera.org/XMLSchema/IPXACT/1685-2014/index.xsd">
+    <ipxact:vendor>anlogic.com</ipxact:vendor>
+    <ipxact:library>customized</ipxact:library>
+    <ipxact:name>design_VPI_0</ipxact:name>
+    <ipxact:version>1.0</ipxact:version>
+    <ipxact:componentInstances>
+        <ipxact:componentInstance>
+            <ipxact:instanceName>VPI_6a30bb3fd7b5_Inst</ipxact:instanceName>
+            <ipxact:componentRef vendor="anlogic.com" library="ip" name="VPI" version="1.0"/>
+            <ipxact:configurableElementValues>
+                <ipxact:configurableElementValue referenceId="PROBE_DIN_BUS_NUM">0</ipxact:configurableElementValue>
+                <ipxact:configurableElementValue referenceId="PROBE_DOUT_BUS_NUM">1</ipxact:configurableElementValue>
+                <ipxact:configurableElementValue referenceId="PROBE_DIN_WIDTH">1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1</ipxact:configurableElementValue>
+                <ipxact:configurableElementValue referenceId="PROBE_DOUT_WIDTH">8 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1</ipxact:configurableElementValue>
+                <ipxact:configurableElementValue referenceId="PROBE_INIT_VALUE">80 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0</ipxact:configurableElementValue>
+                <ipxact:configurableElementValue referenceId="PROBE_OUT0_WIDTH">8</ipxact:configurableElementValue>
+                <ipxact:configurableElementValue referenceId="PROBE_OUT0_INIT_VALUE">'h50</ipxact:configurableElementValue>
+                <ipxact:configurableElementValue referenceId="IN0">0</ipxact:configurableElementValue>
+                <ipxact:configurableElementValue referenceId="OUT0">1</ipxact:configurableElementValue>
+                <ipxact:configurableElementValue referenceId="IN1">0</ipxact:configurableElementValue>
+                <ipxact:configurableElementValue referenceId="OUT1">0</ipxact:configurableElementValue>
+                <ipxact:configurableElementValue referenceId="IN2">0</ipxact:configurableElementValue>
+                <ipxact:configurableElementValue referenceId="OUT2">0</ipxact:configurableElementValue>
+                <ipxact:configurableElementValue referenceId="IN3">0</ipxact:configurableElementValue>
+                <ipxact:configurableElementValue referenceId="OUT3">0</ipxact:configurableElementValue>
+                <ipxact:configurableElementValue referenceId="IN4">0</ipxact:configurableElementValue>
+                <ipxact:configurableElementValue referenceId="OUT4">0</ipxact:configurableElementValue>
+                <ipxact:configurableElementValue referenceId="IN5">0</ipxact:configurableElementValue>
+                <ipxact:configurableElementValue referenceId="OUT5">0</ipxact:configurableElementValue>
+                <ipxact:configurableElementValue referenceId="IN6">0</ipxact:configurableElementValue>
+                <ipxact:configurableElementValue referenceId="OUT6">0</ipxact:configurableElementValue>
+                <ipxact:configurableElementValue referenceId="IN7">0</ipxact:configurableElementValue>
+                <ipxact:configurableElementValue referenceId="OUT7">0</ipxact:configurableElementValue>
+                <ipxact:configurableElementValue referenceId="IN8">0</ipxact:configurableElementValue>
+                <ipxact:configurableElementValue referenceId="OUT8">0</ipxact:configurableElementValue>
+                <ipxact:configurableElementValue referenceId="IN9">0</ipxact:configurableElementValue>
+                <ipxact:configurableElementValue referenceId="OUT9">0</ipxact:configurableElementValue>
+                <ipxact:configurableElementValue referenceId="IN10">0</ipxact:configurableElementValue>
+                <ipxact:configurableElementValue referenceId="OUT10">0</ipxact:configurableElementValue>
+                <ipxact:configurableElementValue referenceId="IN11">0</ipxact:configurableElementValue>
+                <ipxact:configurableElementValue referenceId="OUT11">0</ipxact:configurableElementValue>
+                <ipxact:configurableElementValue referenceId="IN12">0</ipxact:configurableElementValue>
+                <ipxact:configurableElementValue referenceId="OUT12">0</ipxact:configurableElementValue>
+                <ipxact:configurableElementValue referenceId="IN13">0</ipxact:configurableElementValue>
+                <ipxact:configurableElementValue referenceId="OUT13">0</ipxact:configurableElementValue>
+                <ipxact:configurableElementValue referenceId="IN14">0</ipxact:configurableElementValue>
+                <ipxact:configurableElementValue referenceId="OUT14">0</ipxact:configurableElementValue>
+                <ipxact:configurableElementValue referenceId="IN15">0</ipxact:configurableElementValue>
+                <ipxact:configurableElementValue referenceId="OUT15">0</ipxact:configurableElementValue>
+                <ipxact:configurableElementValue referenceId="IN16">0</ipxact:configurableElementValue>
+                <ipxact:configurableElementValue referenceId="OUT16">0</ipxact:configurableElementValue>
+                <ipxact:configurableElementValue referenceId="IN17">0</ipxact:configurableElementValue>
+                <ipxact:configurableElementValue referenceId="OUT17">0</ipxact:configurableElementValue>
+                <ipxact:configurableElementValue referenceId="IN18">0</ipxact:configurableElementValue>
+                <ipxact:configurableElementValue referenceId="OUT18">0</ipxact:configurableElementValue>
+                <ipxact:configurableElementValue referenceId="IN19">0</ipxact:configurableElementValue>
+                <ipxact:configurableElementValue referenceId="OUT19">0</ipxact:configurableElementValue>
+                <ipxact:configurableElementValue referenceId="IN20">0</ipxact:configurableElementValue>
+                <ipxact:configurableElementValue referenceId="OUT20">0</ipxact:configurableElementValue>
+                <ipxact:configurableElementValue referenceId="IN21">0</ipxact:configurableElementValue>
+                <ipxact:configurableElementValue referenceId="OUT21">0</ipxact:configurableElementValue>
+                <ipxact:configurableElementValue referenceId="IN22">0</ipxact:configurableElementValue>
+                <ipxact:configurableElementValue referenceId="OUT22">0</ipxact:configurableElementValue>
+                <ipxact:configurableElementValue referenceId="IN23">0</ipxact:configurableElementValue>
+                <ipxact:configurableElementValue referenceId="OUT23">0</ipxact:configurableElementValue>
+                <ipxact:configurableElementValue referenceId="IN24">0</ipxact:configurableElementValue>
+                <ipxact:configurableElementValue referenceId="OUT24">0</ipxact:configurableElementValue>
+                <ipxact:configurableElementValue referenceId="IN25">0</ipxact:configurableElementValue>
+                <ipxact:configurableElementValue referenceId="OUT25">0</ipxact:configurableElementValue>
+                <ipxact:configurableElementValue referenceId="IN26">0</ipxact:configurableElementValue>
+                <ipxact:configurableElementValue referenceId="OUT26">0</ipxact:configurableElementValue>
+                <ipxact:configurableElementValue referenceId="IN27">0</ipxact:configurableElementValue>
+                <ipxact:configurableElementValue referenceId="OUT27">0</ipxact:configurableElementValue>
+                <ipxact:configurableElementValue referenceId="IN28">0</ipxact:configurableElementValue>
+                <ipxact:configurableElementValue referenceId="OUT28">0</ipxact:configurableElementValue>
+                <ipxact:configurableElementValue referenceId="IN29">0</ipxact:configurableElementValue>
+                <ipxact:configurableElementValue referenceId="OUT29">0</ipxact:configurableElementValue>
+                <ipxact:configurableElementValue referenceId="IN30">0</ipxact:configurableElementValue>
+                <ipxact:configurableElementValue referenceId="OUT30">0</ipxact:configurableElementValue>
+                <ipxact:configurableElementValue referenceId="IN31">0</ipxact:configurableElementValue>
+                <ipxact:configurableElementValue referenceId="OUT31">0</ipxact:configurableElementValue>
+                <ipxact:configurableElementValue referenceId="IN32">0</ipxact:configurableElementValue>
+                <ipxact:configurableElementValue referenceId="OUT32">0</ipxact:configurableElementValue>
+                <ipxact:configurableElementValue referenceId="IN33">0</ipxact:configurableElementValue>
+                <ipxact:configurableElementValue referenceId="OUT33">0</ipxact:configurableElementValue>
+                <ipxact:configurableElementValue referenceId="IN34">0</ipxact:configurableElementValue>
+                <ipxact:configurableElementValue referenceId="OUT34">0</ipxact:configurableElementValue>
+                <ipxact:configurableElementValue referenceId="IN35">0</ipxact:configurableElementValue>
+                <ipxact:configurableElementValue referenceId="OUT35">0</ipxact:configurableElementValue>
+                <ipxact:configurableElementValue referenceId="IN36">0</ipxact:configurableElementValue>
+                <ipxact:configurableElementValue referenceId="OUT36">0</ipxact:configurableElementValue>
+                <ipxact:configurableElementValue referenceId="IN37">0</ipxact:configurableElementValue>
+                <ipxact:configurableElementValue referenceId="OUT37">0</ipxact:configurableElementValue>
+                <ipxact:configurableElementValue referenceId="IN38">0</ipxact:configurableElementValue>
+                <ipxact:configurableElementValue referenceId="OUT38">0</ipxact:configurableElementValue>
+                <ipxact:configurableElementValue referenceId="IN39">0</ipxact:configurableElementValue>
+                <ipxact:configurableElementValue referenceId="OUT39">0</ipxact:configurableElementValue>
+                <ipxact:configurableElementValue referenceId="IN40">0</ipxact:configurableElementValue>
+                <ipxact:configurableElementValue referenceId="OUT40">0</ipxact:configurableElementValue>
+                <ipxact:configurableElementValue referenceId="IN41">0</ipxact:configurableElementValue>
+                <ipxact:configurableElementValue referenceId="OUT41">0</ipxact:configurableElementValue>
+                <ipxact:configurableElementValue referenceId="IN42">0</ipxact:configurableElementValue>
+                <ipxact:configurableElementValue referenceId="OUT42">0</ipxact:configurableElementValue>
+                <ipxact:configurableElementValue referenceId="IN43">0</ipxact:configurableElementValue>
+                <ipxact:configurableElementValue referenceId="OUT43">0</ipxact:configurableElementValue>
+                <ipxact:configurableElementValue referenceId="IN44">0</ipxact:configurableElementValue>
+                <ipxact:configurableElementValue referenceId="OUT44">0</ipxact:configurableElementValue>
+                <ipxact:configurableElementValue referenceId="IN45">0</ipxact:configurableElementValue>
+                <ipxact:configurableElementValue referenceId="OUT45">0</ipxact:configurableElementValue>
+                <ipxact:configurableElementValue referenceId="IN46">0</ipxact:configurableElementValue>
+                <ipxact:configurableElementValue referenceId="OUT46">0</ipxact:configurableElementValue>
+                <ipxact:configurableElementValue referenceId="IN47">0</ipxact:configurableElementValue>
+                <ipxact:configurableElementValue referenceId="OUT47">0</ipxact:configurableElementValue>
+                <ipxact:configurableElementValue referenceId="IN48">0</ipxact:configurableElementValue>
+                <ipxact:configurableElementValue referenceId="OUT48">0</ipxact:configurableElementValue>
+                <ipxact:configurableElementValue referenceId="IN49">0</ipxact:configurableElementValue>
+                <ipxact:configurableElementValue referenceId="OUT49">0</ipxact:configurableElementValue>
+                <ipxact:configurableElementValue referenceId="IN50">0</ipxact:configurableElementValue>
+                <ipxact:configurableElementValue referenceId="OUT50">0</ipxact:configurableElementValue>
+                <ipxact:configurableElementValue referenceId="IN51">0</ipxact:configurableElementValue>
+                <ipxact:configurableElementValue referenceId="OUT51">0</ipxact:configurableElementValue>
+                <ipxact:configurableElementValue referenceId="IN52">0</ipxact:configurableElementValue>
+                <ipxact:configurableElementValue referenceId="OUT52">0</ipxact:configurableElementValue>
+                <ipxact:configurableElementValue referenceId="IN53">0</ipxact:configurableElementValue>
+                <ipxact:configurableElementValue referenceId="OUT53">0</ipxact:configurableElementValue>
+                <ipxact:configurableElementValue referenceId="IN54">0</ipxact:configurableElementValue>
+                <ipxact:configurableElementValue referenceId="OUT54">0</ipxact:configurableElementValue>
+                <ipxact:configurableElementValue referenceId="IN55">0</ipxact:configurableElementValue>
+                <ipxact:configurableElementValue referenceId="OUT55">0</ipxact:configurableElementValue>
+                <ipxact:configurableElementValue referenceId="IN56">0</ipxact:configurableElementValue>
+                <ipxact:configurableElementValue referenceId="OUT56">0</ipxact:configurableElementValue>
+                <ipxact:configurableElementValue referenceId="IN57">0</ipxact:configurableElementValue>
+                <ipxact:configurableElementValue referenceId="OUT57">0</ipxact:configurableElementValue>
+                <ipxact:configurableElementValue referenceId="IN58">0</ipxact:configurableElementValue>
+                <ipxact:configurableElementValue referenceId="OUT58">0</ipxact:configurableElementValue>
+                <ipxact:configurableElementValue referenceId="IN59">0</ipxact:configurableElementValue>
+                <ipxact:configurableElementValue referenceId="OUT59">0</ipxact:configurableElementValue>
+                <ipxact:configurableElementValue referenceId="IN60">0</ipxact:configurableElementValue>
+                <ipxact:configurableElementValue referenceId="OUT60">0</ipxact:configurableElementValue>
+                <ipxact:configurableElementValue referenceId="IN61">0</ipxact:configurableElementValue>
+                <ipxact:configurableElementValue referenceId="OUT61">0</ipxact:configurableElementValue>
+                <ipxact:configurableElementValue referenceId="IN62">0</ipxact:configurableElementValue>
+                <ipxact:configurableElementValue referenceId="OUT62">0</ipxact:configurableElementValue>
+                <ipxact:configurableElementValue referenceId="IN63">0</ipxact:configurableElementValue>
+                <ipxact:configurableElementValue referenceId="OUT63">0</ipxact:configurableElementValue>
+            </ipxact:configurableElementValues>
+        </ipxact:componentInstance>
+    </ipxact:componentInstances>
+    <ipxact:adHocConnections>
+        <ipxact:adHocConnection>
+            <ipxact:name>clk</ipxact:name>
+            <ipxact:portReferences>
+                <ipxact:internalPortReference componentRef="VPI_6a30bb3fd7b5_Inst" portRef="clk"/>
+                <ipxact:externalPortReference portRef="clk"/>
+            </ipxact:portReferences>
+        </ipxact:adHocConnection>
+        <ipxact:adHocConnection>
+            <ipxact:name>outprobe0</ipxact:name>
+            <ipxact:portReferences>
+                <ipxact:internalPortReference componentRef="VPI_6a30bb3fd7b5_Inst" portRef="outprobe0"/>
+                <ipxact:externalPortReference portRef="outprobe0"/>
+            </ipxact:portReferences>
+        </ipxact:adHocConnection>
+    </ipxact:adHocConnections>
+    <ipxact:vendorExtensions>
+        <anlogic:device>PH1A90SEG324</anlogic:device>
+        <anlogic:speed>-2</anlogic:speed>
+        <anlogic:displayname>Virtual Probe Interface</anlogic:displayname>
+        <anlogic:ipGenVersion value="171484 2025/08/11">1.0</anlogic:ipGenVersion>
+    </ipxact:vendorExtensions>
+</ipxact:design>

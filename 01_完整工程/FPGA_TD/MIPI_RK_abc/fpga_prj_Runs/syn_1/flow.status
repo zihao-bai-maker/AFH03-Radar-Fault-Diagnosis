@@ -1,0 +1,23 @@
+Location         : D:\xuexishengshou\_work_20261028\fpga_abc\MIPI_RK_abc\fpga_prj_Runs\syn_1
+Running with     : Tang Dynasty v6.2.168116
+                   Copyright (c) 2012-2025 Anlogic Inc.
+Top Model        : system_top
+Device           : PH1A90SEG324
+Speed            : 2
+
+Timing Mode      : basic
+Setup            : WNS    68ps  TNS        0ps  NUM_FEPS     0
+Hold             : WNS    57ps  TNS        0ps  NUM_FEPS     0
+
+Flow Statistics  :
+---------------------------------------------------------------------------------------------------
+     command     |  #calls  |  wall time   |  cpu time(s)  |  used memory(mb)  |  peak memory(mb)  
+---------------------------------------------------------------------------------------------------
+  optimize_gate  |    1     |  1m40s(53%)  |    97(53%)    |       2754        |       2754        
+  optimize_rtl   |    1     |  1m20s(43%)  |    79(43%)    |       2547        |       2620        
+  import_device  |    1     |    5s(2%)    |     3(1%)     |       1114        |       1114        
+    read_adc     |    1     |    1s(0%)    |     1(0%)     |       1533        |       1534        
+    read_sdc     |    2     |    0s(0%)    |     0(0%)     |       1531        |       1534        
+---------------------------------------------------------------------------------------------------
+      total      |    6     |     3m6s     |      180      |       2754        |       2754        
+---------------------------------------------------------------------------------------------------

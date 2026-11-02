@@ -1,0 +1,671 @@
+{
+  "_readme": [
+    "LED 判定规则表（数据驱动，改这里即可改判定策略，不用改代码）。",
+    "kind: power3=三颗全亮才正常 / status2=恰好一亮一灭 / tx5=3绿全亮且红灯全灭 / single_red=红灯亮才正常 / generic=按每灯 expect。",
+    "★ 不能用一个全局假设：同为红灯，天线启动亮=正常，而发射机状态·故障灯亮=故障。",
+    "lamps 顺序 = 面板上从「上到下」或「左到右」的顺序（与标定 JSON 的 lamp 顺序一致）。",
+    "calib: 该部件在标定 JSON 里的 ROI 组名（tools/led_calibrate.py 产出）。",
+    "★ 2026-10-18 v2：标记模块已扩到 24 个（G1..G6 + Z4..Z15-CPU）。v2 的 rule_key 为空，",
+    "   用 parts[].aliases 把标记编号（Z12/Z14/…）映射到规则部件 id；不要依赖旧 rule_key。",
+    "   status=待确认 ⇒ 灯序/期望抄自「雷达判据/led_calib_待确认.json」草案，尚未现场确认；",
+    "   kind=known_only ⇒ 仅登记部位（无灯规则），UI 结论固定为「未判定（判定规则待标定）」。"
+  ],
+  "version": 3,
+  "parts": [
+    {
+      "id": "PS_KONG",
+      "name": "电源指示（空调/市电/控制）",
+      "kind": "power3",
+      "calib": "PS_KONG",
+      "silk": [
+        "空调电源指示",
+        "市电电源",
+        "控制"
+      ],
+      "note": "用户①：三颗全亮=供电正常；②：下方绿灯不亮=供电错误；v2 标记 Z31（配电箱）= 本部件",
+      "lamps": [
+        {
+          "name": "空调电源指示",
+          "silk": "空调电源指示",
+          "color": "R",
+          "expect": "on"
+        },
+        {
+          "name": "市电电源",
+          "silk": "市电电源",
+          "color": "R",
+          "expect": "on"
+        },
+        {
+          "name": "控制",
+          "silk": "控制",
+          "color": "G",
+          "expect": "on"
+        }
+      ],
+      "aliases": [
+        "Z31"
+      ]
+    },
+    {
+      "id": "PS_WENYA",
+      "name": "电源指示（稳压工频/发电机/控制）",
+      "kind": "power3",
+      "calib": "PS_WENYA",
+      "silk": [
+        "稳压工频电源指示",
+        "发电机电源",
+        "控制"
+      ],
+      "note": "用户③：三颗全灭=故障报错（丝印与 ①② 不同，必须靠丝印区分部件）",
+      "lamps": [
+        {
+          "name": "稳压工频电源指示",
+          "silk": "稳压工频电源指示",
+          "color": "R",
+          "expect": "on"
+        },
+        {
+          "name": "发电机电源",
+          "silk": "发电机电源",
+          "color": "R",
+          "expect": "on"
+        },
+        {
+          "name": "控制",
+          "silk": "控制",
+          "color": "G",
+          "expect": "on"
+        }
+      ]
+    },
+    {
+      "id": "ANT_DIR",
+      "name": "天线换向控制（位置指示 右向/左向）",
+      "kind": "status2",
+      "calib": "ANT_DIR",
+      "silk": [
+        "位置指示",
+        "右向",
+        "左向",
+        "换向控制"
+      ],
+      "note": "用户⑤：一亮一灭=正常；两颗都灭=故障（都亮不可能发生）；v2 标记 Z18（控制分机）的天线换向区 = 本部件",
+      "lamps": [
+        {
+          "name": "右向",
+          "silk": "右向",
+          "color": "R",
+          "expect": "any"
+        },
+        {
+          "name": "左向",
+          "silk": "左向",
+          "color": "R",
+          "expect": "any"
+        }
+      ],
+      "aliases": [
+        "Z18"
+      ]
+    },
+    {
+      "id": "TX_CTRL",
+      "name": "发射机控制（发射机工作 I/II）",
+      "kind": "status2",
+      "calib": "TX_CTRL",
+      "silk": [
+        "发射机工作",
+        "两路转换"
+      ],
+      "note": "用户⑥：I 亮、II 灭 = 正常",
+      "lamps": [
+        {
+          "name": "发射机工作 I",
+          "silk": "I",
+          "color": "R",
+          "expect": "any"
+        },
+        {
+          "name": "发射机工作 II",
+          "silk": "II",
+          "color": "R",
+          "expect": "any"
+        }
+      ]
+    },
+    {
+      "id": "TX_STATE",
+      "name": "发射机状态（工作/本路/发射通/发射断/故障）",
+      "kind": "tx5",
+      "calib": "TX_STATE",
+      "silk": [
+        "工作",
+        "本路",
+        "发射通",
+        "发射断",
+        "故障"
+      ],
+      "note": "用户⑦：3 颗绿全亮=正常；红色灯（发射断/故障）亮=故障",
+      "lamps": [
+        {
+          "name": "工作",
+          "silk": "工作",
+          "color": "G",
+          "expect": "on"
+        },
+        {
+          "name": "本路",
+          "silk": "本路",
+          "color": "G",
+          "expect": "on"
+        },
+        {
+          "name": "发射通",
+          "silk": "发射通",
+          "color": "G",
+          "expect": "on"
+        },
+        {
+          "name": "发射断",
+          "silk": "发射断",
+          "color": "R",
+          "expect": "off",
+          "fault_if_on": true
+        },
+        {
+          "name": "故障",
+          "silk": "故障",
+          "color": "R",
+          "expect": "off",
+          "fault_if_on": true
+        }
+      ]
+    },
+    {
+      "id": "ANT_START",
+      "name": "天线控制（天线启动）",
+      "kind": "single_red",
+      "calib": "ANT_START",
+      "silk": [
+        "天线控制",
+        "天线启动",
+        "手操控制"
+      ],
+      "note": "用户⑧：红色 LED 亮=正常（★ 与 tx5 的红灯语义相反，故必须按部件套规则）",
+      "lamps": [
+        {
+          "name": "天线启动",
+          "silk": "天线启动",
+          "color": "R",
+          "expect": "on"
+        }
+      ]
+    },
+    {
+      "id": "PS_GONGPIN",
+      "name": "电源控制（工频电源指示）",
+      "kind": "single_red",
+      "calib": "PS_GONGPIN",
+      "silk": [
+        "电源控制",
+        "工频电源",
+        "电合选择",
+        "电池电合电源",
+        "市电"
+      ],
+      "note": "用户④：该部件 1 颗红色 LED 亮=正常（★ 画面里 通/断 按钮、拨杆都不是灯，不可判成 ON）",
+      "lamps": [
+        {
+          "name": "工频电源",
+          "silk": "工频电源",
+          "color": "R",
+          "expect": "on"
+        }
+      ]
+    },
+    {
+      "id": "TEXT_SCREEN",
+      "name": "汉字状态屏（天线方向/自检状态）",
+      "kind": "text_assert",
+      "reader": "screen",
+      "calib": "TEXT_SCREEN",
+      "silk": [
+        "天线方向",
+        "自检状态"
+      ],
+      "note": "汉字状态屏：天线方向=正常 且 自检状态=正常 ⇒ 正常；读数器未就绪或低置信 ⇒ 未判定（给明确原因）",
+      "asserts": [
+        {
+          "field": "天线方向",
+          "expect": "正常"
+        },
+        {
+          "field": "自检状态",
+          "expect": "正常"
+        }
+      ],
+      "lamps": []
+    },
+    {
+      "id": "PD_BOARD",
+      "name": "配电盘（相序/充电/电池电压/市电电压）",
+      "kind": "numeric_range",
+      "reader": "seg7",
+      "calib": "PD_BOARD",
+      "silk": [
+        "相序指示",
+        "充电控制",
+        "电池电压",
+        "市电电压"
+      ],
+      "note": "相序绿灯亮 + 充电红灯亮 + 电池电压 26V±10%(23.4~28.6) + 市电电压 220V±10%(198~242)",
+      "lamps": [
+        {
+          "name": "相序指示",
+          "silk": "相序",
+          "color": "G",
+          "expect": "on"
+        },
+        {
+          "name": "充电控制",
+          "silk": "充电",
+          "color": "R",
+          "expect": "on"
+        }
+      ],
+      "numeric": [
+        {
+          "name": "电池电压",
+          "nominal": 26.0,
+          "tol_frac": 0.1,
+          "unit": "V",
+          "expect": 26.6
+        },
+        {
+          "name": "市电电压",
+          "nominal": 220.0,
+          "tol_frac": 0.1,
+          "unit": "V",
+          "expect": 222.0
+        }
+      ]
+    },
+    {
+      "id": "Z12_PWR",
+      "name": "Z12 电源分机（收发分机电源）",
+      "kind": "mixed",
+      "calib": "Z12_PWR",
+      "aliases": [
+        "Z12"
+      ],
+      "status": "待确认",
+      "confidence": "高（电源按键灯/保险丝灯位）；中（保险丝灯正常态）",
+      "source": "雷达判据/led_calib_待确认.json（2026-10-18 草案，part=z12）",
+      "panel_photo": "IMGP_20260427_202123.jpg",
+      "silk": [
+        "3.15A",
+        "保险丝",
+        "测量选择",
+        "电源"
+      ],
+      "note": "从左到右：3.15A 保险丝(圆灯) → 测量选择(旋钮，非灯) → 电源(红色方形带灯按键)。★ 保险丝灯按 SOP「[保险丝]-3.15A-指示灯不亮」= 正常灭；亮=保险丝坏。",
+      "uncertainties": [
+        "3.15A 保险丝灯在 Z12 上无判据库明文，按同型（Z14/Z15）推断为灭，需现场确认",
+        "I 路 / II 路是否两台独立 Z12 面板（各自一套 ROI）尚未确认"
+      ],
+      "lamps": [
+        {
+          "idx": 0,
+          "name": "3.15A 保险丝",
+          "silk": "3.15A 保险丝",
+          "color": "W",
+          "role": "indicator",
+          "expect": "off",
+          "fault_if_on": true,
+          "confidence": "中",
+          "note": "正常=灭；亮=保险丝坏（待确认）"
+        },
+        {
+          "idx": 1,
+          "name": "电源（按键灯）",
+          "silk": "电源",
+          "color": "R",
+          "role": "button_lamp",
+          "expect": "on",
+          "confidence": "高"
+        }
+      ]
+    },
+    {
+      "id": "Z14_PANEL",
+      "name": "Z14 信号处理分机（门板 同步/复位/电源/保险丝）",
+      "kind": "mixed",
+      "calib": "Z14_PANEL",
+      "aliases": [
+        "Z14"
+      ],
+      "status": "待确认",
+      "confidence": "高（电源/保险丝）；中（同步）；低（复位是否带灯）",
+      "source": "雷达判据/led_calib_待确认.json（2026-10-18 草案，part=z14）",
+      "panel_photo": "IMGP_20260427_200552.jpg",
+      "silk": [
+        "同步",
+        "复位",
+        "电源",
+        "3.15A",
+        "保险丝"
+      ],
+      "note": "门板左→右：同步(圆灯) → 复位(绿方按键) → 电源(红方带灯按键) → 3.15A保险丝(绿圆顶灯)。★ 与 Z15 顺序相反（Z15 保险丝在最左）；保险丝正常=灭，亮=故障。",
+      "uncertainties": [
+        "「同步」灯正常态判据库无对应检查项（拍时未亮），期望未定",
+        "「复位」是纯按键还是带灯按键未确认；本规则按“不参与判定”处理"
+      ],
+      "lamps": [
+        {
+          "idx": 0,
+          "name": "同步",
+          "silk": "同步",
+          "color": "W",
+          "role": "indicator",
+          "expect": "any",
+          "critical": false,
+          "confidence": "中",
+          "note": "正常态未知（判据库无此项）→ 不参与正常/故障结论"
+        },
+        {
+          "idx": 1,
+          "name": "复位",
+          "silk": "复位",
+          "color": "G",
+          "role": "button",
+          "expect": "any",
+          "critical": false,
+          "confidence": "低",
+          "note": "按键；是否带灯未确认 → 不参与判定"
+        },
+        {
+          "idx": 2,
+          "name": "电源（按键灯）",
+          "silk": "电源",
+          "color": "R",
+          "role": "button_lamp",
+          "expect": "on",
+          "confidence": "高"
+        },
+        {
+          "idx": 3,
+          "name": "3.15A 保险丝",
+          "silk": "3.15A 保险丝",
+          "color": "G",
+          "role": "indicator",
+          "expect": "off",
+          "fault_if_on": true,
+          "confidence": "高"
+        }
+      ]
+    },
+    {
+      "id": "Z15_PANEL",
+      "name": "Z15 显示电路分机（门板 2A/Modem/复位/电源）",
+      "kind": "mixed",
+      "calib": "Z15_PANEL",
+      "aliases": [
+        "Z15"
+      ],
+      "status": "待确认",
+      "confidence": "高（2A/Modem/电源）；低（复位是否带灯）",
+      "source": "雷达判据/led_calib_待确认.json（2026-10-18 草案，part=z15）",
+      "panel_photo": "IMGP_20260427_200641.jpg",
+      "silk": [
+        "2A",
+        "Modem",
+        "复位",
+        "电源"
+      ],
+      "note": "门板左→右：2A保险丝(圆灯) → Modem(方灯) → 复位(方按键) → 电源(方灯)。★ 2A 保险丝灯正常=灭，亮=故障（SOP「[2A]-指示灯不亮」）。",
+      "uncertainties": [
+        "「复位」按键是否带灯、灯罩颜色未确认 → 不参与判定",
+        "2A 保险丝灯罩颜色照片偏白/浅绿（中置信）"
+      ],
+      "lamps": [
+        {
+          "idx": 0,
+          "name": "2A 保险丝",
+          "silk": "2A",
+          "color": "G",
+          "role": "indicator",
+          "expect": "off",
+          "fault_if_on": true,
+          "confidence": "高"
+        },
+        {
+          "idx": 1,
+          "name": "Modem",
+          "silk": "Modem",
+          "color": "G",
+          "role": "button_lamp",
+          "expect": "on",
+          "confidence": "高"
+        },
+        {
+          "idx": 2,
+          "name": "复位",
+          "silk": "复位",
+          "color": "R",
+          "role": "button",
+          "expect": "any",
+          "critical": false,
+          "confidence": "低",
+          "note": "按键；是否带灯未确认 → 不参与判定"
+        },
+        {
+          "idx": 3,
+          "name": "电源（按键灯）",
+          "silk": "电源",
+          "color": "G",
+          "role": "button_lamp",
+          "expect": "on",
+          "confidence": "高"
+        }
+      ]
+    },
+    {
+      "id": "Z4",
+      "name": "Z4 天线控制单元",
+      "kind": "known_only",
+      "aliases": [
+        "Z4"
+      ],
+      "status": "仅登记（无灯规则）",
+      "source": "markers_modules.json（v2 24 模块）",
+      "silk": [
+        "天线控制单元"
+      ],
+      "note": "已知部位，仅用于标记识别/界面显示；灯序与期望未标定，判定结论=未判定（判定规则待标定）。★ 不编造灯光规则。",
+      "lamps": []
+    },
+    {
+      "id": "Z5",
+      "name": "Z5 收发机柜",
+      "kind": "known_only",
+      "aliases": [
+        "Z5"
+      ],
+      "status": "仅登记（无灯规则）",
+      "source": "markers_modules.json（v2 24 模块）",
+      "silk": [
+        "收发机柜"
+      ],
+      "note": "已知部位，仅用于标记识别/界面显示；灯序与期望未标定，判定结论=未判定（判定规则待标定）。★ 不编造灯光规则。",
+      "lamps": []
+    },
+    {
+      "id": "Z11",
+      "name": "Z11 收发分机",
+      "kind": "known_only",
+      "aliases": [
+        "Z11"
+      ],
+      "status": "仅登记（无灯规则）",
+      "source": "markers_modules.json（v2 24 模块）",
+      "silk": [
+        "收发分机"
+      ],
+      "note": "已知部位，仅用于标记识别/界面显示；灯序与期望未标定，判定结论=未判定（判定规则待标定）。★ 不编造灯光规则。",
+      "lamps": []
+    },
+    {
+      "id": "Z16",
+      "name": "Z16 指示分机",
+      "kind": "known_only",
+      "aliases": [
+        "Z16"
+      ],
+      "status": "仅登记（无灯规则）",
+      "source": "markers_modules.json（v2 24 模块）",
+      "silk": [
+        "指示分机"
+      ],
+      "note": "已知部位，仅用于标记识别/界面显示；灯序与期望未标定，判定结论=未判定（判定规则待标定）。★ 不编造灯光规则。",
+      "lamps": []
+    },
+    {
+      "id": "Z20",
+      "name": "Z20 控制台",
+      "kind": "known_only",
+      "aliases": [
+        "Z20"
+      ],
+      "status": "仅登记（无灯规则）",
+      "source": "markers_modules.json（v2 24 模块）",
+      "silk": [
+        "控制台"
+      ],
+      "note": "已知部位，仅用于标记识别/界面显示；灯序与期望未标定，判定结论=未判定（判定规则待标定）。★ 不编造灯光规则。",
+      "lamps": []
+    },
+    {
+      "id": "Z11-1",
+      "name": "Z11-1 频综",
+      "kind": "known_only",
+      "aliases": [
+        "Z11-1"
+      ],
+      "status": "仅登记（无灯规则）",
+      "source": "markers_modules.json（v2 24 模块）",
+      "silk": [
+        "频综"
+      ],
+      "note": "已知部位，仅用于标记识别/界面显示；灯序与期望未标定，判定结论=未判定（判定规则待标定）。★ 不编造灯光规则。",
+      "lamps": []
+    },
+    {
+      "id": "Z11-3",
+      "name": "Z11-3 固态功放",
+      "kind": "known_only",
+      "aliases": [
+        "Z11-3"
+      ],
+      "status": "仅登记（无灯规则）",
+      "source": "markers_modules.json（v2 24 模块）",
+      "silk": [
+        "固态功放"
+      ],
+      "note": "已知部位，仅用于标记识别/界面显示；灯序与期望未标定，判定结论=未判定（判定规则待标定）。★ 不编造灯光规则。",
+      "lamps": []
+    },
+    {
+      "id": "Z11-4",
+      "name": "Z11-4 接收前端",
+      "kind": "known_only",
+      "aliases": [
+        "Z11-4"
+      ],
+      "status": "仅登记（无灯规则）",
+      "source": "markers_modules.json（v2 24 模块）",
+      "silk": [
+        "接收前端"
+      ],
+      "note": "已知部位，仅用于标记识别/界面显示；灯序与期望未标定，判定结论=未判定（判定规则待标定）。★ 不编造灯光规则。",
+      "lamps": []
+    },
+    {
+      "id": "Z11-5",
+      "name": "Z11-5 近程增益",
+      "kind": "known_only",
+      "aliases": [
+        "Z11-5"
+      ],
+      "status": "仅登记（无灯规则）",
+      "source": "markers_modules.json（v2 24 模块）",
+      "silk": [
+        "近程增益"
+      ],
+      "note": "已知部位，仅用于标记识别/界面显示；灯序与期望未标定，判定结论=未判定（判定规则待标定）。★ 不编造灯光规则。",
+      "lamps": []
+    },
+    {
+      "id": "Z12-GL",
+      "name": "Z12-GL GL1/GL2/GL3 电源",
+      "kind": "known_only",
+      "aliases": [
+        "Z12-GL"
+      ],
+      "status": "仅登记（无灯规则）",
+      "source": "markers_modules.json（v2 24 模块）",
+      "silk": [
+        "GL1/GL2/GL3 电源"
+      ],
+      "note": "已知部位，仅用于标记识别/界面显示；灯序与期望未标定，判定结论=未判定（判定规则待标定）。★ 不编造灯光规则。",
+      "lamps": []
+    },
+    {
+      "id": "Z14-CLK",
+      "name": "Z14-CLK 时钟板",
+      "kind": "known_only",
+      "aliases": [
+        "Z14-CLK"
+      ],
+      "status": "仅登记（无灯规则）",
+      "source": "markers_modules.json（v2 24 模块）",
+      "silk": [
+        "时钟板"
+      ],
+      "note": "已知部位，仅用于标记识别/界面显示；灯序与期望未标定，判定结论=未判定（判定规则待标定）。★ 不编造灯光规则。",
+      "lamps": []
+    },
+    {
+      "id": "Z15-IF",
+      "name": "Z15-IF 接口板",
+      "kind": "known_only",
+      "aliases": [
+        "Z15-IF"
+      ],
+      "status": "仅登记（无灯规则）",
+      "source": "markers_modules.json（v2 24 模块）",
+      "silk": [
+        "接口板"
+      ],
+      "note": "已知部位，仅用于标记识别/界面显示；灯序与期望未标定，判定结论=未判定（判定规则待标定）。★ 不编造灯光规则。",
+      "lamps": []
+    },
+    {
+      "id": "Z15-CPU",
+      "name": "Z15-CPU CPU板",
+      "kind": "known_only",
+      "aliases": [
+        "Z15-CPU"
+      ],
+      "status": "仅登记（无灯规则）",
+      "source": "markers_modules.json（v2 24 模块）",
+      "silk": [
+        "CPU板"
+      ],
+      "note": "已知部位，仅用于标记识别/界面显示；灯序与期望未标定，判定结论=未判定（判定规则待标定）。★ 不编造灯光规则。",
+      "lamps": []
+    }
+  ],
+  "updated": "2026-10-18T13:55:00+08:00",
+  "v2_coverage_note": "v2 标记的 rule_key 为空；本表按 aliases 归属。Z31→PS_KONG、Z18→ANT_DIR（已确认）；Z12/Z14/Z15 为草案（待确认）；其余 v2 部位仅登记、无灯规则。"
+}

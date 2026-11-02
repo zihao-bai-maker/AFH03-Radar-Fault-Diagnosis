@@ -1,0 +1,43 @@
+﻿[Unit]
+Description=AFH03 LED 面板判定界面（拍一张 -> 正常/故障 + 一句依据）
+# 与常占 /dev/video22 的取证服务互斥：本服务启动前把它优雅停掉（绝不 kill -9）
+# ★ 只依赖"X 已经起来"，**绝不 Wants=graphical.target**：
+#   否则 systemd 会去拉 graphical.target -> lightdm 在 tty8 再开一个 X，把可见屏从 tty7 抢走
+#   （现场实测：2026-10-04 出现过屏上跳到 lightdm 登录界面）
+After=multi-user.target afh03-forensics.service
+
+[Service]
+Type=simple
+# 必须等 X0 起来再开窗
+ExecStartPre=/bin/sh -c 'i=0; while [ $i -lt 40 ] && [ ! -e /tmp/.X11-unix/X0 ]; do i=$((i+1)); sleep 1; done; [ -e /tmp/.X11-unix/X0 ] || echo "[WARN] X0 未出现"'
+# 互斥：先优雅停掉取证服务（它常占 video22），失败也不阻塞
+ExecStartPre=-/bin/systemctl stop afh03-forensics.service
+ExecStartPre=-/bin/sh -c 'i=0; while [ $i -lt 15 ] && ls -l /proc/*/fd/ 2>/dev/null | grep -q "video22"; do sleep 1; done'
+# ★ kiosk 场景：禁屏保/关 DPMS/停锁屏（否则屏上会跳登录/锁屏界面）
+ExecStartPre=-/bin/sh -c 'DISPLAY=:0 XAUTHORITY=/home/linaro/.Xauthority xset s off -dpms 2>/dev/null || true'
+ExecStartPre=-/bin/sh -c 'pkill -f light-locker 2>/dev/null || true; pkill -f xfce4-screensaver 2>/dev/null || true; pkill -f xscreensaver 2>/dev/null || true; true'
+Environment=DISPLAY=:0
+Environment=XAUTHORITY=/home/linaro/.Xauthority
+Environment=QT_QPA_PLATFORM=xcb
+# ★ 关掉 Python 输出缓冲：否则界面进程的日志会被缓存在内存里，journal 里什么都看不到（静默失败）
+Environment=PYTHONUNBUFFERED=1
+Environment=PYTHONFAULTHANDLER=1
+# ★ 规则/标定/示波器都可用环境变量注入（不用改 ExecStart）
+Environment=AFH03_PART=PS_KONG
+Environment=AFH03_CALIB=/home/rock/afh03_board_setup/config/led_calib.json
+Environment=AFH03_SCOPE_HOST=
+Environment=AFH03_SCOPE_NOMINAL=20000000,40000000
+Environment=AFH03_SCOPE_TOL_PCT=1.0
+# 没有标定文件时不要硬判：加 --auto 才走自动算法（演示用）。正式用请先标定。
+# ★ 自动档：**不带 --part**，模块身份由标记决定（用户实际用法）；标定存在则作为精度增强
+ExecStart=/bin/sh -c '/usr/bin/python3 -m soc_vision.ui_kiosk ${AFH03_CALIB:+--calib $AFH03_CALIB} --max-side-frac 0.50'
+WorkingDirectory=/home/rock/afh03_board_setup
+Restart=always
+RestartSec=3
+KillSignal=SIGTERM
+TimeoutStopSec=15
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target

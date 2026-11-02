@@ -1,0 +1,57 @@
+standard
+***Report Model: VPI_6a30bb3fd7b5 Device: PH1A90SEG324***
+
+Design Statistics
+#IO                         9   out of    148    6.08%
+  #input                    1
+  #output                   8
+  #inout                    0
+#lut                       47
+  #lut1                     1
+  #lut2                     4
+  #lut3                     2
+  #lut4                     6
+  #lut5                     1
+  #lut6                    33
+#reg                       77
+  #slice reg               77   out of 128640    0.06%
+  #pad reg                  0
+
+Utilization Statistics
+#slice*                    55   out of  64320    0.09%
+  #used ram                 0
+    #dram lut               0
+    #shifter lut            0
+  #used logic              55
+    #with luts*            27
+    #with adder            16
+    #reg only*             12
+#f7mux                      0   out of  32160    0.00%
+#f8mux                      0   out of  16080    0.00%
+#eram                       0   out of    272    0.00%
+  #eram20k                  0
+  #fifo20k                  0
+#dsp                        0   out of    240    0.00%
+#pcie                       0   out of      1    0.00%
+#serdes dual                0   out of      4    0.00%
+#ddr_cal                    0   out of      1    0.00%
+#ddr_bank                   0   out of      2    0.00%
+#pad                        0   out of    148    0.00%
+#pll                        0   out of     12    0.00%
+#gclk                       0   out of     32    0.00%
+#lclk                       0   out of     32    0.00%
+#sclk                       0   out of     96    0.00%
+#mlclk                      0   out of     16    0.00%
+#ioclk                      0   out of     16    0.00%
+
+* Note! The LUT and Slice count after Optimize-Gate is not the final value, Run Optimize-place for a more realistic count.
+
+Report Hierarchy Area:
++------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+|Instance                                 |Module                   |logic lut |ripple  |seq     |eram    |dsp     |dram lut |shifter lut |f7mux   |f8mux   |pll     |serdes   |pcie    |ddr     |
++------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+|top                                      |VPI_6a30bb3fd7b5         |27        |16      |77      |0       |0       |0        |0           |0       |0       |0       |0        |0       |0       |
+|  wrapper_vpi_top                        |top_vpi_hub              |27        |16      |77      |0       |0       |0        |0           |0       |0       |0       |0        |0       |0       |
+|    U_vpi                                |anlogic01_vpi            |27        |16      |77      |0       |0       |0        |0           |0       |0       |0       |0        |0       |0       |
+|      VPI_OUTPUT_GEN[0]$U_vpi_output_gen |anlogic02_vpi_output_gen |27        |16      |77      |0       |0       |0        |0           |0       |0       |0       |0        |0       |0       |
++------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+

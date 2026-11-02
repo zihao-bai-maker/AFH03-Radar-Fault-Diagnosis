@@ -1,0 +1,80 @@
+set_pin_assignment	{ I_sysclk_25m }	{ LOCATION = T16; IOSTANDARD = LVCMOS18; PULLTYPE = PULLUP; }
+set_pin_assignment	{ I_ddr_clk }		{ LOCATION = T13; IOSTANDARD = LVDS18; PULLTYPE = NONE; }
+	
+# I_button[0]/[1] U17/V17 是 LVDS 差分对, 与参考工程 DSI HS data lane[1] (V17_p+U17_n) 冲突,
+# 已让位给 DSI; 如需按键, 请另选可用 LVCMOS18 pin.
+# set_pin_assignment	{ I_button[0] }		{ LOCATION = U17; IOSTANDARD = LVCMOS18; PULLTYPE = PULLUP; }
+# set_pin_assignment	{ I_button[1] }		{ LOCATION = V17; IOSTANDARD = LVCMOS18; PULLTYPE = PULLUP; }
+	
+# 摄像头 I2C/RST/MCLK -- 严格按参考工程 AFC03_IMX415_PH1A_DSI/uisrc/04_pin/imx415_dsi.adc
+set_pin_assignment	{ O_cam_scl }		{ LOCATION = B14; IOSTANDARD = LVCMOS18; DRIVESTRENGTH = 8; PULLTYPE = PULLUP; }
+set_pin_assignment	{ IO_cam_sda }		{ LOCATION = A14; IOSTANDARD = LVCMOS18; DRIVESTRENGTH = 8; PULLTYPE = PULLUP; }
+set_pin_assignment	{ O_clk_rst }		{ LOCATION = B18; IOSTANDARD = LVCMOS18; DRIVESTRENGTH = 8; PULLTYPE = NONE; }
+set_pin_assignment	{ O_clk_24m }		{ LOCATION = A18; IOSTANDARD = LVCMOS18; DRIVESTRENGTH = 8; PULLTYPE = NONE; }
+
+# IMX415 MIPI CSI-2 RX HS lanes (同步参考工程 imx415_dsi.adc)
+set_pin_assignment	{ I_clk_hs_p }		{ LOCATION = E13; IOSTANDARD = LVDS18; PULLTYPE = NONE; }
+set_pin_assignment	{ I_data_hs_p[0] }	{ LOCATION = C14; IOSTANDARD = LVDS18; PULLTYPE = NONE; INDEL = 20; }
+set_pin_assignment	{ I_data_hs_p[1] }	{ LOCATION = D14; IOSTANDARD = LVDS18; PULLTYPE = NONE; INDEL = 20; }
+set_pin_assignment	{ I_data_hs_p[2] }	{ LOCATION = A15; IOSTANDARD = LVDS18; PULLTYPE = NONE; INDEL = 20; }
+set_pin_assignment	{ I_data_hs_p[3] }	{ LOCATION = G17; IOSTANDARD = LVDS18; PULLTYPE = NONE; INDEL = 20; }
+
+set_pin_assignment	{ I_data_lp_n[0] }	{ LOCATION = C16; IOSTANDARD = LVCMOS18; PULLTYPE = PULLUP; }
+set_pin_assignment	{ I_data_lp_n[1] }	{ LOCATION = D15; IOSTANDARD = LVCMOS18; PULLTYPE = PULLUP; }
+set_pin_assignment	{ I_data_lp_n[2] }	{ LOCATION = B17; IOSTANDARD = LVCMOS18; PULLTYPE = PULLUP; }
+set_pin_assignment	{ I_data_lp_n[3] }	{ LOCATION = F14; IOSTANDARD = LVCMOS18; PULLTYPE = PULLUP; }
+set_pin_assignment	{ I_data_lp_p[0] }	{ LOCATION = B16; IOSTANDARD = LVCMOS18; PULLTYPE = PULLUP; }
+set_pin_assignment	{ I_data_lp_p[1] }	{ LOCATION = C15; IOSTANDARD = LVCMOS18; PULLTYPE = PULLUP; }
+set_pin_assignment	{ I_data_lp_p[2] }	{ LOCATION = C17; IOSTANDARD = LVCMOS18; PULLTYPE = PULLUP; }
+set_pin_assignment	{ I_data_lp_p[3] }	{ LOCATION = F15; IOSTANDARD = LVCMOS18; PULLTYPE = PULLUP; }
+
+# =============================================================
+# MIPI DSI TX (实质 CSI-2 协议, 4-lane LVDS HS + LVCMOS18 LP)
+# 同步参考工程 imx415_dsi.adc, 输出至 RK3576
+# =============================================================
+set_pin_assignment	{ I_dsi_en }				{ LOCATION = L13; IOSTANDARD = LVCMOS18; PULLTYPE = PULLDOWN; }
+
+set_pin_assignment	{ O_mipi_dsi_hs_clk_p }		{ LOCATION = T15; IOSTANDARD = LVDS18; PRE_EMP = ON; VOCM = L2; VOD = 300M; }
+set_pin_assignment	{ O_mipi_dsi_hs_data_p[0] }	{ LOCATION = P13; IOSTANDARD = LVDS18; PRE_EMP = ON; VOCM = L2; VOD = 300M; }
+set_pin_assignment	{ O_mipi_dsi_hs_data_p[1] }	{ LOCATION = V17; IOSTANDARD = LVDS18; PRE_EMP = ON; VOCM = L2; VOD = 300M; }
+set_pin_assignment	{ O_mipi_dsi_hs_data_p[2] }	{ LOCATION = U13; IOSTANDARD = LVDS18; PRE_EMP = ON; VOCM = L2; VOD = 300M; }
+set_pin_assignment	{ O_mipi_dsi_hs_data_p[3] }	{ LOCATION = V15; IOSTANDARD = LVDS18; PRE_EMP = ON; VOCM = L2; VOD = 300M; }
+
+set_pin_assignment	{ O_mipi_dsi_lp_clk_p }		{ LOCATION = P17; IOSTANDARD = LVCMOS18; DRIVESTRENGTH = 8; SLEWRATE = FAST; }
+set_pin_assignment	{ O_mipi_dsi_lp_clk_n }		{ LOCATION = P18; IOSTANDARD = LVCMOS18; DRIVESTRENGTH = 8; SLEWRATE = FAST; }
+set_pin_assignment	{ O_mipi_dsi_lp_data_p[0] }	{ LOCATION = T11; IOSTANDARD = LVCMOS18; DRIVESTRENGTH = 8; SLEWRATE = FAST; }
+set_pin_assignment	{ O_mipi_dsi_lp_data_n[0] }	{ LOCATION = U12; IOSTANDARD = LVCMOS18; DRIVESTRENGTH = 8; SLEWRATE = FAST; }
+set_pin_assignment	{ O_mipi_dsi_lp_data_p[1] }	{ LOCATION = R11; IOSTANDARD = LVCMOS18; DRIVESTRENGTH = 8; SLEWRATE = FAST; }
+set_pin_assignment	{ O_mipi_dsi_lp_data_n[1] }	{ LOCATION = R12; IOSTANDARD = LVCMOS18; DRIVESTRENGTH = 8; SLEWRATE = FAST; }
+set_pin_assignment	{ O_mipi_dsi_lp_data_p[2] }	{ LOCATION = R16; IOSTANDARD = LVCMOS18; DRIVESTRENGTH = 8; SLEWRATE = FAST; }
+set_pin_assignment	{ O_mipi_dsi_lp_data_n[2] }	{ LOCATION = R17; IOSTANDARD = LVCMOS18; DRIVESTRENGTH = 8; SLEWRATE = FAST; }
+set_pin_assignment	{ O_mipi_dsi_lp_data_p[3] }	{ LOCATION = T18; IOSTANDARD = LVCMOS18; DRIVESTRENGTH = 8; SLEWRATE = FAST; }
+set_pin_assignment	{ O_mipi_dsi_lp_data_n[3] }	{ LOCATION = R18; IOSTANDARD = LVCMOS18; DRIVESTRENGTH = 8; SLEWRATE = FAST; }
+
+
+
+
+	
+	
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

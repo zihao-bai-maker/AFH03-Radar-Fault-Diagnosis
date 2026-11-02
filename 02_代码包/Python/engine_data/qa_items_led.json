@@ -1,0 +1,676 @@
+{
+ "schema": "qa_items_led/v1",
+ "engine_version": "1.0.0",
+ "generated_by": "雷达判据/_ledcalib_work/_build_qa_led.py（一次性生成；重跑可复现）",
+ "generated_at": "2026-10-18T14:50:00+08:00",
+ "source": {
+  "led_rules": "afh03_board_setup/config/led_rules.json（Z14 三灯 2026-10-25 现场更正：0 复位 / 1 电源 / 2 3.15A；Z15 灯序 status=confirmed_by_user）",
+  "photos": "雷达照片_今天/拍照UI照片/IMGP_20260427_200552.jpg（Z14）、IMGP_20260427_200641.jpg（Z15）",
+  "measurement": "雷达判据/led_calib_颜色实测.md（离线 ROI：中心盘中位色 + 环带亮度差）",
+  "schema": "雷达判据/engine/schema_evidence.md（evidence/v1）",
+  "count": 5,
+  "z14_align_20261025": "Z14 三灯重编号后对齐：LQ001→Z14_PANEL#1(电源)、LQ002→Z14_PANEL#0(复位)，两题 expect=on（现场口述，待核对）；Z15 三题编号原本即对齐，仅补 expect。"
+ },
+ "user_requirement": {
+  "why": "★ 用户特别说明：Z14/Z15 是「按钮上的灯」，亮得很弱 ⇒ 视觉不可靠 ⇒ 必须加问答确认（视觉只给提示）",
+  "scope": "Z14/Z15 的每颗按钮灯（复位/电源；Z15 另加 Modem）",
+  "rule": "最终以问答为准；视觉只作 vision_hint（reliable=false）；跳过 ⇒ undetermined + 低置信"
+ },
+ "value_vocab": {
+  "on": "灯亮（含「亮得很弱」）——§5.1 核心枚举",
+  "off": "灯灭——§5.1 核心枚举",
+  "undetermined": "看不清 / 跳过——§5.1 核心枚举，必须低置信并说明原因"
+ },
+ "option_origin_legend": {
+  "contract_core_enum": "schema_evidence.md §5.1 核心枚举（on / off / undetermined）",
+  "user_dictated": "用户 2026-10-18 口述的按钮文案（亮 ✔ / 灭 ✗ / 看不清·跳过）"
+ },
+ "vision_hint_legend": {
+  "reliable:false": "视觉结论不可作为判定依据，只用于提示操作员「往哪看」",
+  "dim:true": "该灯为弱亮按钮灯，实测亮度差不足以区分亮/灭",
+  "measured": "离线 ROI 实测值（中心盘中位色 + 环带中位亮度），来源见 measurement"
+ },
+ "conflict_policy": {
+  "priority": "qa > vision",
+  "how": "问答答案直接作为该 field 的 value；vision_hint 保留但权重 0，融合层若标 conflict 以问答为准",
+  "if_skipped": "value=undetermined、confidence=0.30；不产生正常/异常结论（宁可不判）"
+ },
+ "author_confirm": [
+  {
+   "id": "AL1",
+   "scope": "LQ002 / LQ005（Z14、Z15 的「复位」）",
+   "issue": "「复位」按键是否带灯、灯罩颜色均未确认；本表按「按钮灯」提问，并允许选「看不清·跳过」。",
+   "status": "pending"
+  },
+  {
+   "id": "AL2",
+   "scope": "PS_KONG（Z31）「控制」灯",
+   "issue": "灯序已确认，但「控制」灯正常态是亮还是灭，用户标为待确认；led_rules 暂按 expect=on。",
+   "status": "pending"
+  },
+  {
+   "id": "AL3",
+   "scope": "ANT_DIR（Z18 位置指示）",
+   "issue": "照片 202202 里左/右两颗都没发光（按 status2 会判「两颗都灭=故障」）；需确认该图是否为到位时刻取证照。",
+   "status": "pending"
+  },
+  {
+   "id": "AL4",
+   "scope": "I/II 路",
+   "issue": "用户确认 I/II 是同一台面板 ⇒ route=shared；证据里 route 仍沿用条目原值（I/II），融合层按同 field 合并。",
+   "status": "confirmed"
+  }
+ ],
+ "items": [
+  {
+   "qa_id": "LQ001",
+   "seq": 1,
+   "part": "z14",
+   "route": "",
+   "route_policy": "shared（I/II 路同一台面板，灯序共用；同一答案同时适用于 I、II 路）",
+   "display": "operator_display",
+   "panel": "Z14",
+   "part_id": "Z14_PANEL",
+   "lamp_idx": 1,
+   "lamp_name": "电源",
+   "silk": "电源",
+   "role": "button_lamp",
+   "dim": true,
+   "visual_reliable": false,
+   "rule_key": "Z14_PANEL#1",
+   "led_rules_expect": "on",
+   "expect": "on",
+   "expect_status": "",
+   "field": "(led_indicator)_z14_power",
+   "field_src": "vision_bindings.json:9(7-I).3",
+   "question": "Z14 的【电源】灯亮了吗？（按钮上的红灯，亮得很弱也算亮）",
+   "question_plain": "Z14 的「电源」灯亮了吗？",
+   "normal": "亮",
+   "subtitle": "请到 Z14 门板正面看这颗按钮上的灯；★亮得很弱也算「亮」",
+   "options": [
+    {
+     "id": "on",
+     "value": "on",
+     "label": "亮 ✔",
+     "label_plain": "亮",
+     "tone": "ok",
+     "abnormal": false,
+     "schema_enum": "§5.1 核心枚举 on",
+     "note": "与 led_rules 期望一致（expect=on）"
+    },
+    {
+     "id": "off",
+     "value": "off",
+     "label": "灭 ✗",
+     "label_plain": "灭",
+     "tone": "bad",
+     "abnormal": true,
+     "schema_enum": "§5.1 核心枚举 off",
+     "note": "expect=on 而实际灭 ⇒ 异常"
+    },
+    {
+     "id": "skipped",
+     "value": "undetermined",
+     "label": "看不清·跳过",
+     "label_plain": "看不清·跳过",
+     "tone": "skip",
+     "abnormal": null,
+     "schema_enum": "§5.1 undetermined（§6：conf ≤ 0.5）",
+     "note": "不产生正常/异常结论；证据按 undetermined + 低置信上报，融合层不会因此判故障"
+    }
+   ],
+   "vision_hint": {
+    "modality": "vision",
+    "value": "undetermined",
+    "confidence": 0.3,
+    "reliable": false,
+    "dim": true,
+    "lean": "疑似亮（弱）",
+    "lean_reason": "中心比环带亮 +0.23V，但有可能是被环境光照亮的彩色塑料面 ⇒ 不算判定",
+    "source": "led_calib_颜色实测.md（离线 ROI 实测，非引擎在线检测）",
+    "photo": "IMGP_20260427_200552.jpg",
+    "photo_path": "D:\\xuexishengshou\\雷达照片_今天\\拍照UI照片\\IMGP_20260427_200552.jpg",
+    "evidence": "照片 IMGP_20260427_200552.jpg 离线 ROI 实测：中心 V=0.44、环带 V=0.21、dV=+0.23、色相 10.4°、rgb(112, 45, 31)；红色按钮灯：中心 V=0.44、比环带亮 +0.23，看着像「弱亮」但同样像「暗红塑料」⇒ 判不准",
+    "measured": {
+     "x": 913,
+     "y": 726,
+     "rgb": [
+      112,
+      45,
+      31
+     ],
+     "rgb_hex": "#702D1F",
+     "hue_deg": 10.4,
+     "sat": 0.72,
+     "val": 0.44,
+     "ring_val": 0.21,
+     "delta_v": 0.23,
+     "state_measured": "dim",
+     "color": "red",
+     "color_conf": 0.8
+    },
+    "why_unreliable": "按钮灯亮得很弱：中心与环带的亮度差只有 +0.23V（明显自发光是 +0.34~+0.46），弱亮与「未亮的彩色塑料面」在这张照片上区分不开"
+   },
+   "evidence_template": {
+    "part": "z14",
+    "route": "",
+    "modality": "qa",
+    "field": "(led_indicator)_z14_power",
+    "value": "<来自选项>",
+    "confidence": "<见 confidence_policy>",
+    "evidence": "<一句话：谁在哪个面板上看到什么，如「现场确认 Z14 电源按钮灯亮」>",
+    "ts": "<ISO-8601 带时区>",
+    "item_id": "LQ001",
+    "rule_key": "Z14_PANEL#1",
+    "source": "qa_items_led（Z14/Z15 弱按钮灯人工确认）"
+   },
+   "confidence_policy": {
+    "on": 0.9,
+    "off": 0.9,
+    "undetermined": 0.3,
+    "note": "人工目视确认给 0.90；跳过按 schema §6 不超过 0.5（本表取 0.30）"
+   },
+   "conflict": {
+    "possible": true,
+    "with": "vision_hint（见上，reliable=false）",
+    "detect": "同一 (part, field) 上 vision_hint.value 与本项 value 不同 ⇒ conflict=true",
+    "resolve": "★ 最终以问答为准：本项 value 进融合；vision_hint 仅保留为 hint_only，不参与正常/故障判定",
+    "same_as_screen_qa": "与 qa_items_screen.json 同一做法：视觉只给提示，人工/问答定结论"
+   },
+   "weight": {
+    "vision": 0.0,
+    "qa": 1.0,
+    "note": "融合权重：弱按钮灯视觉权重 0；问答权重 1.0"
+   },
+   "author_confirm": false
+  },
+  {
+   "qa_id": "LQ002",
+   "seq": 2,
+   "part": "z14",
+   "route": "",
+   "route_policy": "shared（I/II 路同一台面板，灯序共用；同一答案同时适用于 I、II 路）",
+   "display": "operator_display",
+   "panel": "Z14",
+   "part_id": "Z14_PANEL",
+   "lamp_idx": 0,
+   "lamp_name": "复位",
+   "silk": "复位",
+   "role": "button",
+   "dim": true,
+   "visual_reliable": false,
+   "rule_key": "Z14_PANEL#0",
+   "led_rules_expect": "on",
+   "expect": "on",
+   "expect_status": "",
+   "field": "(led_indicator)_z14_reset",
+   "field_src": "vision_bindings.json:extra.z14_reset（现场新增；判据库仍无该项）",
+   "question": "Z14 的【复位】灯亮了吗？（若该按键本来就不带灯，请选「看不清·跳过」）",
+   "question_plain": "Z14 的「复位」灯亮了吗？",
+   "normal": "亮（现场口述：复位灯绿亮，待核对）",
+   "subtitle": "请到 Z14 门板正面看这颗按钮上的灯；★亮得很弱也算「亮」",
+   "options": [
+    {
+     "id": "on",
+     "value": "on",
+     "label": "亮 ✔",
+     "label_plain": "亮",
+     "tone": "ok",
+     "abnormal": false,
+     "schema_enum": "§5.1 核心枚举 on",
+     "note": "与 led_rules 期望一致（expect=on）"
+    },
+    {
+     "id": "off",
+     "value": "off",
+     "label": "灭 ✗",
+     "label_plain": "灭",
+     "tone": "bad",
+     "abnormal": true,
+     "schema_enum": "§5.1 核心枚举 off",
+     "note": "expect=on 而实际灭 ⇒ 异常"
+    },
+    {
+     "id": "skipped",
+     "value": "undetermined",
+     "label": "看不清·跳过",
+     "label_plain": "看不清·跳过",
+     "tone": "skip",
+     "abnormal": null,
+     "schema_enum": "§5.1 undetermined（§6：conf ≤ 0.5）",
+     "note": "不产生正常/异常结论；证据按 undetermined + 低置信上报，融合层不会因此判故障"
+    }
+   ],
+   "vision_hint": {
+    "modality": "vision",
+    "value": "undetermined",
+    "confidence": 0.2,
+    "reliable": false,
+    "dim": true,
+    "lean": "无倾向（判不准）",
+    "lean_reason": "中心与环带亮度差只有 +0.08V，亮/灭两可",
+    "source": "led_calib_颜色实测.md（离线 ROI 实测，非引擎在线检测）",
+    "photo": "IMGP_20260427_200552.jpg",
+    "photo_path": "D:\\xuexishengshou\\雷达照片_今天\\拍照UI照片\\IMGP_20260427_200552.jpg",
+    "evidence": "照片 IMGP_20260427_200552.jpg 离线 ROI 实测：中心 V=0.29、环带 V=0.20、dV=+0.08、色相 156.5°、rgb(27, 73, 55)；绿色按钮面；是否带灯未确认，亮度只比环带亮 +0.08",
+    "measured": {
+     "x": 738,
+     "y": 736,
+     "rgb": [
+      27,
+      73,
+      55
+     ],
+     "rgb_hex": "#1B4937",
+     "hue_deg": 156.5,
+     "sat": 0.63,
+     "val": 0.29,
+     "ring_val": 0.2,
+     "delta_v": 0.08,
+     "state_measured": "undetermined",
+     "color": "green",
+     "color_conf": 0.75
+    },
+    "why_unreliable": "按钮灯亮得很弱：中心与环带的亮度差只有 +0.08V（明显自发光是 +0.34~+0.46），弱亮与「未亮的彩色塑料面」在这张照片上区分不开"
+   },
+   "evidence_template": {
+    "part": "z14",
+    "route": "",
+    "modality": "qa",
+    "field": "(led_indicator)_z14_reset",
+    "value": "<来自选项>",
+    "confidence": "<见 confidence_policy>",
+    "evidence": "<一句话：谁在哪个面板上看到什么，如「现场确认 Z14 电源按钮灯亮」>",
+    "ts": "<ISO-8601 带时区>",
+    "item_id": "LQ002",
+    "rule_key": "Z14_PANEL#0",
+    "source": "qa_items_led（Z14/Z15 弱按钮灯人工确认）"
+   },
+   "confidence_policy": {
+    "on": 0.9,
+    "off": 0.9,
+    "undetermined": 0.3,
+    "note": "人工目视确认给 0.90；跳过按 schema §6 不超过 0.5（本表取 0.30）"
+   },
+   "conflict": {
+    "possible": true,
+    "with": "vision_hint（见上，reliable=false）",
+    "detect": "同一 (part, field) 上 vision_hint.value 与本项 value 不同 ⇒ conflict=true",
+    "resolve": "★ 最终以问答为准：本项 value 进融合；vision_hint 仅保留为 hint_only，不参与正常/故障判定",
+    "same_as_screen_qa": "与 qa_items_screen.json 同一做法：视觉只给提示，人工/问答定结论"
+   },
+   "weight": {
+    "vision": 0.0,
+    "qa": 1.0,
+    "note": "融合权重：弱按钮灯视觉权重 0；问答权重 1.0"
+   },
+   "author_confirm": false
+  },
+  {
+   "qa_id": "LQ003",
+   "seq": 3,
+   "part": "z15",
+   "route": "",
+   "route_policy": "shared（I/II 路同一台面板，灯序共用；同一答案同时适用于 I、II 路）",
+   "display": "operator_display",
+   "panel": "Z15",
+   "part_id": "Z15_PANEL",
+   "lamp_idx": 1,
+   "lamp_name": "Modem",
+   "silk": "Modem",
+   "role": "button_lamp",
+   "dim": true,
+   "visual_reliable": false,
+   "rule_key": "Z15_PANEL#1",
+   "led_rules_expect": "on",
+   "expect": "on",
+   "expect_status": "",
+   "field": "(led_indicator)(operator_display)_z15_modem_power",
+   "field_src": "vision_bindings.json:13(9-I).2",
+   "question": "Z15 的【Modem】灯亮了吗？（Modem 按键上的绿灯，亮得很弱也算亮）",
+   "question_plain": "Z15 的「Modem」灯亮了吗？",
+   "normal": "亮",
+   "subtitle": "请到 Z15 门板正面看这颗按钮上的灯；★亮得很弱也算「亮」",
+   "options": [
+    {
+     "id": "on",
+     "value": "on",
+     "label": "亮 ✔",
+     "label_plain": "亮",
+     "tone": "ok",
+     "abnormal": false,
+     "schema_enum": "§5.1 核心枚举 on",
+     "note": "与 led_rules 期望一致（expect=on）"
+    },
+    {
+     "id": "off",
+     "value": "off",
+     "label": "灭 ✗",
+     "label_plain": "灭",
+     "tone": "bad",
+     "abnormal": true,
+     "schema_enum": "§5.1 核心枚举 off",
+     "note": "expect=on 而实际灭 ⇒ 异常"
+    },
+    {
+     "id": "skipped",
+     "value": "undetermined",
+     "label": "看不清·跳过",
+     "label_plain": "看不清·跳过",
+     "tone": "skip",
+     "abnormal": null,
+     "schema_enum": "§5.1 undetermined（§6：conf ≤ 0.5）",
+     "note": "不产生正常/异常结论；证据按 undetermined + 低置信上报，融合层不会因此判故障"
+    }
+   ],
+   "vision_hint": {
+    "modality": "vision",
+    "value": "undetermined",
+    "confidence": 0.2,
+    "reliable": false,
+    "dim": true,
+    "lean": "无倾向（判不准）",
+    "lean_reason": "中心与环带亮度差只有 +0.02V，亮/灭两可",
+    "source": "led_calib_颜色实测.md（离线 ROI 实测，非引擎在线检测）",
+    "photo": "IMGP_20260427_200641.jpg",
+    "photo_path": "D:\\xuexishengshou\\雷达照片_今天\\拍照UI照片\\IMGP_20260427_200641.jpg",
+    "evidence": "照片 IMGP_20260427_200641.jpg 离线 ROI 实测：中心 V=0.23、环带 V=0.21、dV=+0.02、色相 151.0°、rgb(30, 59, 45)；绿色按钮面；中心与环带几乎同亮（+0.02）⇒ 无法判断亮灭",
+    "measured": {
+     "x": 924,
+     "y": 770,
+     "rgb": [
+      30,
+      59,
+      45
+     ],
+     "rgb_hex": "#1E3B2D",
+     "hue_deg": 151.0,
+     "sat": 0.49,
+     "val": 0.23,
+     "ring_val": 0.21,
+     "delta_v": 0.02,
+     "state_measured": "undetermined",
+     "color": "green",
+     "color_conf": 0.75
+    },
+    "why_unreliable": "按钮灯亮得很弱：中心与环带的亮度差只有 +0.02V（明显自发光是 +0.34~+0.46），弱亮与「未亮的彩色塑料面」在这张照片上区分不开"
+   },
+   "evidence_template": {
+    "part": "z15",
+    "route": "",
+    "modality": "qa",
+    "field": "(led_indicator)(operator_display)_z15_modem_power",
+    "value": "<来自选项>",
+    "confidence": "<见 confidence_policy>",
+    "evidence": "<一句话：谁在哪个面板上看到什么，如「现场确认 Z14 电源按钮灯亮」>",
+    "ts": "<ISO-8601 带时区>",
+    "item_id": "LQ003",
+    "rule_key": "Z15_PANEL#1",
+    "source": "qa_items_led（Z14/Z15 弱按钮灯人工确认）"
+   },
+   "confidence_policy": {
+    "on": 0.9,
+    "off": 0.9,
+    "undetermined": 0.3,
+    "note": "人工目视确认给 0.90；跳过按 schema §6 不超过 0.5（本表取 0.30）"
+   },
+   "conflict": {
+    "possible": true,
+    "with": "vision_hint（见上，reliable=false）",
+    "detect": "同一 (part, field) 上 vision_hint.value 与本项 value 不同 ⇒ conflict=true",
+    "resolve": "★ 最终以问答为准：本项 value 进融合；vision_hint 仅保留为 hint_only，不参与正常/故障判定",
+    "same_as_screen_qa": "与 qa_items_screen.json 同一做法：视觉只给提示，人工/问答定结论"
+   },
+   "weight": {
+    "vision": 0.0,
+    "qa": 1.0,
+    "note": "融合权重：弱按钮灯视觉权重 0；问答权重 1.0"
+   },
+   "author_confirm": false
+  },
+  {
+   "qa_id": "LQ004",
+   "seq": 4,
+   "part": "z15",
+   "route": "",
+   "route_policy": "shared（I/II 路同一台面板，灯序共用；同一答案同时适用于 I、II 路）",
+   "display": "operator_display",
+   "panel": "Z15",
+   "part_id": "Z15_PANEL",
+   "lamp_idx": 3,
+   "lamp_name": "电源",
+   "silk": "电源",
+   "role": "button_lamp",
+   "dim": true,
+   "visual_reliable": false,
+   "rule_key": "Z15_PANEL#3",
+   "led_rules_expect": "on",
+   "expect": "on",
+   "expect_status": "",
+   "field": "(led_indicator)_z15_power",
+   "field_src": "vision_bindings.json:11(8-I).3",
+   "question": "Z15 的【电源】灯亮了吗？（电源按键上的绿灯，亮得很弱也算亮）",
+   "question_plain": "Z15 的「电源」灯亮了吗？",
+   "normal": "亮",
+   "subtitle": "请到 Z15 门板正面看这颗按钮上的灯；★亮得很弱也算「亮」",
+   "options": [
+    {
+     "id": "on",
+     "value": "on",
+     "label": "亮 ✔",
+     "label_plain": "亮",
+     "tone": "ok",
+     "abnormal": false,
+     "schema_enum": "§5.1 核心枚举 on",
+     "note": "与 led_rules 期望一致（expect=on）"
+    },
+    {
+     "id": "off",
+     "value": "off",
+     "label": "灭 ✗",
+     "label_plain": "灭",
+     "tone": "bad",
+     "abnormal": true,
+     "schema_enum": "§5.1 核心枚举 off",
+     "note": "expect=on 而实际灭 ⇒ 异常"
+    },
+    {
+     "id": "skipped",
+     "value": "undetermined",
+     "label": "看不清·跳过",
+     "label_plain": "看不清·跳过",
+     "tone": "skip",
+     "abnormal": null,
+     "schema_enum": "§5.1 undetermined（§6：conf ≤ 0.5）",
+     "note": "不产生正常/异常结论；证据按 undetermined + 低置信上报，融合层不会因此判故障"
+    }
+   ],
+   "vision_hint": {
+    "modality": "vision",
+    "value": "undetermined",
+    "confidence": 0.2,
+    "reliable": false,
+    "dim": true,
+    "lean": "无倾向（判不准）",
+    "lean_reason": "中心与环带亮度差只有 -0.02V，亮/灭两可",
+    "source": "led_calib_颜色实测.md（离线 ROI 实测，非引擎在线检测）",
+    "photo": "IMGP_20260427_200641.jpg",
+    "photo_path": "D:\\xuexishengshou\\雷达照片_今天\\拍照UI照片\\IMGP_20260427_200641.jpg",
+    "evidence": "照片 IMGP_20260427_200641.jpg 离线 ROI 实测：中心 V=0.25、环带 V=0.27、dV=-0.02、色相 149.1°、rgb(31, 64, 47)；绿色按钮面；中心比环带还暗（-0.02）⇒ 判不准（欠曝）",
+    "measured": {
+     "x": 1174,
+     "y": 790,
+     "rgb": [
+      31,
+      64,
+      47
+     ],
+     "rgb_hex": "#1F402F",
+     "hue_deg": 149.1,
+     "sat": 0.52,
+     "val": 0.25,
+     "ring_val": 0.27,
+     "delta_v": -0.02,
+     "state_measured": "undetermined",
+     "color": "green",
+     "color_conf": 0.75
+    },
+    "why_unreliable": "按钮灯亮得很弱：中心与环带的亮度差只有 -0.02V（明显自发光是 +0.34~+0.46），弱亮与「未亮的彩色塑料面」在这张照片上区分不开"
+   },
+   "evidence_template": {
+    "part": "z15",
+    "route": "",
+    "modality": "qa",
+    "field": "(led_indicator)_z15_power",
+    "value": "<来自选项>",
+    "confidence": "<见 confidence_policy>",
+    "evidence": "<一句话：谁在哪个面板上看到什么，如「现场确认 Z14 电源按钮灯亮」>",
+    "ts": "<ISO-8601 带时区>",
+    "item_id": "LQ004",
+    "rule_key": "Z15_PANEL#3",
+    "source": "qa_items_led（Z14/Z15 弱按钮灯人工确认）"
+   },
+   "confidence_policy": {
+    "on": 0.9,
+    "off": 0.9,
+    "undetermined": 0.3,
+    "note": "人工目视确认给 0.90；跳过按 schema §6 不超过 0.5（本表取 0.30）"
+   },
+   "conflict": {
+    "possible": true,
+    "with": "vision_hint（见上，reliable=false）",
+    "detect": "同一 (part, field) 上 vision_hint.value 与本项 value 不同 ⇒ conflict=true",
+    "resolve": "★ 最终以问答为准：本项 value 进融合；vision_hint 仅保留为 hint_only，不参与正常/故障判定",
+    "same_as_screen_qa": "与 qa_items_screen.json 同一做法：视觉只给提示，人工/问答定结论"
+   },
+   "weight": {
+    "vision": 0.0,
+    "qa": 1.0,
+    "note": "融合权重：弱按钮灯视觉权重 0；问答权重 1.0"
+   },
+   "author_confirm": false
+  },
+  {
+   "qa_id": "LQ005",
+   "seq": 5,
+   "part": "z15",
+   "route": "",
+   "route_policy": "shared（I/II 路同一台面板，灯序共用；同一答案同时适用于 I、II 路）",
+   "display": "operator_display",
+   "panel": "Z15",
+   "part_id": "Z15_PANEL",
+   "lamp_idx": 2,
+   "lamp_name": "复位",
+   "silk": "复位",
+   "role": "button",
+   "dim": true,
+   "visual_reliable": false,
+   "rule_key": "Z15_PANEL#2",
+   "led_rules_expect": "any",
+   "expect": "any",
+   "expect_status": "",
+   "field": "(led_indicator)_z15_reset",
+   "field_src": "vision_bindings.json:无（判据库无「复位」灯检查项）",
+   "question": "Z15 的【复位】灯亮了吗？（若该按键本来就不带灯，请选「看不清·跳过」）",
+   "question_plain": "Z15 的「复位」灯亮了吗？",
+   "normal": "任意（判据库无该项的正常态）",
+   "subtitle": "请到 Z15 门板正面看这颗按钮上的灯；★亮得很弱也算「亮」",
+   "options": [
+    {
+     "id": "on",
+     "value": "on",
+     "label": "亮 ✔",
+     "label_plain": "亮",
+     "tone": "ok",
+     "abnormal": null,
+     "schema_enum": "§5.1 核心枚举 on",
+     "note": "本项无登记正常态 ⇒ 只作为观测值上报，不下正常/故障结论"
+    },
+    {
+     "id": "off",
+     "value": "off",
+     "label": "灭 ✗",
+     "label_plain": "灭",
+     "tone": "bad",
+     "abnormal": null,
+     "schema_enum": "§5.1 核心枚举 off",
+     "note": "无登记正常态 ⇒ 只上报观测值"
+    },
+    {
+     "id": "skipped",
+     "value": "undetermined",
+     "label": "看不清·跳过",
+     "label_plain": "看不清·跳过",
+     "tone": "skip",
+     "abnormal": null,
+     "schema_enum": "§5.1 undetermined（§6：conf ≤ 0.5）",
+     "note": "不产生正常/异常结论；证据按 undetermined + 低置信上报，融合层不会因此判故障"
+    }
+   ],
+   "vision_hint": {
+    "modality": "vision",
+    "value": "undetermined",
+    "confidence": 0.2,
+    "reliable": false,
+    "dim": true,
+    "lean": "无倾向（判不准）",
+    "lean_reason": "中心与环带亮度差只有 -0.04V，亮/灭两可",
+    "source": "led_calib_颜色实测.md（离线 ROI 实测，非引擎在线检测）",
+    "photo": "IMGP_20260427_200641.jpg",
+    "photo_path": "D:\\xuexishengshou\\雷达照片_今天\\拍照UI照片\\IMGP_20260427_200641.jpg",
+    "evidence": "照片 IMGP_20260427_200641.jpg 离线 ROI 实测：中心 V=0.16、环带 V=0.21、dV=-0.04、色相 70.0°、rgb(38, 40, 28)；暗红/黑按钮，几乎无光（V=0.16）；是否带灯未确认",
+    "measured": {
+     "x": 1028,
+     "y": 778,
+     "rgb": [
+      38,
+      40,
+      28
+     ],
+     "rgb_hex": "#26281C",
+     "hue_deg": 70.0,
+     "sat": 0.3,
+     "val": 0.16,
+     "ring_val": 0.21,
+     "delta_v": -0.04,
+     "state_measured": "undetermined",
+     "color": "unknown",
+     "color_conf": 0.25
+    },
+    "why_unreliable": "按钮灯亮得很弱：中心与环带的亮度差只有 -0.04V（明显自发光是 +0.34~+0.46），弱亮与「未亮的彩色塑料面」在这张照片上区分不开"
+   },
+   "evidence_template": {
+    "part": "z15",
+    "route": "",
+    "modality": "qa",
+    "field": "(led_indicator)_z15_reset",
+    "value": "<来自选项>",
+    "confidence": "<见 confidence_policy>",
+    "evidence": "<一句话：谁在哪个面板上看到什么，如「现场确认 Z14 电源按钮灯亮」>",
+    "ts": "<ISO-8601 带时区>",
+    "item_id": "LQ005",
+    "rule_key": "Z15_PANEL#2",
+    "source": "qa_items_led（Z14/Z15 弱按钮灯人工确认）"
+   },
+   "confidence_policy": {
+    "on": 0.9,
+    "off": 0.9,
+    "undetermined": 0.3,
+    "note": "人工目视确认给 0.90；跳过按 schema §6 不超过 0.5（本表取 0.30）"
+   },
+   "conflict": {
+    "possible": true,
+    "with": "vision_hint（见上，reliable=false）",
+    "detect": "同一 (part, field) 上 vision_hint.value 与本项 value 不同 ⇒ conflict=true",
+    "resolve": "★ 最终以问答为准：本项 value 进融合；vision_hint 仅保留为 hint_only，不参与正常/故障判定",
+    "same_as_screen_qa": "与 qa_items_screen.json 同一做法：视觉只给提示，人工/问答定结论"
+   },
+   "weight": {
+    "vision": 0.0,
+    "qa": 1.0,
+    "note": "融合权重：弱按钮灯视觉权重 0；问答权重 1.0"
+   },
+   "author_confirm": true
+  }
+ ]
+}

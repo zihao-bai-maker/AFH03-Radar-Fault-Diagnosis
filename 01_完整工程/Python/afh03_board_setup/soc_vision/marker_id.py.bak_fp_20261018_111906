@@ -1,0 +1,471 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+"""marker_id.py —— **读 4×4 标记 → 锁定模块身份**（复用 fpga-roi-accel 的 `markerdet.markerdet`）。
+
+为什么用标记
+------------
+"这块板子对 LED 归属哪个部分不精准"的根治办法：**标记 = 模块身份（精确）**，标定 ROI = 灯位（精确），
+两者合起来结论就能精确到"❌ 故障：`发射断` 红灯亮"。
+
+归属优先级链（**绝不猜**）
+--------------------------
+1. **读到标记** → 模块身份 100% 确定 → 用该模块规则 + 该模块标定 ROI → 判每颗灯
+2. 读不到标记 → 回退到**已标定 ROI**（`config/led_calib.json` 里有该部件）
+3. 两者都没有 → **未判定**
+
+`fpga-roi-accel` 踩出来的 3 个检测器参数坑（已按实际成像尺寸显式设置）
+--------------------------------------------------------------------
+* `min_side_px`：默认 14px 太松（A4 上中文字笔画会被当标记，实测误检 47 个）→ 默认取 **标记边长的一半**；
+* `dark_win_frac`：默认 0.05 → 自适应窗口小于黑框厚度 → 填充率掉到下限以下、0 检出 → **小图用 0.25**；
+* `max_side_px`：默认 `0.6×min(H,W)` → 紧贴裁剪的单张标记会被排除 → **显式传值**。
+
+用法
+----
+    from soc_vision.marker_id import MarkerId
+    mi = MarkerId()                       # 自动载入 markers_modules.json
+    r = mi.detect(bgr)                    # -> {"label":"M6","marker_id":5,"score":0.93,"module":{...}}
+"""
+
+from __future__ import annotations
+
+import json
+import os
+import sys
+from dataclasses import dataclass, field
+from typing import Any, Dict, List, Optional
+
+import numpy as np
+
+try:
+    import cv2
+except Exception:                                                     # pragma: no cover
+    cv2 = None
+
+HERE = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+sys.path.insert(0, os.path.join(HERE, "soc_vision", "_vendor"))
+
+DEFAULT_JSON = os.path.join(HERE, "markers_modules.json")
+
+# ★ G1..G6（新 JSON version=2）的 rule_key -> 我方 `config/led_rules.json` 的部件 id。
+#   一个标记可能覆盖两块同规则面板（见 `instances`）：**身份=该模块类型**（规则一致），
+#   "是①还是②那块"属可选信息，缺省取第一个候选即可，不影响判定。
+RULE_KEY_TO_PART = {
+    "led_all_on:3": ["PS_KONG", "PS_WENYA"],                      # G1：电源指示（2 红+1 绿，三颗全亮）
+    "led_on:1": ["PS_GONGPIN", "ANT_START"],                      # G2：工频/天线电源（红灯亮）
+    "led_exactly_one_of:2": ["ANT_DIR", "TX_CTRL"],               # G3：换向/发射机控制（一亮一灭）
+    "led_green_all_on_red_all_off:3+2": ["TX_STATE"],             # G4：发射机状态（3 绿亮+红灯灭）
+    "screen_fields_ok:2": ["TEXT_SCREEN"],                        # G5：汉字状态屏（⑧）
+    "seq_green_on+charge_red_on+voltage_in_tol": ["PD_BOARD"],    # G6：配电盘（⑨）
+}
+# 兼容旧 M1..M9 的 rule 文本（若读到旧 JSON 也能映射）
+RULE_TEXT_HINT = [
+    ("三颗全亮", ["PS_KONG", "PS_WENYA"]),
+    ("红灯亮=正常", ["PS_GONGPIN", "ANT_START"]),
+    ("一亮一灭", ["ANT_DIR", "TX_CTRL"]),
+    ("3 绿全亮", ["TX_STATE"]),
+]
+
+
+def _load_vendor():
+    """载入 fpga-roi-accel 的 markerdet/marker（纯 numpy+cv2）。"""
+    try:
+        import markerdet  # type: ignore
+        import marker     # type: ignore
+        return markerdet, marker
+    except Exception as e:                                            # noqa: BLE001
+        print("[marker] 载入 markerdet 失败: %s" % e, flush=True)
+        return None, None
+
+
+@dataclass
+class MarkerHit:
+    label: str = ""
+    marker_id: int = -1
+    score: float = 0.0
+    cx: float = 0.0
+    cy: float = 0.0
+    side_px: float = 0.0
+    theta: float = 0.0
+    module: Dict[str, Any] = field(default_factory=dict)
+    frames: int = 0
+    breakdown: Dict[str, float] = field(default_factory=dict)
+    rejected: str = ""
+
+    def to_dict(self) -> Dict[str, Any]:
+        return {"label": self.label, "marker_id": self.marker_id, "score": round(self.score, 3),
+                "rule_key": (self.module or {}).get("rule_key", ""),
+                "instances": (self.module or {}).get("instances", []),
+                "cx": round(self.cx, 1), "cy": round(self.cy, 1), "side_px": round(self.side_px, 1),
+                "theta": round(self.theta, 1), "frames": self.frames,
+                "name": (self.module or {}).get("name", "")}
+
+
+class MarkerId:
+    def __init__(self, json_path: str = "", min_side_px: int = 0, max_side_px: int = 0,
+                 dark_win_frac: float = 0.25, max_hamming: int = 1, confirm_n: int = 3,
+                 min_score: float = 0.80, max_side_frac: float = 0.50, verbose: bool = True):
+        self.json_path = json_path or DEFAULT_JSON
+        self.data: Dict[str, Any] = {}
+        self.by_id: Dict[int, Dict[str, Any]] = {}
+        self.marker: Any = None
+        self.marker_names: Dict[int, str] = {}
+        self.md, self.mk = _load_vendor()
+        self.dark_win_frac = float(dark_win_frac)
+        self.max_hamming = int(max_hamming)
+        self.confirm_n = int(confirm_n)
+        self.min_score = float(min_score)
+        self.max_side_frac = float(max_side_frac)
+        self.verbose = verbose
+        self._user_min = int(min_side_px)
+        self._user_max = int(max_side_px)
+        self._streak: Dict[str, int] = {}
+        self._prev: Optional[MarkerHit] = None
+        self._hist: list = []            # [(t, label)] 滑动窗口
+        self._latch: Optional[MarkerHit] = None   # 身份锁定
+        self._latch_t = 0.0
+        self.latch_sec = 5.0
+        self.window_sec = 5.0
+        self.progress = (0, 0)           # (命中次数, 需要次数) 供 UI 显示 识别中(x/N)
+        self._last: Optional[MarkerHit] = None
+        self._load()
+
+    # ---------------------------------------------------------------- 数据
+    def _load(self) -> None:
+        try:
+            with open(self.json_path, encoding="utf-8") as f:
+                self.data = json.load(f)
+        except Exception as e:                                        # noqa: BLE001
+            print("[marker][warn] 读不到 %s: %s" % (self.json_path, e), flush=True)
+            return
+        for label, m in (self.data.get("modules") or {}).items():
+            mid = int(m.get("marker_id", -1))
+            if mid >= 0:
+                self.by_id[mid] = dict(m, label=label)
+        if self.mk is not None:
+            try:
+                names = self.mk.build_dictionary(24, 4)               # 与打印纸完全一致
+                self.marker_names = {i: n for i, n in enumerate(names)} if isinstance(names[0], str) else {}
+                self._codes = names
+            except Exception as e:                                    # noqa: BLE001
+                print("[marker][warn] build_dictionary 失败: %s" % e, flush=True)
+                self._codes = None
+        else:
+            self._codes = None
+        if self.verbose:
+            print("[marker] 载入 %d 个模块映射（%s）；码本=%s"
+                  % (len(self.by_id), os.path.basename(self.json_path),
+                     "有" if self._codes else "无"), flush=True)
+
+    # ---------------------------------------------------------------- 真伪校验
+    @staticmethod
+    def _ink(gray: np.ndarray) -> np.ndarray:
+        """局部梯度作为"有墨"证据（纯 numpy，快）。"""
+        gx = np.abs(np.diff(gray.astype(np.int16), axis=1, prepend=0))
+        gy = np.abs(np.diff(gray.astype(np.int16), axis=0, prepend=0))
+        return (gx + gy) > 36
+
+    def verify(self, bgr: "np.ndarray", m, mod=None) -> Dict[str, float]:
+        """★ 自算可解释置信分项（不用检测器里可能不存在的 score 属性）。"""
+        h, w = bgr.shape[:2]
+        cx, cy = float(getattr(m, "cx", 0)), float(getattr(m, "cy", 0))
+        # ★ 原始检测器对象的属性名是 `s`（模块 cell 边长）；`side_px` 只存在于我包装后的 MarkerHit
+        s = float(getattr(m, "side_px", 0) or getattr(m, "s", 0) or 0)
+        theta = float(getattr(m, "theta", 0) or 0)
+        if s <= 2:
+            return {"contrast": 0.0, "quiet": 0.0, "theta_ok": 0.0, "score": 0.0}
+        gray = np.asarray(bgr[:, :, 1] if bgr.ndim == 3 else bgr)
+        half = 3.0 * s                                     # 黑框+数据的半径（6 模块/2）
+        # ★ 几何（lead 精确给出，s = 标记总边长/8）：
+        #   黑框外沿 = 3s；**打印静区 = 3s..4s**（再往外就是面板背景，天然有墨）
+        q0, q1 = 3.3 * s, 3.9 * s                          # 静区环（必须在 3s~4s 内！）
+        o0, o1 = 4.5 * s, 5.5 * s                          # 更外圈 = 面板背景（参照）
+        b0, b1 = 2.55 * s, 3.05 * s                        # ★ 黑框环（黑框外沿 3s，厚约 1 格）
+        d0, d1 = 0.0, 1.8 * s                              # ★ 数据区（4×4 数据在 ~±2s 内）
+        ink = self._ink(gray)
+        yy, xx = np.mgrid[0:h, 0:w]
+        d = np.sqrt((xx - cx) ** 2 + (yy - cy) ** 2)
+        inside = d <= half
+        ann = (d > q0) & (d <= q1)
+        outer = (d > o0) & (d <= o1)
+        bring = (d > b0) & (d <= b1)
+        dzone = d <= d1
+        # 图案对比度（框内灰度标准差）
+        contrast = 0.0
+        if inside.any():
+            sub = gray[inside]
+            contrast = float(np.clip((float(sub.std()) - 12.0) / 45.0, 0.0, 1.0))
+        # 静区干净度（**软分量 + 相对对比**：贴在脏面板上也不误杀）
+        quiet, inkfrac, outfrac, rel = 0.0, 0.0, 0.0, 0.0
+        if ann.any():
+            inkfrac = float(ink[ann].mean())
+            quiet = float(np.clip(1.0 - inkfrac / 0.45, 0.0, 1.0))
+        if outer.any():
+            outfrac = float(ink[outer].mean())
+        # ★ 相对对比：真标记的静区应"明显比更外圈干净"（或两者都很干净）
+        if ann.any() and outer.any():
+            rel = 1.0 if (inkfrac <= 0.80 * outfrac + 0.03) else 0.0
+        # ★ 黑框存在性：标记必须有"一圈暗带"（纯背景/空白暗区没有这结构）
+        black_ok = 0.0
+        if bring.any() and dzone.any():
+            g_b = float(gray[bring].mean())
+            g_d = float(gray[dzone].mean())
+            # 黑框应明显暗于数据区均值（或整块都很暗但有结构）
+            dark = g_b < 0.92 * max(1.0, g_d)
+            # 与之对比：数据区应有黑白混合（std 大）
+            std_d = float(gray[dzone].std())
+            black_ok = 1.0 if (dark and std_d >= 14.0) else 0.0
+        # ★ 用"与候选码字期望图案的吻合率"替代熵门（熵会误杀合法的"近乎全黑码"如 G1=0x0007）
+        pattern_ok = 0.0
+        bits = None
+        try:
+            bits = (mod or {}).get("bits")
+        except Exception:                                             # noqa: BLE001
+            bits = None
+        if bits and s > 2:
+            th = np.deg2rad(float(theta or 0.0))
+            ct, st = np.cos(th), np.sin(th)
+            obs = []
+            for i in range(4):                                        # 4x4 数据区
+                for j in range(4):
+                    du = (j - 1.5) * s
+                    dv = (i - 1.5) * s
+                    px = cx + du * ct - dv * st
+                    py = cy + du * st + dv * ct
+                    x0c, y0c = int(px - 0.25 * s), int(py - 0.25 * s)
+                    x1c, y1c = int(px + 0.25 * s) + 1, int(py + 0.25 * s) + 1
+                    if x0c < 0 or y0c < 0 or x1c > w or y1c > h:
+                        obs.append(0.0)
+                        continue
+                    obs.append(float(gray[y0c:y1c, x0c:x1c].mean()))
+            exp = [1 if ch == "1" else 0 for row in bits for ch in str(row)]
+            if len(exp) == len(obs) == 16 and max(obs) > min(obs):
+                mid = (max(obs) + min(obs)) / 2.0
+                got = [1 if v > mid else 0 for v in obs]
+                a1 = sum(1 for a2, b2 in zip(got, exp) if a2 == b2) / 16.0
+                pattern_ok = max(a1, 1.0 - a1)                        # 极性无关（取更吻合的一侧）
+        # 很松的熵下限（兜底：整块全均匀才否决）
+        std_d = float(gray[dzone].std()) if dzone.any() else 0.0
+        data_ok = float(np.clip((std_d - 4.0) / 10.0, 0.0, 1.0))
+        # theta 合理性（0/90/180/270 ±8°）—— **只作辅助**
+        dt = abs(theta) % 90.0
+        dt = min(dt, 90.0 - dt)
+        theta_ok = 1.0 if dt <= 8.0 else 0.0
+        # 权重：contrast 0.45 + theta 0.20 + quiet 0.10 + rel 0.10（归一化）
+        score = (0.45 * contrast + 0.20 * theta_ok + 0.10 * quiet + 0.10 * rel) / 0.85
+        veto = ""
+        if not black_ok:
+            veto = "无黑框（暗带弱/厚度不符）"
+        # ★ 0.75 → 0.55：真实打印标记（墨迹扩散/摩尔纹/±90° 姿态）实测 pattern_ok≈0.62，旧阈值会误杀；
+        #   其余硬门（黑框/数据区/对比度/分数/静区）保持不变 ⇒ 假阳性保护不弱化。
+        if bits and pattern_ok < 0.55:
+            veto = (veto + ";" if veto else "") + "图案不吻合(%.2f<0.55)" % pattern_ok
+        if std_d < 4.0:
+            veto = (veto + ";" if veto else "") + "数据区过于均匀(std=%.1f<4)" % std_d
+        if contrast < 0.45:
+            veto = (veto + ";" if veto else "") + "对比度不足(%.2f<0.45)" % contrast
+        if inkfrac > 0.85:
+            veto = (veto + ";" if veto else "") + "静区无墨率 %.2f>0.85" % inkfrac
+        return {"contrast": round(contrast, 3), "quiet": round(quiet, 3), "quiet_ink": round(inkfrac, 3),
+                "outer_ink": round(outfrac, 3), "rel": rel, "black_ok": black_ok,
+                "pattern_ok": round(pattern_ok, 3), "data_ok": round(data_ok, 3),
+                "theta": round(theta, 1),
+                "theta_ok": theta_ok, "score": round(score, 3), "veto": veto}
+
+    # ---------------------------------------------------------------- 检测
+    def detect_multi(self, bgr: "np.ndarray"):
+        """★ variants 支持：同一 marker 可能有多个尺寸模板（如 G5 25mm/15mm）→ 各尺寸检一遍取最高分。"""
+        variants = []
+        for _mid, mod in (self.by_id or {}).items():
+            for v in (mod.get("variants") or []):
+                variants.append((_mid, v))
+        if not variants:
+            hit, hits = self.detect(bgr)
+            return hit, hits
+        best_hit, best_hits = None, []
+        hh, ww = bgr.shape[:2]
+        for _mid, v in variants:
+            lo = int(v.get("min_recognizable_px") or 0)
+            hi = int(0.25 * min(hh, ww))
+            if lo:
+                # variants 的 px 是"含静区总边长" → 换算成 s = total/8
+                lo_s = max(1, int(lo / 8.0)); hi_s = max(2, int(hi / 8.0))
+                try:
+                    h2, hs2 = self.detect(bgr, min_side_px=lo_s, max_side_px=hi_s)
+                except Exception:                                     # noqa: BLE001
+                    continue
+                if h2 is not None and (best_hit is None or h2.score > best_hit.score):
+                    best_hit, best_hits = h2, hs2
+        return best_hit, best_hits
+
+    def detect(self, bgr: "np.ndarray", min_side_px: int = 0, max_side_px: int = 0):
+        """检测一帧；返回 (MarkerHit|None, 全部命中列表)。**已做连续帧确认（去抖）**。"""
+        if self.md is None or self._codes is None or bgr is None:
+            return None, []
+        h, w = bgr.shape[:2]
+        if bgr.ndim == 3:                                # 纯 numpy 灰度（BGR 权重）
+            gray = (bgr[:, :, 0] * 0.114 + bgr[:, :, 1] * 0.587 + bgr[:, :, 2] * 0.299).astype(np.uint8)
+        else:
+            gray = bgr
+        # ★ 三个参数坑：显式设置（见模块 docstring）
+        mn = min_side_px or self._user_min or max(3, int(24 / 8.0))   # ★ 下界=24px 总边长 → s=3px
+        mx = max_side_px or self._user_max or int(0.9 * min(h, w))             # 显式，避免裁剪单标记被排除
+        try:
+            res = self.md.detect_markers(gray, self._codes, min_side_px=mn, max_side_px=mx,
+                                         max_hamming=self.max_hamming,
+                                         dark_win_frac=self.dark_win_frac)
+        except Exception as e:                                        # noqa: BLE001
+            print("[marker][warn] detect_markers 异常: %s" % e, flush=True)
+            return None, []
+        hits: List[MarkerHit] = []
+        for m in (res or []):
+            mid = int(getattr(m, "mid", getattr(m, "id", -1)))
+            mod = self.by_id.get(mid)
+            if mod is None:
+                continue
+            # ★ 不再伪造 score：检测器若不给就用**自算分项**
+            # ★ 尺寸门（按实测）：总边长 8s（含静区）= 允许区间 [max(24,1.5%短边), 0.25×短边]
+            hh, ww = bgr.shape[:2]
+            _s = float(getattr(m, "s", 0) or getattr(m, "side_px", 0) or 0)
+            total = 8.0 * _s
+            lo_px = max(24.0, 0.015 * min(hh, ww))            # 实测最小可识别 24px（含静区）
+            hi_px = self.max_side_frac * min(hh, ww)           # ★ 0.50（旧 0.25 会把 50cm 手持 25mm 标记全拒）
+            if _s > 2 and (total > hi_px or total < lo_px):
+                if self.verbose:
+                    if total > hi_px:
+                        why = ("尺寸过大(%.0fpx>%.0fpx) → 请把镜头拉远一点，或换小一号标记（G5/G6 用 15mm 版）"
+                               % (total, hi_px))
+                    else:
+                        why = "尺寸不足(%.0fpx<%.0fpx) → 请把镜头靠近一些，或换大一号标记" % (total, lo_px)
+                    print("[marker][reject] %s 总边长=%.0fpx 允许区间=[%.0f,%.0f]px（短边=%d）"
+                          % (why, total, lo_px, hi_px, min(hh, ww)), flush=True)
+                continue
+            if self.verbose:
+                print("[marker] %s side_px=%.1f 总边长=%.0fpx 区间=[%.0f,%.0f]（短边=%d）"
+                      % (mod.get("label", "?"), _s, total, lo_px, hi_px, min(hh, ww)), flush=True)
+            br = self.verify(bgr, m, mod)
+            score = float(br.get("score", 0.0))
+            veto = str(br.get("veto", "") or "")
+            if score < self.min_score or veto:
+                if self.verbose:
+                    why = veto or ("分值 %.2f<%.2f" % (score, self.min_score))
+                    print("[marker][reject] %s 原因=%s 分项=%s"
+                          % (mod.get("label", "?"), why, br), flush=True)
+                continue
+            hits.append(MarkerHit(label=mod.get("label", "M?"), marker_id=mid, score=score,
+                                  cx=float(getattr(m, "cx", 0)), cy=float(getattr(m, "cy", 0)),
+                                  side_px=float(getattr(m, "side_px", 0) or getattr(m, "s", 0)),
+                                  theta=float(getattr(m, "theta", 0)), module=mod, breakdown=br))
+        hits.sort(key=lambda z: -z.score)
+        # 连续 N 帧确认（去抖）；多标记冲突 -> 只按分数第一名，但记录冲突
+        best = hits[0] if hits else None
+        import time as _t
+        _now = _t.time()
+        # ① 软确认：滑动窗口（T 秒内同标记 ≥N 次）
+        if best is not None:
+            self._hist.append((_now, best.label))
+        self._hist = [(t0, lb) for (t0, lb) in self._hist if _now - t0 <= self.window_sec]
+        # ② 漂移门：仅用于提示（不再因此丢帧确认），容差改为相对标记尺寸
+        note = ""
+        if best is not None and self._prev is not None:
+            p = self._prev
+            if p.label == best.label:
+                dpos = abs(p.cx - best.cx) + abs(p.cy - best.cy)
+                dsiz = abs(p.side_px - best.side_px) / max(1.0, p.side_px)
+                if dpos > 1.0 * max(8.0, best.side_px * 8) or dsiz > 0.30:
+                    note = "（位置漂移=%.0fpx 边长漂移=%.0f%%：仍计数）" % (dpos, 100 * dsiz)
+        if best is not None:
+            self._prev = best
+            cnt = sum(1 for (_t0, lb) in self._hist if lb == best.label)
+            high = (best.score >= 0.95 and not str(best.breakdown.get("veto", ""))
+                    and float(best.breakdown.get("black_ok", 0)) >= 1.0
+                    and float(best.breakdown.get("data_ok", 0)) >= 0.25
+                    and float(best.breakdown.get("theta_ok", 0)) >= 1.0)
+            # ③ 快速确认只能"放宽"；但**窗口内出现多个不同标记时不启用快速确认**（防交替标记被误确认）
+            _lbls = set(lb for (_t0, lb) in self._hist)
+            if len(_lbls) > 1:
+                need = int(self.confirm_n)
+                high = False
+            else:
+                need = min(int(self.confirm_n), 2) if high else int(self.confirm_n)
+            best.frames = cnt
+            self.progress = (cnt, need)
+            confirmed = cnt >= need
+            if self.verbose:
+                print("[marker] %s score=%.2f 窗口命中=%d/%d%s%s"
+                      % (best.label, best.score, cnt, need, note,
+                         "" if confirmed else "（未达确认）"), flush=True)
+            # ④ 身份锁定：确认即锁存 latch_sec；新标记立即覆盖
+            if confirmed:
+                if self._latch is None or self._latch.label != best.label or _now - self._latch_t > self.latch_sec:
+                    self._latch, self._latch_t = best, _now
+                    if self.verbose:
+                        print("[marker] 身份锁定：%s（%.0fs）" % (best.label, self.latch_sec), flush=True)
+                self._last = best
+            return (best if confirmed else None), hits
+        # 本帧没命中：latch 未过期 → 返回锁存身份（手持转开也能判）
+        if self._latch is not None and (_now - self._latch_t) <= self.latch_sec:
+            self._latch.frames = self.progress[0] if isinstance(self.progress, tuple) else 0
+            return self._latch, hits
+        if self._latch is not None and self.verbose:
+            print("[marker] 身份锁定过期（%.0fs 内无命中）→ 回到未识别" % self.latch_sec, flush=True)
+        self._latch = None
+        self.progress = (0, 0)
+        return None, []
+
+    # ---------------------------------------------------------------- 归属
+    def resolve_part(self, hit: Optional[MarkerHit], calib_parts: Optional[List[str]] = None):
+        """归属优先级链：标记 > 已标定 ROI > 未判定。返回 (part_key, reason, confidence)。"""
+        if hit is not None and hit.module:
+            mod = hit.module
+            rk = str(mod.get("rule_key") or "")
+            cands = RULE_KEY_TO_PART.get(rk)
+            if not cands:
+                for hint, ids in RULE_TEXT_HINT:
+                    if hint in str(mod.get("rule_text", "")):
+                        cands = ids
+                        break
+            if not cands:
+                cands = [str(mod.get("part") or mod.get("label"))]
+            inst = mod.get("instances") or []
+            key = cands[0]
+            extra = ""
+            if len(cands) > 1:
+                extra = ("；该标记覆盖 %d 个同类面板（实例：%s），按规则一致处理，实际取 %s"
+                         % (len(cands), " / ".join(str(x)[:18] for x in inst[:2]) or "-", key))
+            return key, ("标记 %s（%s）置信 %.2f，连续 %d 帧 → 身份确定%s"
+                         % (hit.label, mod.get("name", ""), hit.score, hit.frames, extra)), hit.score
+        parts = list(calib_parts or [])
+        if len(parts) == 1:
+            return parts[0], "无标记，但有唯一已标定部件 %s → 用其 ROI" % parts[0], 0.5
+        if len(parts) > 1:
+            return "", ("无标记且标定里有 %d 个部件（%s）→ 无法确定是哪一个 → 未判定"
+                        % (len(parts), ",".join(parts))), 0.0
+        return "", "无标记、也没有已标定 ROI → 未判定（绝不猜）", 0.0
+
+
+def main(argv=None) -> int:
+    import argparse
+    ap = argparse.ArgumentParser(description="读 4×4 标记 → 锁定模块身份")
+    ap.add_argument("-i", "--image", required=True)
+    ap.add_argument("--json", default="")
+    ap.add_argument("--min-side", type=int, default=0)
+    ap.add_argument("--max-side", type=int, default=0)
+    ap.add_argument("--dark-win-frac", type=float, default=0.25)
+    ap.add_argument("--confirm-n", type=int, default=1)
+    a = ap.parse_args(argv)
+    bgr = cv2.imread(a.image, cv2.IMREAD_COLOR)
+    if bgr is None:
+        print("读不到 %s" % a.image)
+        return 1
+    mi = MarkerId(a.json, a.min_side, a.max_side, a.dark_win_frac, confirm_n=a.confirm_n)
+    hit, hits = mi.detect(bgr)
+    print("命中 %d 个候选：" % len(hits))
+    for z in hits:
+        print("  %-4s mid=%d score=%.2f side=%.1fpx theta=%.1f 模块=%s"
+              % (z.label, z.marker_id, z.score, z.side_px, z.theta, z.module.get("name", "")))
+    print("确认结果: %s" % (hit.to_dict() if hit else "无（未达确认帧数或未检出）"))
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

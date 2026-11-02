@@ -1,0 +1,81 @@
+
+
+ 
+
+ 
+
+LIBRARY ieee;
+USE work.ALL;
+	USE ieee.std_logic_1164.all;
+LIBRARY ph1_macro;
+	USE ph1_macro.PH1_COMPONENTS.all;
+
+ENTITY ui_ram_awb_delay_signal IS
+PORT (
+	doa	: OUT STD_LOGIC_VECTOR(95 DOWNTO 0);
+
+	dia	: IN STD_LOGIC_VECTOR(95 DOWNTO 0);
+	addra	: IN STD_LOGIC_VECTOR(10 DOWNTO 0);
+	wea	: IN STD_LOGIC;
+	clka	: IN STD_LOGIC;
+	dob	: OUT STD_LOGIC_VECTOR(95 DOWNTO 0);
+	dib	: IN STD_LOGIC_VECTOR(95 DOWNTO 0);
+	addrb	: IN STD_LOGIC_VECTOR(10 DOWNTO 0);
+	web	: IN STD_LOGIC;
+	clkb	: IN STD_LOGIC
+	);
+END ui_ram_awb_delay_signal;
+
+ARCHITECTURE struct OF ui_ram_awb_delay_signal IS
+
+	BEGIN
+
+	inst : PH1_LOGIC_ERAM
+		GENERIC MAP (
+			DATA_WIDTH_A	=> 96,
+			DATA_WIDTH_B	=> 96,
+			ADDR_WIDTH_A	=> 11,
+			ADDR_WIDTH_b	=> 11,
+			DATA_DEPTH_A	=> 2048,
+			DATA_DEPTH_B	=> 2048,
+			MODE		=> "DP",
+			REGMODE_A	=> "NOREG",
+			REGMODE_B	=> "NOREG",
+			WRITEMODE_A	=> "NORMAL",
+			WRITEMODE_B	=> "READBEFOREWRITE",
+			IMPLEMENT	=> "20K",
+			INIT_FILE		=> "NONE",
+			CLKMODE		=> "ASYNC",
+			ECC_ENCODE		=> "DISABLE",
+			ECC_DECODE		=> "DISABLE",
+			SSROVERCE		=> "DISABLE",
+			OREGSET_A		=> "RESET",
+			OREGSET_B		=> "RESET",
+			RESETMODE_A		=> "ASYNC",
+			RESETMODE_B		=> "ASYNC",
+			ASYNC_RESET_RELEASE_A		=> "ASYNC",
+			ASYNC_RESET_RELEASE_B		=> "ASYNC",
+			FILL_ALL		=> "NONE"
+		)
+		PORT MAP (
+			dia	=> dia,
+			dib	=> dib,
+			addra	=> addra,
+			addrb	=> addrb,
+			cea	=> '1',
+			ceb	=> '1',
+			ocea	=> '0',
+			oceb	=> '0',
+			clka	=> clka,
+			clkb	=> clkb,
+			wea	=> wea,
+			web	=> web,
+			bea	=> (others=>'0'),
+			beb	=> (others=>'0'),
+			rsta	=> '0',
+			rstb	=> '0',
+			doa	=> doa,
+			dob	=> dob
+		);
+
+END struct;

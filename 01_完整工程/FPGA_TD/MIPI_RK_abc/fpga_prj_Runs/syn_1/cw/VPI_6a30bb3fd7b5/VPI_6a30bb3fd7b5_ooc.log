@@ -1,0 +1,284 @@
+============================================================
+   Tang Dynasty, V6.2.168116
+   Copyright (c) 2012-2025 Anlogic Inc.
+   Executable = D:/xuexishengshou/TD/bin/td_commands_prompt.exe
+   Built at =   16:32:07 Jun 12 2025
+   Run by =     lenovo
+   Run Date =   Fri Oct  2 09:44:27 2026
+
+   Run on =     NUYOAH
+============================================================
+RUN-1002 : start command "import_device ph1_90.db -package PH1A90SEG324"
+RUN-1001 : Using default speed grade: 2
+ARC-1001 : Device Initialization.
+ARC-1001 : ----------------------------------------------------------------
+ARC-1001 :           OPTION          |          IO           |   SETTING   
+ARC-1001 : ----------------------------------------------------------------
+ARC-1001 :   non_jtag_persist(none)  |        36 IOs         |    gpio    
+ARC-1001 :            jtag           |  C10/D11/A10/B11/E11  |  dedicate  
+ARC-1001 : ----------------------------------------------------------------
+RUN-1003 : finish command "import_device ph1_90.db -package PH1A90SEG324" in  4.571163s wall, 3.093750s user + 0.140625s system = 3.234375s CPU (70.8%)
+
+RUN-1004 : used memory is 1123 MB, reserved memory is 1115 MB, peak memory is 1123 MB
+RUN-1002 : start command "set_param flow ooc_flow on"
+RUN-1002 : start command "read_verilog -file VPI_6a30bb3fd7b5_vpiInst.sv"
+HDL-1007 : analyze verilog file VPI_6a30bb3fd7b5_vpiInst.sv
+HDL-1007 : analyze verilog file D:\xuexishengshou\TD\ip/apm/apm_cwc/apm_vpi.sv
+Copyright (c) 1998-2019 The OpenSSL Project.  All rights reserved.
+This product includes software developed by the OpenSSL Project
+for use in the OpenSSL Toolkit (http://www.openssl.org/)
+Copyright (C) 1995-1998 Eric Young (eay@cryptsoft.com)
+All rights reserved.
+This product includes cryptographic software written by Eric Young (eay@cryptsoft.com)
+HDL-1007 : back to file 'D:\xuexishengshou\TD\ip/apm/apm_cwc/apm_vpi.sv' in D:\xuexishengshou\TD\ip/apm/apm_cwc/apm_vpi.sv(1)
+HDL-1007 : elaborate module VPI_6a30bb3fd7b5 in VPI_6a30bb3fd7b5_vpiInst.sv(2)
+HDL-1007 : elaborate module ** in D:\xuexishengshou\TD\ip/apm/apm_cwc/apm_vpi.sv(29)
+HDL-1007 : elaborate module ** in D:\xuexishengshou\TD\ip/apm/apm_cwc/apm_vpi.sv(111)
+HDL-1007 : elaborate module ** in D:\xuexishengshou\TD\ip/apm/apm_cwc/apm_vpi.sv(185)
+HDL-1007 : elaborate module ** in D:\xuexishengshou\TD\ip/apm/apm_cwc/apm_vpi.sv(321)
+HDL-1007 : elaborate module AL_LOGIC_DEBUGHUB(CTRL_LEN=33,STAT_LEN=1,PWR_ON_CTRL=8'b01010000) in D:\xuexishengshou\TD\arch/al_lmacro.v(381)
+HDL-5323 WARNING: input port 'vpi_behavior_clr' remains unconnected for this instance in VPI_6a30bb3fd7b5_vpiInst.sv(31)
+HDL-5317 WARNING: input port 'status[0]' is not connected on this instance in VPI_6a30bb3fd7b5_vpiInst.sv(46)
+HDL-1200 : Current top model is VPI_6a30bb3fd7b5
+HDL-1100 : Inferred 0 RAMs.
+RUN-1002 : start command "optimize_rtl"
+RUN-1001 : Open license file D:/xuexishengshou/TD/license/Anlogic.lic
+SYN-1001 : Stage 1 | Optimize RTL
+SYN-1001 : Stage 1.1 | Check Design Sanity
+SYN-1001 : End Stage 1.1 | Check Design Sanity; Time: 0.001825s wall, 0.000000s user + 0.000000s system = 0.000000s CPU (n/a%); Memory(MB): used = 1124, reserved = 1115, peak = 1124;
+
+SYN-1079 : finish stage Check Design Sanity. Total instances: 228, Total nets: 537.
+
+SYN-1001 : Stage 1.2 | Initialize Design
+SYN-1001 : End Stage 1.2 | Initialize Design; Time: 0.009373s wall, 0.000000s user + 0.000000s system = 0.000000s CPU (n/a%); Memory(MB): used = 1124, reserved = 1115, peak = 1124;
+
+SYN-1079 : finish stage Initialize Design. Total instances: 119, Total nets: 426.
+
+SYN-1001 : Stage 1.3 | Flatten Module
+SYN-1011 : Flatten model VPI_6a30bb3fd7b5
+SYN-1001 : End Stage 1.3 | Flatten Module; Time: 0.001831s wall, 0.015625s user + 0.000000s system = 0.015625s CPU (853.3%); Memory(MB): used = 1125, reserved = 1115, peak = 1125;
+
+SYN-1079 : finish stage Flatten Module. Total instances: 115, Total nets: 286.
+
+SYN-1001 : Stage 1.4 | Uniform Instance
+SYN-5011 WARNING: Undriven pin: model "VPI_6a30bb3fd7b5" / inst "wrapper_debughub" in VPI_6a30bb3fd7b5_vpiInst.sv(46) / pin "status[0]"
+SYN-5013 WARNING: Undriven net: model "VPI_6a30bb3fd7b5" / net "wrapper_vpi_top/U_vpi/VPI_INPUT_BUS_DET[0]$U_vpi_behavior_det/bus_din[0]" in D:\xuexishengshou\TD\ip/apm/apm_cwc/apm_vpi.sv(0)
+		the net's pin: pin "d" in D:\xuexishengshou\TD\ip/apm/apm_cwc/apm_vpi.sv(0)
+SYN-5013 WARNING: Undriven net: model "VPI_6a30bb3fd7b5" / net "wrapper_vpi_top/U_vpi/VPI_INPUT_BUS_DET[0]$U_vpi_behavior_det/vpi_behavior_clr" in D:\xuexishengshou\TD\ip/apm/apm_cwc/apm_vpi.sv(0)
+		the net's pin: pin "I[0]" in D:\xuexishengshou\TD\ip/apm/apm_cwc/apm_vpi.sv(0)
+		the net's pin: pin "I[0]" in D:\xuexishengshou\TD\ip/apm/apm_cwc/apm_vpi.sv(0)
+SYN-5025 WARNING: Using 0 for all undriven pins and nets
+SYN-1001 : End Stage 1.4 | Uniform Instance; Time: 0.001056s wall, 0.000000s user + 0.000000s system = 0.000000s CPU (n/a%); Memory(MB): used = 1125, reserved = 1115, peak = 1125;
+
+SYN-1079 : finish stage Uniform Instance. Total instances: 116, Total nets: 283.
+
+SYN-1001 : Stage 1.5 | Optimize Design
+SYN-1032 : 252/5 useful/useless nets, 92/5 useful/useless insts
+SYN-1021 : Optimized 16 onehot mux instances.
+SYN-1016 : Merged 31 instances.
+SYN-1016 : Merged 1 instances.
+SYN-1001 : End Stage 1.5 | Optimize Design; Time: 0.074633s wall, 0.062500s user + 0.000000s system = 0.062500s CPU (83.7%); Memory(MB): used = 1127, reserved = 1115, peak = 1127;
+
+SYN-1079 : finish stage Optimize Design. Total instances: 115, Total nets: 163.
+
+SYN-1001 : Stage 1.6 | Optimize Iteratively
+SYN-1014 : Optimize round 1
+SYN-1020 : Optimized 2 distributor mux.
+SYN-1015 : Optimize round 1, 20 better
+SYN-1014 : Optimize round 2
+SYN-1044 : Optimized 1 inv instances.
+SYN-1015 : Optimize round 2, 3 better
+SYN-1014 : Optimize round 1
+SYN-1015 : Optimize round 1, 0 better
+SYN-1001 : End Stage 1.6 | Optimize Iteratively; Time: 0.218069s wall, 0.218750s user + 0.000000s system = 0.218750s CPU (100.3%); Memory(MB): used = 1105, reserved = 1112, peak = 1128;
+
+SYN-1079 : finish stage Optimize Iteratively. Total instances: 119, Total nets: 167.
+
+SYN-1001 : Stage 1.7 | Check Design
+SYN-1001 : End Stage 1.7 | Check Design; Time: 0.000044s wall, 0.000000s user + 0.000000s system = 0.000000s CPU (n/a%); Memory(MB): used = 1105, reserved = 1112, peak = 1128;
+
+SYN-1079 : finish stage Check Design. Total instances: 119, Total nets: 167.
+
+SYN-1001 : End Stage 1 | Optimize RTL; Time: 0.307275s wall, 0.296875s user + 0.000000s system = 0.296875s CPU (96.6%); Memory(MB): used = 1105, reserved = 1112, peak = 1128;
+
+SYN-1079 : finish stage Optimize RTL. Total instances: 119, Total nets: 167.
+
+RUN-1002 : start command "map_macro"
+SYN-1001 : Stage 2 | Map Reg
+SYN-1001 : End Stage 2 | Map Reg; Time: 0.002577s wall, 0.000000s user + 0.000000s system = 0.000000s CPU (n/a%); Memory(MB): used = 1098, reserved = 1094, peak = 1128;
+
+SYN-1079 : finish stage Map Reg. Total instances: 119, Total nets: 167.
+
+SYN-1001 : Stage 3 | Map IO
+SYN-2001 : Map 0 IOs to PADs of model 'VPI_6a30bb3fd7b5'
+SYN-1001 : End Stage 3 | Map IO; Time: 0.000264s wall, 0.015625s user + 0.000000s system = 0.015625s CPU (n/a%); Memory(MB): used = 1098, reserved = 1095, peak = 1128;
+
+SYN-1001 : Stage 4 | Map Macro
+RUN-1002 : start command "update_pll_param -module VPI_6a30bb3fd7b5"
+SYN-2501 : Processed 0 LOGIC_BUF instances.
+SYN-2571 : Optimize after map_dsp, round 1
+SYN-2571 : Optimize after map_dsp, round 1, 0 better
+SYN-1001 : Throwback 8 control mux instances
+SYN-2501 : Optimize round 1
+SYN-2501 : Optimize round 1, 2 better
+SYN-2501 : Optimize round 2
+SYN-2501 : Optimize round 2, 0 better
+SYN-2501 : Optimize round 1
+SYN-2501 : Optimize round 1, 0 better
+SYN-2501 : Map 2 macro adder(s)
+SYN-1019 : Optimized 24 mux instances.
+SYN-1016 : Merged 12 instances.
+SYN-1001 : End Stage 4 | Map Macro; Time: 0.037154s wall, 0.031250s user + 0.000000s system = 0.031250s CPU (84.1%); Memory(MB): used = 1104, reserved = 1098, peak = 1128;
+
+SYN-1079 : finish stage Map Macro. Total instances: 188, Total nets: 236.
+
+RUN-1002 : start command "map"
+SYN-1001 : Stage 5 | Map Gate
+SYN-2581 : Mapping with K=6, #lut = 49 (4.18), #lev = 4 (2.81), #crit_level = 0
+SYN-2551 : Post LUT mapping optimization.
+SYN-2581 : Mapping with K=6, #lut = 31 (4.71), #lev = 4 (2.75), #crit_level = 0
+SYN-3001 : Logic optimization opt = 0.10 sec, map = 0.00 sec, post map opt = 0.08 sec.
+SYN-1001 : End Stage 5 | Map Gate; Time: 0.184856s wall, 0.187500s user + 0.000000s system = 0.187500s CPU (101.4%); Memory(MB): used = 1112, reserved = 1102, peak = 1128;
+
+RUN-1002 : start command "pack"
+SYN-1001 : Packing model "VPI_6a30bb3fd7b5" ...
+SYN-1001 : Stage 6 | Pack Gate
+SYN-4010 : Pack lib has 90 rtl pack models with 59 top pack blocks
+SYN-1014 : Optimize round 1
+SYN-1015 : Optimize round 1, 0 better
+SYN-4002 : Packing 77 DFF/LATCH to SEQ ...
+SYN-1001 : Remove 1 carry adders
+RUN-1002 : start command "start_timer"
+RUN-1002 : start command "end_timer"
+SYN-4009 : Pack 1 carry chain into lslice
+SYN-1001 : End Stage 6 | Pack Gate; Time: 0.008044s wall, 0.000000s user + 0.000000s system = 0.000000s CPU (n/a%); Memory(MB): used = 1112, reserved = 1112, peak = 1128;
+
+RUN-1002 : start command "report_qor -step gate -file gate.qor"
+RUN-1002 : start command "start_timer"
+-----------------------------------------------------------
+| QoR metrics               |         value               |
+-----------------------------------------------------------
+| Timing                    |                             |
+|     Setup WNS             |        16012                |
+|     Setup TNS             |            0                |
+|     Num of violated S-EP  |            0                |
+|     Hold WNS              |          519                |
+|     Hold TNS              |            0                |
+|     Num of violated H-EP  |            0                |
+-----------------------------------------------------------
+| Utilization               |                             |
+|     #registers            |           77                |
+|     #luts                 |           31                |
+|     #lut1                 |            1                |
+|     #lut1(~A)             |            1                |
+|     #slices               |           16                |
+|     slices percentage     |        0.02%                |
+|     #RAMs                 |            0                |
+|     #DSPs                 |            0                |
+|     #f7mux                |        0.00%                |
+|     #MACROs               |            1                |
+|     #insts in MACRO       |           16                |
+-----------------------------------------------------------
+| kept_net                  |                             |
+|     #syn_keep             |            0                |
+|     #keep_hier            |            0                |
+|     #dont_touch           |            0                |
+|     #mark_debug           |            0                |
+|     #max_fanout_keep      |            0                |
+|     #async_reg            |            0                |
+-----------------------------------------------------------
+| Top 10% datanet fanout#   |         8.00                |
+| dff(single fanout)->dff   |            8                |
+| dff(single fanout)->dram  |            0                |
+-----------------------------------------------------------
+| Over-quota path num*      |                             |
+|     Total                 |            0                |
+-----------------------------------------------------------
+| Rent**                    |                             |
+-----------------------------------------------------------
+Note*: Over-quota path shows the over-path-level-threshold path number of each clock.
+       The clock will not be shown if no path is with path level over the threshold.
+       The threshold is defined as worst path_margin / 800ps.
+Note**: Rent shows the rent exponent value of the modules whose rent value exceeds the threshold.
+        Only modules under top are reported, and the threshold is defined as 0.7.
+
+Logic Level Distribution
+---------------------------------------------------------------------
+  Clock        |  Period            |  0   |  1  |  2   |  3   |  4
+---------------------------------------------------------------------
+  DeriveClock  |  20.000ns (50MHz)  |  34  |  3  |  16  |  16  |  9
+---------------------------------------------------------------------
+Note: The table count the worst 100000 paths, each endpoint count only one time.(78 paths analyzed)
+
+Hierarchical Rent Exponent Report
++--------------------------------------------------------+
+|Inst     |Model  |Rent     |Cell     |Pin     |Term     |
++--------------------------------------------------------+
++--------------------------------------------------------+
+Note: Cell represents total number of cells inside module; Pin represents total number of pins
+      which have net connection inside module; Term represents total number of PIs and POs of module.
+      Rent represents the relationship between number of terms and number of cells in module.
+      A module with higher rent corresponds to highly connected logic and strong connectivity with others.
+Report gate stage QoR done.
+
+RUN-1002 : start command "report_area -file VPI_6a30bb3fd7b5_gate.area"
+SYN-4034 : The count of slices with lut is 0.
+SYN-4035 : The count of slices with lut+ripple is 16.
+RUN-1001 : standard
+***Report Model: VPI_6a30bb3fd7b5 Device: PH1A90SEG324***
+
+Design Statistics
+#IO                         9   out of    148    6.08%
+  #input                    1
+  #output                   8
+  #inout                    0
+#lut                       47
+  #lut1                     1
+  #lut2                     4
+  #lut3                     2
+  #lut4                     6
+  #lut5                     1
+  #lut6                    33
+#reg                       77
+  #slice reg               77   out of 128640    0.06%
+  #pad reg                  0
+
+Utilization Statistics
+#slice*                    55   out of  64320    0.09%
+  #used ram                 0
+    #dram lut               0
+    #shifter lut            0
+  #used logic              55
+    #with luts*            27
+    #with adder            16
+    #reg only*             12
+#f7mux                      0   out of  32160    0.00%
+#f8mux                      0   out of  16080    0.00%
+#eram                       0   out of    272    0.00%
+  #eram20k                  0
+  #fifo20k                  0
+#dsp                        0   out of    240    0.00%
+#pcie                       0   out of      1    0.00%
+#serdes dual                0   out of      4    0.00%
+#ddr_cal                    0   out of      1    0.00%
+#ddr_bank                   0   out of      2    0.00%
+#pad                        0   out of    148    0.00%
+#pll                        0   out of     12    0.00%
+#gclk                       0   out of     32    0.00%
+#lclk                       0   out of     32    0.00%
+#sclk                       0   out of     96    0.00%
+#mlclk                      0   out of     16    0.00%
+#ioclk                      0   out of     16    0.00%
+
+* Note! The LUT and Slice count after Optimize-Gate is not the final value, Run Optimize-place for a more realistic count.
+
+RUN-1002 : start command "export_db -mode ooc VPI_6a30bb3fd7b5_ooc.db"
+RUN-1001 : Exported /
+RUN-1001 : Exported libs
+RUN-1001 : Exported entities
+RUN-1001 : Exported ports
+RUN-1001 : Exported pins
+RUN-1001 : Exported instances
+RUN-1001 : Exported nets
+RUN-1001 : Exported buses
+RUN-1001 : Exported models

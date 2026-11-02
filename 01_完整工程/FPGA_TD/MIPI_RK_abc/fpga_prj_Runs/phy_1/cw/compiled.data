@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE chip_watcher_data>
+<cwc_data version="1.0">
+    <instance name="auto_created_cwc1">
+        <watcher_nodes/>
+        <trigger_config/>
+    </instance>
+</cwc_data>

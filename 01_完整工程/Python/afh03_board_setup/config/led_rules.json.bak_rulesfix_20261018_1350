@@ -1,0 +1,285 @@
+{
+  "_readme": [
+    "LED 判定规则表（数据驱动，改这里即可改判定策略，不用改代码）。",
+    "kind: power3=三颗全亮才正常 / status2=恰好一亮一灭 / tx5=3绿全亮且红灯全灭 / single_red=红灯亮才正常 / generic=按每灯 expect。",
+    "★ 不能用一个全局假设：同为红灯，天线启动亮=正常，而发射机状态·故障灯亮=故障。",
+    "lamps 顺序 = 面板上从「上到下」或「左到右」的顺序（与标定 JSON 的 lamp 顺序一致）。",
+    "calib: 该部件在标定 JSON 里的 ROI 组名（tools/led_calibrate.py 产出）。"
+  ],
+  "version": 2,
+  "parts": [
+    {
+      "id": "PS_KONG",
+      "name": "电源指示（空调/市电/控制）",
+      "kind": "power3",
+      "calib": "PS_KONG",
+      "silk": [
+        "空调电源指示",
+        "市电电源",
+        "控制"
+      ],
+      "note": "用户①：三颗全亮=供电正常；②：下方绿灯不亮=供电错误",
+      "lamps": [
+        {
+          "name": "空调电源指示",
+          "silk": "空调电源指示",
+          "color": "R",
+          "expect": "on"
+        },
+        {
+          "name": "市电电源",
+          "silk": "市电电源",
+          "color": "R",
+          "expect": "on"
+        },
+        {
+          "name": "控制",
+          "silk": "控制",
+          "color": "G",
+          "expect": "on"
+        }
+      ]
+    },
+    {
+      "id": "PS_WENYA",
+      "name": "电源指示（稳压工频/发电机/控制）",
+      "kind": "power3",
+      "calib": "PS_WENYA",
+      "silk": [
+        "稳压工频电源指示",
+        "发电机电源",
+        "控制"
+      ],
+      "note": "用户③：三颗全灭=故障报错（丝印与 ①② 不同，必须靠丝印区分部件）",
+      "lamps": [
+        {
+          "name": "稳压工频电源指示",
+          "silk": "稳压工频电源指示",
+          "color": "R",
+          "expect": "on"
+        },
+        {
+          "name": "发电机电源",
+          "silk": "发电机电源",
+          "color": "R",
+          "expect": "on"
+        },
+        {
+          "name": "控制",
+          "silk": "控制",
+          "color": "G",
+          "expect": "on"
+        }
+      ]
+    },
+    {
+      "id": "ANT_DIR",
+      "name": "天线换向控制（位置指示 右向/左向）",
+      "kind": "status2",
+      "calib": "ANT_DIR",
+      "silk": [
+        "位置指示",
+        "右向",
+        "左向",
+        "换向控制"
+      ],
+      "note": "用户⑤：一亮一灭=正常；两颗都灭=故障（都亮不可能发生）",
+      "lamps": [
+        {
+          "name": "右向",
+          "silk": "右向",
+          "color": "R",
+          "expect": "any"
+        },
+        {
+          "name": "左向",
+          "silk": "左向",
+          "color": "R",
+          "expect": "any"
+        }
+      ]
+    },
+    {
+      "id": "TX_CTRL",
+      "name": "发射机控制（发射机工作 I/II）",
+      "kind": "status2",
+      "calib": "TX_CTRL",
+      "silk": [
+        "发射机工作",
+        "两路转换"
+      ],
+      "note": "用户⑥：I 亮、II 灭 = 正常",
+      "lamps": [
+        {
+          "name": "发射机工作 I",
+          "silk": "I",
+          "color": "R",
+          "expect": "any"
+        },
+        {
+          "name": "发射机工作 II",
+          "silk": "II",
+          "color": "R",
+          "expect": "any"
+        }
+      ]
+    },
+    {
+      "id": "TX_STATE",
+      "name": "发射机状态（工作/本路/发射通/发射断/故障）",
+      "kind": "tx5",
+      "calib": "TX_STATE",
+      "silk": [
+        "工作",
+        "本路",
+        "发射通",
+        "发射断",
+        "故障"
+      ],
+      "note": "用户⑦：3 颗绿全亮=正常；红色灯（发射断/故障）亮=故障",
+      "lamps": [
+        {
+          "name": "工作",
+          "silk": "工作",
+          "color": "G",
+          "expect": "on"
+        },
+        {
+          "name": "本路",
+          "silk": "本路",
+          "color": "G",
+          "expect": "on"
+        },
+        {
+          "name": "发射通",
+          "silk": "发射通",
+          "color": "G",
+          "expect": "on"
+        },
+        {
+          "name": "发射断",
+          "silk": "发射断",
+          "color": "R",
+          "expect": "off",
+          "fault_if_on": true
+        },
+        {
+          "name": "故障",
+          "silk": "故障",
+          "color": "R",
+          "expect": "off",
+          "fault_if_on": true
+        }
+      ]
+    },
+    {
+      "id": "ANT_START",
+      "name": "天线控制（天线启动）",
+      "kind": "single_red",
+      "calib": "ANT_START",
+      "silk": [
+        "天线控制",
+        "天线启动",
+        "手操控制"
+      ],
+      "note": "用户⑧：红色 LED 亮=正常（★ 与 tx5 的红灯语义相反，故必须按部件套规则）",
+      "lamps": [
+        {
+          "name": "天线启动",
+          "silk": "天线启动",
+          "color": "R",
+          "expect": "on"
+        }
+      ]
+    },
+    {
+      "id": "PS_GONGPIN",
+      "name": "电源控制（工频电源指示）",
+      "kind": "single_red",
+      "calib": "PS_GONGPIN",
+      "silk": [
+        "电源控制",
+        "工频电源",
+        "电合选择",
+        "电池电合电源",
+        "市电"
+      ],
+      "note": "用户④：该部件 1 颗红色 LED 亮=正常（★ 画面里 通/断 按钮、拨杆都不是灯，不可判成 ON）",
+      "lamps": [
+        {
+          "name": "工频电源",
+          "silk": "工频电源",
+          "color": "R",
+          "expect": "on"
+        }
+      ]
+    },
+    {
+      "id": "TEXT_SCREEN",
+      "name": "汉字状态屏（天线方向/自检状态）",
+      "kind": "text_assert",
+      "reader": "screen",
+      "calib": "TEXT_SCREEN",
+      "silk": [
+        "天线方向",
+        "自检状态"
+      ],
+      "note": "汉字状态屏：天线方向=正常 且 自检状态=正常 ⇒ 正常；读数器未就绪或低置信 ⇒ 未判定（给明确原因）",
+      "asserts": [
+        {
+          "field": "天线方向",
+          "expect": "正常"
+        },
+        {
+          "field": "自检状态",
+          "expect": "正常"
+        }
+      ],
+      "lamps": []
+    },
+    {
+      "id": "PD_BOARD",
+      "name": "配电盘（相序/充电/电池电压/市电电压）",
+      "kind": "numeric_range",
+      "reader": "seg7",
+      "calib": "PD_BOARD",
+      "silk": [
+        "相序指示",
+        "充电控制",
+        "电池电压",
+        "市电电压"
+      ],
+      "note": "相序绿灯亮 + 充电红灯亮 + 电池电压 26V±10%(23.4~28.6) + 市电电压 220V±10%(198~242)",
+      "lamps": [
+        {
+          "name": "相序指示",
+          "silk": "相序",
+          "color": "G",
+          "expect": "on"
+        },
+        {
+          "name": "充电控制",
+          "silk": "充电",
+          "color": "R",
+          "expect": "on"
+        }
+      ],
+      "numeric": [
+        {
+          "name": "电池电压",
+          "nominal": 26.0,
+          "tol_frac": 0.1,
+          "unit": "V",
+          "expect": 26.6
+        },
+        {
+          "name": "市电电压",
+          "nominal": 220.0,
+          "tol_frac": 0.1,
+          "unit": "V",
+          "expect": 222.0
+        }
+      ]
+    }
+  ]
+}

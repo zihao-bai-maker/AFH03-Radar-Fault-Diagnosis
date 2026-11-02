@@ -1,0 +1,80 @@
+{
+  "_readme": [
+    "AFH03 故障检测 UI 版式配置（用户草图驱动）。改这里即可加页面/按钮，不用改代码。",
+    "流程：page1「故障检测」实时画面 + 【拍照】【波形检测】 -> 按拍照 -> page2「故障或者正常」静止图 + 醒目结论 + 【返回】",
+    "坐标用 1024x600 画布（DSI 屏）。rect = [x0,y0,x1,y1]。action: capture|back|wave|quit",
+    "★ 颜色一律 **BGR**（直接进 numpy/OpenCV 图，cjk_text 也按 BGR 取色）：ok=绿 #22C55E / bad=红 #EF4444 / unk=琥珀 #F59E0B。",
+    "★ 圆角/字号/顶栏高度都在 radius / font_scale / topbar 里；按钮外观由 _buttons() 统一画，rect 同时就是触摸命中框（不许两处不一致）。",
+    "★ 屏顶 0~26px 被 XFCE 面板压住，所以顶栏内容都排在 y>=30。"
+  ],
+  "canvas": {"w": 1024, "h": 600},
+  "topbar": {"h": 92},
+  "radius": {"card": 14, "button": 14, "pill": 26, "preview": 10},
+  "font_scale": {
+    "title": 1.9, "title_p1": 1.18, "verdict": 2.1, "reason": 0.72,
+    "button": 1.0, "body": 0.5, "chip": 0.44, "clock": 0.62, "side": 0.5, "small": 0.42
+  },
+  "colors": {
+    "bg": [30, 22, 16],
+    "bg_bottom": [18, 13, 10],
+    "title_bar": [46, 33, 23],
+    "title_bar2": [26, 19, 14],
+    "accent": [248, 189, 56],
+    "title_text": [246, 241, 236],
+    "text": [235, 230, 224],
+    "dim": [176, 158, 140],
+    "card": [39, 31, 24],
+    "card_edge": [64, 51, 39],
+    "chip_bg": [48, 38, 29],
+    "preview_bg": [20, 14, 10],
+    "preview_frame": [72, 57, 44],
+    "ok": [94, 197, 34],
+    "bad": [68, 68, 239],
+    "unk": [11, 158, 245],
+    "verdict_text": [255, 255, 255],
+    "button": [235, 99, 37],
+    "button_text": [255, 255, 255],
+    "button_edge_primary": [250, 165, 96],
+    "button_alt": [59, 41, 30],
+    "button_alt_text": [235, 230, 224],
+    "button_edge": [72, 57, 44],
+    "shadow": [12, 9, 7]
+  },
+  "pages": [
+    {
+      "id": "page1",
+      "title": "故 障 检 测",
+      "preview": [24, 104, 721, 496],
+      "hint": "把面板对准摄像头，按【拍照】开始判定",
+      "sidebar": {
+        "rect": [733, 104, 1000, 496],
+        "title": "状 态 说 明",
+        "legend": [["正常", "ok"], ["故障", "bad"], ["未判定", "unk"]],
+        "hint_title": "操作提示",
+        "hint_lines": ["把面板对准摄像头", "按【拍照】开始判定"],
+        "note": "拍照后自动判定并存档"
+      },
+      "buttons": [
+        {"id": "capture", "label": "拍   照", "rect": [24, 528, 584, 588], "action": "capture", "style": "primary", "font_scale": 1.05},
+        {"id": "wave", "label": "波形检测", "rect": [608, 528, 1000, 588], "action": "wave", "style": "alt"},
+        {"id": "quit", "label": "退出", "rect": [924, 36, 996, 76], "action": "quit", "style": "alt", "font_scale": 0.55}
+      ]
+    },
+    {
+      "id": "page2",
+      "title": "故 障 或 者 正 常",
+      "preview": [16, 172, 596, 496],
+      "verdict": [614, 172, 1008, 292],
+      "reason": [614, 306, 1008, 442],
+      "hint": "按【返回】继续拍下一张",
+      "buttons": [
+        {"id": "back", "label": "返   回", "rect": [70, 514, 470, 578], "action": "back", "style": "primary"},
+        {"id": "wave2", "label": "波形检测", "rect": [554, 514, 954, 578], "action": "wave", "style": "alt"}
+      ]
+    }
+  ],
+  "wave": {
+    "rect": [16, 96, 1008, 496],
+    "nominal_hint": "正常频点：20 MHz / 40 MHz"
+  }
+}

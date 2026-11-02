@@ -1,0 +1,15 @@
+[Desktop Entry]
+Type=Application
+Version=1.0
+Name=AFH03 Vision Runtime
+Comment=AFH03 SoC 侧视觉/AI 运行时（LED 亮灭 / 示波器波形 / 汉字识别），带 HDMI 窗口显示
+# 装到 ~/.config/autostart/ 就会在用户登录进入 XFCE 桌面后自动启动，
+# 这样能拿到正确的 DISPLAY / XAUTHORITY —— 比 system 级服务开窗口可靠得多。
+# 本机实测：DISPLAY=:0、DSI-1 800x1280、cv2 GUI 后端 = Qt5，窗口能正常开。
+# 波形判据以 SCPI 直读为主（config 里 scope.scpi_host），不需要相机也能给结论。
+Exec=/bin/sh -c 'cd @DIR@ && sleep 5 && exec /usr/bin/python3 -u -m soc_vision.main_runtime --config @DIR@/@CONFIG@'
+Path=@DIR@
+Terminal=false
+StartupNotify=false
+X-GNOME-Autostart-enabled=true
+X-GNOME-Autostart-Delay=5

@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- HMAC is: 7183b3b8c951c318b0ba16be005e024e20d4005a7fff39c4bd9fd7b1f9e63c3b -->
+<vpi version="3.040000" project_name="fpga_prj" chip_name="PH1A90SEG324">
+	<instance name="Virtual Probe Interface: X_ui_ae_set/u_VPI_0" id="0">
+		<clock clk_name="I_clk"/>
+		<config debughub_name="X_ui_ae_set/u_VPI_0/VPI_6a30bb3fd7b5_Inst/wrapper_debughub" param_control_len="33" param_status_len="2" vpi_bus_din_num="0" vpi_bus_dout_num="8" vpi_output_init_val="8&apos;b01010000" vpi_ctrl_init_val="33&apos;b100000000010100000000000000000001"/>
+		<signal_vec>
+			<vpi_nodes>
+				<bus name="X_ui_ae_set/outprobe0[7:0]" clock="I_clk" inst="Virtual Probe Interface: X_ui_ae_set/u_VPI_0" type="IP_PROBE" direction="output">
+					<net name="X_ui_ae_set/outprobe0[7]" const="false"/>
+					<net name="X_ui_ae_set/outprobe0[6]" const="false"/>
+					<net name="X_ui_ae_set/outprobe0[5]" const="false"/>
+					<net name="X_ui_ae_set/outprobe0[4]" const="false"/>
+					<net name="X_ui_ae_set/outprobe0[3]" const="false"/>
+					<net name="X_ui_ae_set/outprobe0[2]" const="false"/>
+					<net name="X_ui_ae_set/outprobe0[1]" const="false"/>
+					<net name="X_ui_ae_set/outprobe0[0]" const="false"/>
+				</bus>
+			</vpi_nodes>
+		</signal_vec>
+	</instance>
+</vpi>

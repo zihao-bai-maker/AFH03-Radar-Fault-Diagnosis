@@ -1,0 +1,40 @@
+============================================================
+   BW Release_2026.1_SP2
+   Copyright (c) 2012-2026 Anlogic Inc.
+   Executable = E:/Anlogic/TD_Release_2026.1_SP2.200.067/bin/bw.exe
+   Build number = 6.2.2.200067
+   Built at =   16:25:23 Apr 23 2026
+   Run by =     Administrator
+   Run Date =   Fri Jul 31 16:04:16 2026
+
+   Run on =     BF-202403070915
+============================================================
+RUN-1002 : start command "connect_cable -host_name 127.0.0.1:5555 -usr_args {-r -s 5555 -f 12 -v -w 5556 -i } -open"
+RUN-1003 : finish command "connect_cable -host_name 127.0.0.1:5555 -usr_args {-r -s 5555 -f 12 -v -w 5556 -i } -open" in  0.001172s wall, 0.000000s user + 0.000000s system = 0.000000s CPU (n/a%)
+
+RUN-1004 : used memory is 57 MB, reserved memory is 36 MB, peak memory is 57 MB
+PRG-8000 ERROR: Connect server failed.
+RUN-1002 : start command "connect_cable -host_name 127.0.0.1:5555 -usr_args {-r -s 5555 -f 12 -v -w 5556 -i 0} -open"
+RUN-1003 : finish command "connect_cable -host_name 127.0.0.1:5555 -usr_args {-r -s 5555 -f 12 -v -w 5556 -i 0} -open" in  0.001704s wall, 0.000000s user + 0.000000s system = 0.000000s CPU (n/a%)
+
+RUN-1004 : used memory is 90 MB, reserved memory is 67 MB, peak memory is 90 MB
+RUN-1002 : start command "download -bit fpga_prj_Runs\best_result\fpga_prj_compress.bit -mode program_spi -v -spd 7 -cable 0 -flashsize 128"
+PRG-2014 : Chip validation success: PH1A90
+PRG-1001 : SPI Flash ID is:  c8
+PRG-1001 : Online device is:  PH1A90
+PRG-1001 : Online device is:  PH1A90
+PRG-1000 : Programming SPI Flash QE to enable quad mode
+PRG-1000 : SPI flash sector erase...
+PRG-1000 : SPI flash Page program and verify
+RUN-1003 : finish command "download -bit fpga_prj_Runs\best_result\fpga_prj_compress.bit -mode program_spi -v -spd 7 -cable 0 -flashsize 128" in  230.291583s wall, 0.156250s user + 0.046875s system = 0.203125s CPU (0.1%)
+
+RUN-1004 : used memory is 127 MB, reserved memory is 84 MB, peak memory is 169 MB
+GUI-1001 : Downloading succeeded!
+RUN-1002 : start command "connect_cable -close"
+RUN-1003 : finish command "connect_cable -close" in  0.000044s wall, 0.000000s user + 0.000000s system = 0.000000s CPU (n/a%)
+
+RUN-1004 : used memory is 128 MB, reserved memory is 84 MB, peak memory is 169 MB
+RUN-1002 : start command "connect_cable -close"
+RUN-1003 : finish command "connect_cable -close" in  0.000002s wall, 0.000000s user + 0.000000s system = 0.000000s CPU (n/a%)
+
+RUN-1004 : used memory is 128 MB, reserved memory is 84 MB, peak memory is 169 MB

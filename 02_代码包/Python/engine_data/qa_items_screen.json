@@ -1,0 +1,4786 @@
+{
+ "schema": "qa_items_screen/v1",
+ "engine_version": "1.0.0",
+ "generated_by": "screen_qa.py build_items()  (python screen_qa.py --build)",
+ "source": {
+  "vision_bindings": "vision_bindings.json",
+  "fault_db": "判据库_故障.csv",
+  "binding_filter": "binding == 'screen'（与 vision_rules.py --kind screen 同一批 15 项）",
+  "count": 15,
+  "vision_bindings_sha256": "354ba86733a732c6f5c9a5b4b0c6dd432a726a06993301bef05da67219436bb9",
+  "faults_sha256": "d49f69ed81c3a59b4b0a32afb5e770ba803f545b861a02ec5bb281bd62587790",
+  "qa_items_base": "qa_items.json（60 题；本文件不改它，qa_id 用 SQxxx 避免冲突）",
+  "schema_contract": "schema_evidence.md（evidence/v1）",
+  "note": "选项按 field 实际存在的知识库值裁剪；没有的值不臆造，一律标 origin + author_confirm，见 author_confirm 列表。"
+ },
+ "value_vocab": {
+  "normal": "正常（屏幕类正常期望；不是 abnormal_value）",
+  "black_screen": "黑屏（判据库 abnormal_value）",
+  "yellow_screen": "黄屏（判据库 abnormal_value）",
+  "garbled": "花屏（判据库只有现象，无 abnormal_value；vision_rules / 契约扩展值）",
+  "no": "无回波 / 不扫描（判据库回波项 abnormal_value=no；扫描项无登记行）",
+  "weak": "回波弱（判据库 abnormal_value）",
+  "no_noise": "无噪声 / 无底噪（判据库 abnormal_value=no_noise）",
+  "abnormal": "线条不连续/方向错误（vision_rules 取值域；判据库无本字段异常值）",
+  "skipped": "看不清 / 跳过（未验证，不产生正常/异常结论）"
+ },
+ "option_origin_legend": {
+  "fault_db": "判据库_故障.csv 中该 field + abnormal_value 精确命中（db_backed=true）",
+  "fault_db_value": "该 abnormal_value 在判据库其它 field 存在，但本 field 无登记行（db_backed=false）",
+  "vision_state": "vision_rules.SCREEN_CHECKS 的取值域（判据库无本字段 abnormal_value 行）",
+  "derived": "由判据库现象列/契约推导，无同名 abnormal_value",
+  "contract_core_enum": "schema_evidence.md §5.1 核心枚举（normal）",
+  "schema_ext": "schema_evidence.md §5.2 扩展枚举",
+  "qa_flow_vocab": "qa_flow.py VALUE_VOCAB（skipped）"
+ },
+ "label_origin_legend": {
+  "system": "系统/题意命名（正常、跳过等）",
+  "fault_db": "判据库现象列原词（黑屏、黄屏、无回波等）",
+  "vision_state": "vision_rules 状态词（花屏、不扫描、线异常）",
+  "user_dictated": "作者口述用词；判据库无此词或用词不同（底噪）"
+ },
+ "author_confirm": [
+  {
+   "id": "AC1",
+   "scope": "19.7 / 19.8（SQ010 / SQ011）",
+   "issue": "「有底噪」不是知识库 abnormal_value，也不是判据库原词；本文件只把它作为**正常选项**的标签（value=normal）。判据库正常期望是 expect=ok、现象列用词「有噪声」。",
+   "status": "pending"
+  },
+  {
+   "id": "AC2",
+   "scope": "19.7 / 19.8（SQ010 / SQ011）",
+   "issue": "「无底噪」为作者口述；判据库 abnormal_value=no_noise 精确命中，但判据库原词是「无噪声」。",
+   "status": "pending"
+  },
+  {
+   "id": "AC3",
+   "scope": "显示画面项（SQ001 / SQ004）",
+   "issue": "「花屏」在判据库只有现象（花屏 / 花屏或显示画面死机），没有 abnormal_value；本文件用 vision_rules.SCREEN_CHECKS 的 garbled，schema_evidence.md §5.2 也接受该值；feature_id 为合成。",
+   "status": "pending"
+  },
+  {
+   "id": "AC4",
+   "scope": "19.5 / 19.6（SQ008 / SQ009）",
+   "issue": "扫描项在判据库没有 field/abnormal_value 行，只有现象「不扫描」；本文件用 core enum no（也是 vision_rules.SCREEN_CHECKS 的 scan 异常值），feature_id 为合成。",
+   "status": "pending"
+  },
+  {
+   "id": "AC5",
+   "scope": "理想线项（SQ002 / SQ003 / SQ005 / SQ006 / SQ007）",
+   "issue": "理想线/方向项在判据库没有本字段异常值；本文件用 vision_rules.SCREEN_CHECKS 的 abnormal，feature_id 为合成。",
+   "status": "pending"
+  },
+  {
+   "id": "AC6",
+   "scope": "16（10-II）.*（SQ004 / SQ005 / SQ006）",
+   "issue": "领显（leader_display）的显示画面/理想线字段在判据库_故障.csv 没有登记行；异常值复用操显同名枚举，feature_id 全部为合成。",
+   "status": "pending"
+  },
+  {
+   "id": "AC7",
+   "scope": "26.~3 / 26.~4（SQ014 / SQ015）",
+   "issue": "视觉绑定把领显回波项绑到 (image)(operator_display)_course_echo / _glide_echo；本文件按 vision_bindings.json 原样沿用该 field。是否应改为 (image)(leader_display)_... 待作者确认。",
+   "status": "pending"
+  },
+  {
+   "id": "AC8",
+   "scope": "全部 15 项",
+   "issue": "证据 part 沿用 vision_bindings.json 的故障归属（z11 / z14），与 steps.json 的步骤部位 z4（显示控制）不同。集成时请以 evidence.part 为准，不要被 step.part 覆盖。",
+   "status": "pending"
+  }
+ ],
+ "items": [
+  {
+   "qa_id": "SQ001",
+   "seq": 1,
+   "step_id": "15(10-I)-4",
+   "screen_key": "15(10-I).4",
+   "flow_no": "15(10-I)",
+   "sub_no": "4",
+   "check_item": "(操显)-显示画面",
+   "category": "显示画面",
+   "subject": "（操显）显示画面",
+   "display": "operator_display",
+   "position": "操显",
+   "part": "z16",
+   "route": "I",
+   "part_source": "vision_bindings.json",
+   "screen_kind": "screen",
+   "binding_ref": "display_screen",
+   "evidence_field": "(image)(operator_display)_display_screen",
+   "question": "现在屏幕显示是什么状态？（操显-显示画面）",
+   "normal": "有显示画面，无黑屏 / 黄屏 / 花屏",
+   "options": [
+    {
+     "id": "normal",
+     "value": "normal",
+     "label": "正常 ✔",
+     "label_plain": "正常",
+     "tone": "ok",
+     "abnormal": false,
+     "screen_state": "screen_ok",
+     "origin": "contract_core_enum",
+     "label_origin": "system",
+     "db_backed": false,
+     "feature_id": null,
+     "feature_source": null,
+     "author_confirm": false,
+     "note": "屏幕正常；判据库 display_screen expect=ok"
+    },
+    {
+     "id": "black_screen",
+     "value": "black_screen",
+     "label": "黑屏",
+     "label_plain": "黑屏",
+     "tone": "bad",
+     "abnormal": true,
+     "screen_state": "black_screen",
+     "origin": "fault_db",
+     "label_origin": "fault_db",
+     "db_backed": true,
+     "feature_id": "F_(image)(operator_display)_display_screen_black_screen",
+     "feature_source": "fault_library",
+     "db_feature_id": "F_(image)(operator_display)_display_screen_black_screen",
+     "db_label": "黑屏",
+     "db_sub_unit": "Z15（显示电路分机）（I）",
+     "author_confirm": false,
+     "note": "判据库 abnormal_value=black_screen 精确命中"
+    },
+    {
+     "id": "yellow_screen",
+     "value": "yellow_screen",
+     "label": "黄屏",
+     "label_plain": "黄屏",
+     "tone": "bad",
+     "abnormal": true,
+     "screen_state": "yellow_screen",
+     "origin": "fault_db",
+     "label_origin": "fault_db",
+     "db_backed": true,
+     "feature_id": "F_(image)(operator_display)_display_screen_yellow_screen",
+     "feature_source": "fault_library",
+     "db_feature_id": "F_(image)(operator_display)_display_screen_yellow_screen",
+     "db_label": "（下滑）（航向）黄屏",
+     "db_sub_unit": "Z11（收发分机） （I路）",
+     "author_confirm": false,
+     "note": "判据库 abnormal_value=yellow_screen 精确命中"
+    },
+    {
+     "id": "garbled",
+     "value": "garbled",
+     "label": "花屏",
+     "label_plain": "花屏",
+     "tone": "bad",
+     "abnormal": true,
+     "screen_state": "garbled",
+     "origin": "vision_state",
+     "label_origin": "vision_state",
+     "db_backed": false,
+     "feature_id": "F_(image)(operator_display)_display_screen_garbled",
+     "feature_source": "synthesized",
+     "db_phenomenon_seen": true,
+     "db_phenomenon": "花屏或显示画面死机",
+     "db_phenomenon_sub_unit": "Z15（显示电路分机）（I）",
+     "author_confirm": true,
+     "note": "判据库只有现象「花屏 / 花屏或显示画面死机」，无 abnormal_value；garbled 取自 vision_rules.SCREEN_CHECKS 与 schema_evidence §5.2；判据库现象列有「花屏或显示画面死机」，但没有 field/abnormal_value 行；知识库无精确对应，待作者确认"
+    },
+    {
+     "id": "skipped",
+     "value": "skipped",
+     "label": "看不清（跳过）",
+     "label_plain": "看不清（跳过）",
+     "tone": "neutral",
+     "abnormal": null,
+     "screen_state": "skipped",
+     "origin": "qa_flow_vocab",
+     "label_origin": "system",
+     "db_backed": false,
+     "feature_id": null,
+     "feature_source": null,
+     "author_confirm": false,
+     "note": "看不清/跳过 = 未验证；不产生正常/异常结论，confidence=0.0"
+    }
+   ],
+   "ui": {
+    "screen": {
+     "w": 1024,
+     "h": 600
+    },
+    "title": "屏幕状态确认",
+    "progress": "1/15",
+    "question": "现在屏幕显示是什么状态？（操显-显示画面）",
+    "normal": "正常判据：有显示画面，无黑屏 / 黄屏 / 花屏",
+    "part_chip": "Z11",
+    "route_chip": "I 路",
+    "buttons": [
+     {
+      "id": "normal",
+      "value": "normal",
+      "label": "正常 ✔",
+      "label_plain": "正常",
+      "tone": "ok",
+      "style": "primary"
+     },
+     {
+      "id": "black_screen",
+      "value": "black_screen",
+      "label": "黑屏",
+      "label_plain": "黑屏",
+      "tone": "bad",
+      "style": "alt"
+     },
+     {
+      "id": "yellow_screen",
+      "value": "yellow_screen",
+      "label": "黄屏",
+      "label_plain": "黄屏",
+      "tone": "bad",
+      "style": "alt"
+     },
+     {
+      "id": "garbled",
+      "value": "garbled",
+      "label": "花屏",
+      "label_plain": "花屏",
+      "tone": "bad",
+      "style": "alt"
+     },
+     {
+      "id": "skipped",
+      "value": "skipped",
+      "label": "看不清（跳过）",
+      "label_plain": "看不清（跳过）",
+      "tone": "neutral",
+      "style": "alt"
+     }
+    ],
+    "hint": "点击大按钮作答；选项来源见 option.origin（判据库 / 契约 / 口述）",
+    "min_touch_px": 44,
+    "layout_note": "只给语义与建议样式；具体矩形由流程页统一布局，本文件不绑定"
+   },
+   "vision_policy": "hint_only",
+   "author_confirm": true,
+   "notes": [
+    "field / part / route 沿用 vision_bindings.json（判据库字段名）"
+   ]
+  },
+  {
+   "qa_id": "SQ002",
+   "seq": 2,
+   "step_id": "15(10-I)-5",
+   "screen_key": "15(10-I).5",
+   "flow_no": "15(10-I)",
+   "sub_no": "5",
+   "check_item": "(操显)-理想下滑线及纠偏线连续且正常",
+   "category": "显示画面",
+   "subject": "（操显）理想下滑线及纠偏线",
+   "display": "operator_display",
+   "position": "操显",
+   "part": "z16",
+   "route": "I",
+   "part_source": "vision_bindings.json",
+   "screen_kind": "line",
+   "binding_ref": "glide_line",
+   "evidence_field": "(image)(operator_display)_glide_line",
+   "question": "现在屏幕上「（操显）理想下滑线及纠偏线」是否连续且正常？",
+   "normal": "理想线连续、方向正确，无中断 / 缺失",
+   "options": [
+    {
+     "id": "normal",
+     "value": "normal",
+     "label": "正常 ✔",
+     "label_plain": "正常",
+     "tone": "ok",
+     "abnormal": false,
+     "screen_state": "line_ok",
+     "origin": "contract_core_enum",
+     "label_origin": "system",
+     "db_backed": false,
+     "feature_id": null,
+     "feature_source": null,
+     "author_confirm": false,
+     "note": ""
+    },
+    {
+     "id": "abnormal",
+     "value": "abnormal",
+     "label": "线条不连续或缺失",
+     "label_plain": "线条不连续或缺失",
+     "tone": "bad",
+     "abnormal": true,
+     "screen_state": "line_abnormal",
+     "origin": "vision_state",
+     "label_origin": "vision_state",
+     "db_backed": false,
+     "feature_id": "F_(image)(operator_display)_glide_line_abnormal",
+     "feature_source": "synthesized",
+     "db_value_seen": true,
+     "db_value_fields": [
+      "(image)z12_i_internal_supply_(+15V)_and_(-15V)",
+      "(image)z12_i_internal_supply_(+5V、-5V)",
+      "(image)z12_i_internal_supply_11v"
+     ],
+     "author_confirm": true,
+     "note": "判据库无本字段异常值行；abnormal 取自 vision_rules.SCREEN_CHECKS 的 line 取值域（ok / abnormal）；知识库无精确对应，待作者确认"
+    },
+    {
+     "id": "skipped",
+     "value": "skipped",
+     "label": "看不清（跳过）",
+     "label_plain": "看不清（跳过）",
+     "tone": "neutral",
+     "abnormal": null,
+     "screen_state": "skipped",
+     "origin": "qa_flow_vocab",
+     "label_origin": "system",
+     "db_backed": false,
+     "feature_id": null,
+     "feature_source": null,
+     "author_confirm": false,
+     "note": "看不清/跳过 = 未验证；不产生正常/异常结论，confidence=0.0"
+    }
+   ],
+   "ui": {
+    "screen": {
+     "w": 1024,
+     "h": 600
+    },
+    "title": "屏幕状态确认",
+    "progress": "2/15",
+    "question": "现在屏幕上「（操显）理想下滑线及纠偏线」是否连续且正常？",
+    "normal": "正常判据：理想线连续、方向正确，无中断 / 缺失",
+    "part_chip": "Z11",
+    "route_chip": "I 路",
+    "buttons": [
+     {
+      "id": "normal",
+      "value": "normal",
+      "label": "正常 ✔",
+      "label_plain": "正常",
+      "tone": "ok",
+      "style": "primary"
+     },
+     {
+      "id": "abnormal",
+      "value": "abnormal",
+      "label": "线条不连续或缺失",
+      "label_plain": "线条不连续或缺失",
+      "tone": "bad",
+      "style": "alt"
+     },
+     {
+      "id": "skipped",
+      "value": "skipped",
+      "label": "看不清（跳过）",
+      "label_plain": "看不清（跳过）",
+      "tone": "neutral",
+      "style": "alt"
+     }
+    ],
+    "hint": "点击大按钮作答；选项来源见 option.origin（判据库 / 契约 / 口述）",
+    "min_touch_px": 44,
+    "layout_note": "只给语义与建议样式；具体矩形由流程页统一布局，本文件不绑定"
+   },
+   "vision_policy": "hint_only",
+   "author_confirm": true,
+   "notes": [
+    "本项 field 在判据库无登记行（vision_bindings field_src=synth）；field 按 vision_rules 命名沿用",
+    "判据库无 line 字段异常值行；abnormal 来自 vision_rules.SCREEN_CHECKS"
+   ]
+  },
+  {
+   "qa_id": "SQ003",
+   "seq": 3,
+   "step_id": "15(10-I)-6",
+   "screen_key": "15(10-I).6",
+   "flow_no": "15(10-I)",
+   "sub_no": "6",
+   "check_item": "(操显)-理想航向线及纠偏线连续且正常",
+   "category": "显示画面",
+   "subject": "（操显）理想航向线及纠偏线",
+   "display": "operator_display",
+   "position": "操显",
+   "part": "z16",
+   "route": "I",
+   "part_source": "vision_bindings.json",
+   "screen_kind": "line",
+   "binding_ref": "course_line",
+   "evidence_field": "(image)(operator_display)_course_line",
+   "question": "现在屏幕上「（操显）理想航向线及纠偏线」是否连续且正常？",
+   "normal": "理想线连续、方向正确，无中断 / 缺失",
+   "options": [
+    {
+     "id": "normal",
+     "value": "normal",
+     "label": "正常 ✔",
+     "label_plain": "正常",
+     "tone": "ok",
+     "abnormal": false,
+     "screen_state": "line_ok",
+     "origin": "contract_core_enum",
+     "label_origin": "system",
+     "db_backed": false,
+     "feature_id": null,
+     "feature_source": null,
+     "author_confirm": false,
+     "note": ""
+    },
+    {
+     "id": "abnormal",
+     "value": "abnormal",
+     "label": "线条不连续或缺失",
+     "label_plain": "线条不连续或缺失",
+     "tone": "bad",
+     "abnormal": true,
+     "screen_state": "line_abnormal",
+     "origin": "vision_state",
+     "label_origin": "vision_state",
+     "db_backed": false,
+     "feature_id": "F_(image)(operator_display)_course_line_abnormal",
+     "feature_source": "synthesized",
+     "db_value_seen": true,
+     "db_value_fields": [
+      "(image)z12_i_internal_supply_(+15V)_and_(-15V)",
+      "(image)z12_i_internal_supply_(+5V、-5V)",
+      "(image)z12_i_internal_supply_11v"
+     ],
+     "author_confirm": true,
+     "note": "判据库无本字段异常值行；abnormal 取自 vision_rules.SCREEN_CHECKS 的 line 取值域（ok / abnormal）；知识库无精确对应，待作者确认"
+    },
+    {
+     "id": "skipped",
+     "value": "skipped",
+     "label": "看不清（跳过）",
+     "label_plain": "看不清（跳过）",
+     "tone": "neutral",
+     "abnormal": null,
+     "screen_state": "skipped",
+     "origin": "qa_flow_vocab",
+     "label_origin": "system",
+     "db_backed": false,
+     "feature_id": null,
+     "feature_source": null,
+     "author_confirm": false,
+     "note": "看不清/跳过 = 未验证；不产生正常/异常结论，confidence=0.0"
+    }
+   ],
+   "ui": {
+    "screen": {
+     "w": 1024,
+     "h": 600
+    },
+    "title": "屏幕状态确认",
+    "progress": "3/15",
+    "question": "现在屏幕上「（操显）理想航向线及纠偏线」是否连续且正常？",
+    "normal": "正常判据：理想线连续、方向正确，无中断 / 缺失",
+    "part_chip": "Z11",
+    "route_chip": "I 路",
+    "buttons": [
+     {
+      "id": "normal",
+      "value": "normal",
+      "label": "正常 ✔",
+      "label_plain": "正常",
+      "tone": "ok",
+      "style": "primary"
+     },
+     {
+      "id": "abnormal",
+      "value": "abnormal",
+      "label": "线条不连续或缺失",
+      "label_plain": "线条不连续或缺失",
+      "tone": "bad",
+      "style": "alt"
+     },
+     {
+      "id": "skipped",
+      "value": "skipped",
+      "label": "看不清（跳过）",
+      "label_plain": "看不清（跳过）",
+      "tone": "neutral",
+      "style": "alt"
+     }
+    ],
+    "hint": "点击大按钮作答；选项来源见 option.origin（判据库 / 契约 / 口述）",
+    "min_touch_px": 44,
+    "layout_note": "只给语义与建议样式；具体矩形由流程页统一布局，本文件不绑定"
+   },
+   "vision_policy": "hint_only",
+   "author_confirm": true,
+   "notes": [
+    "本项 field 在判据库无登记行（vision_bindings field_src=synth）；field 按 vision_rules 命名沿用",
+    "判据库无 line 字段异常值行；abnormal 来自 vision_rules.SCREEN_CHECKS"
+   ]
+  },
+  {
+   "qa_id": "SQ004",
+   "seq": 4,
+   "step_id": "16（10-II）-4",
+   "screen_key": "16（10-II）.4",
+   "flow_no": "16（10-II）",
+   "sub_no": "4",
+   "check_item": "(领显)-有显示画面",
+   "category": "显示画面",
+   "subject": "（领显）显示画面",
+   "display": "leader_display",
+   "position": "领显",
+   "part": "z16",
+   "route": "II",
+   "part_source": "vision_bindings.json",
+   "screen_kind": "screen",
+   "binding_ref": "display_screen",
+   "evidence_field": "(image)(leader_display)_display_screen",
+   "question": "现在屏幕显示是什么状态？（领显-显示画面）",
+   "normal": "有显示画面，无黑屏 / 黄屏 / 花屏",
+   "options": [
+    {
+     "id": "normal",
+     "value": "normal",
+     "label": "正常 ✔",
+     "label_plain": "正常",
+     "tone": "ok",
+     "abnormal": false,
+     "screen_state": "screen_ok",
+     "origin": "contract_core_enum",
+     "label_origin": "system",
+     "db_backed": false,
+     "feature_id": null,
+     "feature_source": null,
+     "author_confirm": false,
+     "note": "屏幕正常；判据库 display_screen expect=ok"
+    },
+    {
+     "id": "black_screen",
+     "value": "black_screen",
+     "label": "黑屏",
+     "label_plain": "黑屏",
+     "tone": "bad",
+     "abnormal": true,
+     "screen_state": "black_screen",
+     "origin": "fault_db_value",
+     "label_origin": "fault_db",
+     "db_backed": false,
+     "feature_id": "F_(image)(leader_display)_display_screen_black_screen",
+     "feature_source": "synthesized",
+     "db_value_seen": true,
+     "db_value_fields": [
+      "(image)(operator_display)_display_screen"
+     ],
+     "author_confirm": true,
+     "note": "判据库 abnormal_value=black_screen 精确命中；该异常值在判据库其它 field 存在（(image)(operator_display)_display_screen），本 field 无登记行；feature_id 合成；知识库无精确对应，待作者确认"
+    },
+    {
+     "id": "yellow_screen",
+     "value": "yellow_screen",
+     "label": "黄屏",
+     "label_plain": "黄屏",
+     "tone": "bad",
+     "abnormal": true,
+     "screen_state": "yellow_screen",
+     "origin": "fault_db_value",
+     "label_origin": "fault_db",
+     "db_backed": false,
+     "feature_id": "F_(image)(leader_display)_display_screen_yellow_screen",
+     "feature_source": "synthesized",
+     "db_value_seen": true,
+     "db_value_fields": [
+      "(image)(operator_display)_display_screen"
+     ],
+     "author_confirm": true,
+     "note": "判据库 abnormal_value=yellow_screen 精确命中；该异常值在判据库其它 field 存在（(image)(operator_display)_display_screen），本 field 无登记行；feature_id 合成；知识库无精确对应，待作者确认"
+    },
+    {
+     "id": "garbled",
+     "value": "garbled",
+     "label": "花屏",
+     "label_plain": "花屏",
+     "tone": "bad",
+     "abnormal": true,
+     "screen_state": "garbled",
+     "origin": "vision_state",
+     "label_origin": "vision_state",
+     "db_backed": false,
+     "feature_id": "F_(image)(leader_display)_display_screen_garbled",
+     "feature_source": "synthesized",
+     "db_phenomenon_seen": true,
+     "db_phenomenon": "花屏或显示画面死机",
+     "db_phenomenon_sub_unit": "Z15（显示电路分机）（I）",
+     "author_confirm": true,
+     "note": "判据库只有现象「花屏 / 花屏或显示画面死机」，无 abnormal_value；garbled 取自 vision_rules.SCREEN_CHECKS 与 schema_evidence §5.2；判据库现象列有「花屏或显示画面死机」，但没有 field/abnormal_value 行；知识库无精确对应，待作者确认"
+    },
+    {
+     "id": "skipped",
+     "value": "skipped",
+     "label": "看不清（跳过）",
+     "label_plain": "看不清（跳过）",
+     "tone": "neutral",
+     "abnormal": null,
+     "screen_state": "skipped",
+     "origin": "qa_flow_vocab",
+     "label_origin": "system",
+     "db_backed": false,
+     "feature_id": null,
+     "feature_source": null,
+     "author_confirm": false,
+     "note": "看不清/跳过 = 未验证；不产生正常/异常结论，confidence=0.0"
+    }
+   ],
+   "ui": {
+    "screen": {
+     "w": 1024,
+     "h": 600
+    },
+    "title": "屏幕状态确认",
+    "progress": "4/15",
+    "question": "现在屏幕显示是什么状态？（领显-显示画面）",
+    "normal": "正常判据：有显示画面，无黑屏 / 黄屏 / 花屏",
+    "part_chip": "Z11",
+    "route_chip": "II 路",
+    "buttons": [
+     {
+      "id": "normal",
+      "value": "normal",
+      "label": "正常 ✔",
+      "label_plain": "正常",
+      "tone": "ok",
+      "style": "primary"
+     },
+     {
+      "id": "black_screen",
+      "value": "black_screen",
+      "label": "黑屏",
+      "label_plain": "黑屏",
+      "tone": "bad",
+      "style": "alt"
+     },
+     {
+      "id": "yellow_screen",
+      "value": "yellow_screen",
+      "label": "黄屏",
+      "label_plain": "黄屏",
+      "tone": "bad",
+      "style": "alt"
+     },
+     {
+      "id": "garbled",
+      "value": "garbled",
+      "label": "花屏",
+      "label_plain": "花屏",
+      "tone": "bad",
+      "style": "alt"
+     },
+     {
+      "id": "skipped",
+      "value": "skipped",
+      "label": "看不清（跳过）",
+      "label_plain": "看不清（跳过）",
+      "tone": "neutral",
+      "style": "alt"
+     }
+    ],
+    "hint": "点击大按钮作答；选项来源见 option.origin（判据库 / 契约 / 口述）",
+    "min_touch_px": 44,
+    "layout_note": "只给语义与建议样式；具体矩形由流程页统一布局，本文件不绑定"
+   },
+   "vision_policy": "hint_only",
+   "author_confirm": true,
+   "notes": [
+    "本项 field 在判据库无登记行（vision_bindings field_src=synth）；field 按 vision_rules 命名沿用",
+    "领显字段在判据库_故障.csv 无登记行；feature_id 为合成"
+   ]
+  },
+  {
+   "qa_id": "SQ005",
+   "seq": 5,
+   "step_id": "16（10-II）-5",
+   "screen_key": "16（10-II）.5",
+   "flow_no": "16（10-II）",
+   "sub_no": "5",
+   "check_item": "(领显)-理想下滑线及纠偏线连续且正常",
+   "category": "显示画面",
+   "subject": "（领显）理想下滑线及纠偏线",
+   "display": "leader_display",
+   "position": "领显",
+   "part": "z16",
+   "route": "II",
+   "part_source": "vision_bindings.json",
+   "screen_kind": "line",
+   "binding_ref": "glide_line",
+   "evidence_field": "(image)(leader_display)_glide_line",
+   "question": "现在屏幕上「（领显）理想下滑线及纠偏线」是否连续且正常？",
+   "normal": "理想线连续、方向正确，无中断 / 缺失",
+   "options": [
+    {
+     "id": "normal",
+     "value": "normal",
+     "label": "正常 ✔",
+     "label_plain": "正常",
+     "tone": "ok",
+     "abnormal": false,
+     "screen_state": "line_ok",
+     "origin": "contract_core_enum",
+     "label_origin": "system",
+     "db_backed": false,
+     "feature_id": null,
+     "feature_source": null,
+     "author_confirm": false,
+     "note": ""
+    },
+    {
+     "id": "abnormal",
+     "value": "abnormal",
+     "label": "线条不连续或缺失",
+     "label_plain": "线条不连续或缺失",
+     "tone": "bad",
+     "abnormal": true,
+     "screen_state": "line_abnormal",
+     "origin": "vision_state",
+     "label_origin": "vision_state",
+     "db_backed": false,
+     "feature_id": "F_(image)(leader_display)_glide_line_abnormal",
+     "feature_source": "synthesized",
+     "db_value_seen": true,
+     "db_value_fields": [
+      "(image)z12_i_internal_supply_(+15V)_and_(-15V)",
+      "(image)z12_i_internal_supply_(+5V、-5V)",
+      "(image)z12_i_internal_supply_11v"
+     ],
+     "author_confirm": true,
+     "note": "判据库无本字段异常值行；abnormal 取自 vision_rules.SCREEN_CHECKS 的 line 取值域（ok / abnormal）；知识库无精确对应，待作者确认"
+    },
+    {
+     "id": "skipped",
+     "value": "skipped",
+     "label": "看不清（跳过）",
+     "label_plain": "看不清（跳过）",
+     "tone": "neutral",
+     "abnormal": null,
+     "screen_state": "skipped",
+     "origin": "qa_flow_vocab",
+     "label_origin": "system",
+     "db_backed": false,
+     "feature_id": null,
+     "feature_source": null,
+     "author_confirm": false,
+     "note": "看不清/跳过 = 未验证；不产生正常/异常结论，confidence=0.0"
+    }
+   ],
+   "ui": {
+    "screen": {
+     "w": 1024,
+     "h": 600
+    },
+    "title": "屏幕状态确认",
+    "progress": "5/15",
+    "question": "现在屏幕上「（领显）理想下滑线及纠偏线」是否连续且正常？",
+    "normal": "正常判据：理想线连续、方向正确，无中断 / 缺失",
+    "part_chip": "Z11",
+    "route_chip": "II 路",
+    "buttons": [
+     {
+      "id": "normal",
+      "value": "normal",
+      "label": "正常 ✔",
+      "label_plain": "正常",
+      "tone": "ok",
+      "style": "primary"
+     },
+     {
+      "id": "abnormal",
+      "value": "abnormal",
+      "label": "线条不连续或缺失",
+      "label_plain": "线条不连续或缺失",
+      "tone": "bad",
+      "style": "alt"
+     },
+     {
+      "id": "skipped",
+      "value": "skipped",
+      "label": "看不清（跳过）",
+      "label_plain": "看不清（跳过）",
+      "tone": "neutral",
+      "style": "alt"
+     }
+    ],
+    "hint": "点击大按钮作答；选项来源见 option.origin（判据库 / 契约 / 口述）",
+    "min_touch_px": 44,
+    "layout_note": "只给语义与建议样式；具体矩形由流程页统一布局，本文件不绑定"
+   },
+   "vision_policy": "hint_only",
+   "author_confirm": true,
+   "notes": [
+    "本项 field 在判据库无登记行（vision_bindings field_src=synth）；field 按 vision_rules 命名沿用",
+    "领显字段在判据库_故障.csv 无登记行；feature_id 为合成",
+    "判据库无 line 字段异常值行；abnormal 来自 vision_rules.SCREEN_CHECKS"
+   ]
+  },
+  {
+   "qa_id": "SQ006",
+   "seq": 6,
+   "step_id": "16（10-II）-6",
+   "screen_key": "16（10-II）.6",
+   "flow_no": "16（10-II）",
+   "sub_no": "6",
+   "check_item": "(领显)-理想航向线及纠偏线连续且正常",
+   "category": "显示画面",
+   "subject": "（领显）理想航向线及纠偏线",
+   "display": "leader_display",
+   "position": "领显",
+   "part": "z16",
+   "route": "II",
+   "part_source": "vision_bindings.json",
+   "screen_kind": "line",
+   "binding_ref": "course_line",
+   "evidence_field": "(image)(leader_display)_course_line",
+   "question": "现在屏幕上「（领显）理想航向线及纠偏线」是否连续且正常？",
+   "normal": "理想线连续、方向正确，无中断 / 缺失",
+   "options": [
+    {
+     "id": "normal",
+     "value": "normal",
+     "label": "正常 ✔",
+     "label_plain": "正常",
+     "tone": "ok",
+     "abnormal": false,
+     "screen_state": "line_ok",
+     "origin": "contract_core_enum",
+     "label_origin": "system",
+     "db_backed": false,
+     "feature_id": null,
+     "feature_source": null,
+     "author_confirm": false,
+     "note": ""
+    },
+    {
+     "id": "abnormal",
+     "value": "abnormal",
+     "label": "线条不连续或缺失",
+     "label_plain": "线条不连续或缺失",
+     "tone": "bad",
+     "abnormal": true,
+     "screen_state": "line_abnormal",
+     "origin": "vision_state",
+     "label_origin": "vision_state",
+     "db_backed": false,
+     "feature_id": "F_(image)(leader_display)_course_line_abnormal",
+     "feature_source": "synthesized",
+     "db_value_seen": true,
+     "db_value_fields": [
+      "(image)z12_i_internal_supply_(+15V)_and_(-15V)",
+      "(image)z12_i_internal_supply_(+5V、-5V)",
+      "(image)z12_i_internal_supply_11v"
+     ],
+     "author_confirm": true,
+     "note": "判据库无本字段异常值行；abnormal 取自 vision_rules.SCREEN_CHECKS 的 line 取值域（ok / abnormal）；知识库无精确对应，待作者确认"
+    },
+    {
+     "id": "skipped",
+     "value": "skipped",
+     "label": "看不清（跳过）",
+     "label_plain": "看不清（跳过）",
+     "tone": "neutral",
+     "abnormal": null,
+     "screen_state": "skipped",
+     "origin": "qa_flow_vocab",
+     "label_origin": "system",
+     "db_backed": false,
+     "feature_id": null,
+     "feature_source": null,
+     "author_confirm": false,
+     "note": "看不清/跳过 = 未验证；不产生正常/异常结论，confidence=0.0"
+    }
+   ],
+   "ui": {
+    "screen": {
+     "w": 1024,
+     "h": 600
+    },
+    "title": "屏幕状态确认",
+    "progress": "6/15",
+    "question": "现在屏幕上「（领显）理想航向线及纠偏线」是否连续且正常？",
+    "normal": "正常判据：理想线连续、方向正确，无中断 / 缺失",
+    "part_chip": "Z11",
+    "route_chip": "II 路",
+    "buttons": [
+     {
+      "id": "normal",
+      "value": "normal",
+      "label": "正常 ✔",
+      "label_plain": "正常",
+      "tone": "ok",
+      "style": "primary"
+     },
+     {
+      "id": "abnormal",
+      "value": "abnormal",
+      "label": "线条不连续或缺失",
+      "label_plain": "线条不连续或缺失",
+      "tone": "bad",
+      "style": "alt"
+     },
+     {
+      "id": "skipped",
+      "value": "skipped",
+      "label": "看不清（跳过）",
+      "label_plain": "看不清（跳过）",
+      "tone": "neutral",
+      "style": "alt"
+     }
+    ],
+    "hint": "点击大按钮作答；选项来源见 option.origin（判据库 / 契约 / 口述）",
+    "min_touch_px": 44,
+    "layout_note": "只给语义与建议样式；具体矩形由流程页统一布局，本文件不绑定"
+   },
+   "vision_policy": "hint_only",
+   "author_confirm": true,
+   "notes": [
+    "本项 field 在判据库无登记行（vision_bindings field_src=synth）；field 按 vision_rules 命名沿用",
+    "领显字段在判据库_故障.csv 无登记行；feature_id 为合成",
+    "判据库无 line 字段异常值行；abnormal 来自 vision_rules.SCREEN_CHECKS"
+   ]
+  },
+  {
+   "qa_id": "SQ007",
+   "seq": 7,
+   "step_id": "18-3",
+   "screen_key": "18.3",
+   "flow_no": "18",
+   "sub_no": "3",
+   "check_item": "理想航向线方向正确",
+   "category": "指示灯",
+   "subject": "",
+   "display": "",
+   "position": "操显",
+   "part": "z16",
+   "route": "",
+   "part_source": "vision_bindings.json",
+   "screen_kind": "line",
+   "binding_ref": "course_line",
+   "evidence_field": "(image)(operator_display)_course_line",
+   "question": "现在屏幕上「（操显）理想航向线」的方向是否正确？",
+   "normal": "航向线方向正确，无反向 / 不连续",
+   "options": [
+    {
+     "id": "normal",
+     "value": "normal",
+     "label": "正常 ✔",
+     "label_plain": "正常",
+     "tone": "ok",
+     "abnormal": false,
+     "screen_state": "line_ok",
+     "origin": "contract_core_enum",
+     "label_origin": "system",
+     "db_backed": false,
+     "feature_id": null,
+     "feature_source": null,
+     "author_confirm": false,
+     "note": ""
+    },
+    {
+     "id": "abnormal",
+     "value": "abnormal",
+     "label": "方向错误",
+     "label_plain": "方向错误",
+     "tone": "bad",
+     "abnormal": true,
+     "screen_state": "line_abnormal",
+     "origin": "vision_state",
+     "label_origin": "vision_state",
+     "db_backed": false,
+     "feature_id": "F_(image)(operator_display)_course_line_abnormal",
+     "feature_source": "synthesized",
+     "db_value_seen": true,
+     "db_value_fields": [
+      "(image)z12_i_internal_supply_(+15V)_and_(-15V)",
+      "(image)z12_i_internal_supply_(+5V、-5V)",
+      "(image)z12_i_internal_supply_11v"
+     ],
+     "author_confirm": true,
+     "note": "判据库无本字段异常值行；abnormal 取自 vision_rules.SCREEN_CHECKS 的 line 取值域（ok / abnormal）；知识库无精确对应，待作者确认"
+    },
+    {
+     "id": "skipped",
+     "value": "skipped",
+     "label": "看不清（跳过）",
+     "label_plain": "看不清（跳过）",
+     "tone": "neutral",
+     "abnormal": null,
+     "screen_state": "skipped",
+     "origin": "qa_flow_vocab",
+     "label_origin": "system",
+     "db_backed": false,
+     "feature_id": null,
+     "feature_source": null,
+     "author_confirm": false,
+     "note": "看不清/跳过 = 未验证；不产生正常/异常结论，confidence=0.0"
+    }
+   ],
+   "ui": {
+    "screen": {
+     "w": 1024,
+     "h": 600
+    },
+    "title": "屏幕状态确认",
+    "progress": "7/15",
+    "question": "现在屏幕上「（操显）理想航向线」的方向是否正确？",
+    "normal": "正常判据：航向线方向正确，无反向 / 不连续",
+    "part_chip": "Z11",
+    "route_chip": "",
+    "buttons": [
+     {
+      "id": "normal",
+      "value": "normal",
+      "label": "正常 ✔",
+      "label_plain": "正常",
+      "tone": "ok",
+      "style": "primary"
+     },
+     {
+      "id": "abnormal",
+      "value": "abnormal",
+      "label": "方向错误",
+      "label_plain": "方向错误",
+      "tone": "bad",
+      "style": "alt"
+     },
+     {
+      "id": "skipped",
+      "value": "skipped",
+      "label": "看不清（跳过）",
+      "label_plain": "看不清（跳过）",
+      "tone": "neutral",
+      "style": "alt"
+     }
+    ],
+    "hint": "点击大按钮作答；选项来源见 option.origin（判据库 / 契约 / 口述）",
+    "min_touch_px": 44,
+    "layout_note": "只给语义与建议样式；具体矩形由流程页统一布局，本文件不绑定"
+   },
+   "vision_policy": "hint_only",
+   "author_confirm": true,
+   "notes": [
+    "本项 field 在判据库无登记行（vision_bindings field_src=synth）；field 按 vision_rules 命名沿用",
+    "判据库无 line 字段异常值行；abnormal 来自 vision_rules.SCREEN_CHECKS"
+   ]
+  },
+  {
+   "qa_id": "SQ008",
+   "seq": 8,
+   "step_id": "19-5",
+   "screen_key": "19.5",
+   "flow_no": "19",
+   "sub_no": "5",
+   "check_item": "（操显）航向画面扫描正常",
+   "category": "显示画面",
+   "subject": "（操显）航向画面扫描",
+   "display": "operator_display",
+   "position": "操显",
+   "part": "z16",
+   "route": "",
+   "part_source": "vision_bindings.json",
+   "screen_kind": "scan",
+   "binding_ref": "course_scan",
+   "evidence_field": "(image)(operator_display)_course_scan",
+   "question": "现在屏幕上「（操显）航向画面扫描」是否在正常扫描？",
+   "normal": "画面正常扫描，无静止 / 不扫描",
+   "options": [
+    {
+     "id": "normal",
+     "value": "normal",
+     "label": "正常（扫描正常）✔",
+     "label_plain": "正常（扫描正常）",
+     "tone": "ok",
+     "abnormal": false,
+     "screen_state": "scan_ok",
+     "origin": "contract_core_enum",
+     "label_origin": "system",
+     "db_backed": false,
+     "feature_id": null,
+     "feature_source": null,
+     "author_confirm": false,
+     "note": "判据库 check_item 用词「画面扫描正常」"
+    },
+    {
+     "id": "no",
+     "value": "no",
+     "label": "不扫描",
+     "label_plain": "不扫描",
+     "tone": "bad",
+     "abnormal": true,
+     "screen_state": "no_scan",
+     "origin": "vision_state",
+     "label_origin": "vision_state",
+     "db_backed": false,
+     "feature_id": "F_(image)(operator_display)_course_scan_no",
+     "feature_source": "synthesized",
+     "db_value_seen": true,
+     "db_value_fields": [
+      "(image)(operator_display)_course_echo",
+      "(image)(operator_display)_glide_echo"
+     ],
+     "db_phenomenon_seen": true,
+     "db_phenomenon": "（航向）_不扫描",
+     "db_phenomenon_sub_unit": "Z15（显示电路分机）（I）",
+     "author_confirm": true,
+     "note": "判据库无 scan 字段异常值行，只有现象「（航向）_不扫描」/「（下滑）_不扫描」；no 取自 vision_rules.SCREEN_CHECKS 的 scan 取值域（ok / no）；判据库现象列有「（航向）_不扫描」，但没有 field/abnormal_value 行；知识库无精确对应，待作者确认"
+    },
+    {
+     "id": "skipped",
+     "value": "skipped",
+     "label": "看不清（跳过）",
+     "label_plain": "看不清（跳过）",
+     "tone": "neutral",
+     "abnormal": null,
+     "screen_state": "skipped",
+     "origin": "qa_flow_vocab",
+     "label_origin": "system",
+     "db_backed": false,
+     "feature_id": null,
+     "feature_source": null,
+     "author_confirm": false,
+     "note": "看不清/跳过 = 未验证；不产生正常/异常结论，confidence=0.0"
+    }
+   ],
+   "ui": {
+    "screen": {
+     "w": 1024,
+     "h": 600
+    },
+    "title": "屏幕状态确认",
+    "progress": "8/15",
+    "question": "现在屏幕上「（操显）航向画面扫描」是否在正常扫描？",
+    "normal": "正常判据：画面正常扫描，无静止 / 不扫描",
+    "part_chip": "Z11",
+    "route_chip": "",
+    "buttons": [
+     {
+      "id": "normal",
+      "value": "normal",
+      "label": "正常（扫描正常）✔",
+      "label_plain": "正常（扫描正常）",
+      "tone": "ok",
+      "style": "primary"
+     },
+     {
+      "id": "no",
+      "value": "no",
+      "label": "不扫描",
+      "label_plain": "不扫描",
+      "tone": "bad",
+      "style": "alt"
+     },
+     {
+      "id": "skipped",
+      "value": "skipped",
+      "label": "看不清（跳过）",
+      "label_plain": "看不清（跳过）",
+      "tone": "neutral",
+      "style": "alt"
+     }
+    ],
+    "hint": "点击大按钮作答；选项来源见 option.origin（判据库 / 契约 / 口述）",
+    "min_touch_px": 44,
+    "layout_note": "只给语义与建议样式；具体矩形由流程页统一布局，本文件不绑定"
+   },
+   "vision_policy": "hint_only",
+   "author_confirm": true,
+   "notes": [
+    "本项 field 在判据库无登记行（vision_bindings field_src=synth）；field 按 vision_rules 命名沿用",
+    "判据库无 scan 字段异常值行；no 来自 vision_rules.SCREEN_CHECKS"
+   ]
+  },
+  {
+   "qa_id": "SQ009",
+   "seq": 9,
+   "step_id": "19-6",
+   "screen_key": "19.6",
+   "flow_no": "19",
+   "sub_no": "6",
+   "check_item": "（操显）下滑画面扫描正常",
+   "category": "显示画面",
+   "subject": "（操显）下滑画面扫描",
+   "display": "operator_display",
+   "position": "操显",
+   "part": "z16",
+   "route": "",
+   "part_source": "vision_bindings.json",
+   "screen_kind": "scan",
+   "binding_ref": "glide_scan",
+   "evidence_field": "(image)(operator_display)_glide_scan",
+   "question": "现在屏幕上「（操显）下滑画面扫描」是否在正常扫描？",
+   "normal": "画面正常扫描，无静止 / 不扫描",
+   "options": [
+    {
+     "id": "normal",
+     "value": "normal",
+     "label": "正常（扫描正常）✔",
+     "label_plain": "正常（扫描正常）",
+     "tone": "ok",
+     "abnormal": false,
+     "screen_state": "scan_ok",
+     "origin": "contract_core_enum",
+     "label_origin": "system",
+     "db_backed": false,
+     "feature_id": null,
+     "feature_source": null,
+     "author_confirm": false,
+     "note": "判据库 check_item 用词「画面扫描正常」"
+    },
+    {
+     "id": "no",
+     "value": "no",
+     "label": "不扫描",
+     "label_plain": "不扫描",
+     "tone": "bad",
+     "abnormal": true,
+     "screen_state": "no_scan",
+     "origin": "vision_state",
+     "label_origin": "vision_state",
+     "db_backed": false,
+     "feature_id": "F_(image)(operator_display)_glide_scan_no",
+     "feature_source": "synthesized",
+     "db_value_seen": true,
+     "db_value_fields": [
+      "(image)(operator_display)_course_echo",
+      "(image)(operator_display)_glide_echo"
+     ],
+     "db_phenomenon_seen": true,
+     "db_phenomenon": "（航向）_不扫描",
+     "db_phenomenon_sub_unit": "Z15（显示电路分机）（I）",
+     "author_confirm": true,
+     "note": "判据库无 scan 字段异常值行，只有现象「（航向）_不扫描」/「（下滑）_不扫描」；no 取自 vision_rules.SCREEN_CHECKS 的 scan 取值域（ok / no）；判据库现象列有「（航向）_不扫描」，但没有 field/abnormal_value 行；知识库无精确对应，待作者确认"
+    },
+    {
+     "id": "skipped",
+     "value": "skipped",
+     "label": "看不清（跳过）",
+     "label_plain": "看不清（跳过）",
+     "tone": "neutral",
+     "abnormal": null,
+     "screen_state": "skipped",
+     "origin": "qa_flow_vocab",
+     "label_origin": "system",
+     "db_backed": false,
+     "feature_id": null,
+     "feature_source": null,
+     "author_confirm": false,
+     "note": "看不清/跳过 = 未验证；不产生正常/异常结论，confidence=0.0"
+    }
+   ],
+   "ui": {
+    "screen": {
+     "w": 1024,
+     "h": 600
+    },
+    "title": "屏幕状态确认",
+    "progress": "9/15",
+    "question": "现在屏幕上「（操显）下滑画面扫描」是否在正常扫描？",
+    "normal": "正常判据：画面正常扫描，无静止 / 不扫描",
+    "part_chip": "Z11",
+    "route_chip": "",
+    "buttons": [
+     {
+      "id": "normal",
+      "value": "normal",
+      "label": "正常（扫描正常）✔",
+      "label_plain": "正常（扫描正常）",
+      "tone": "ok",
+      "style": "primary"
+     },
+     {
+      "id": "no",
+      "value": "no",
+      "label": "不扫描",
+      "label_plain": "不扫描",
+      "tone": "bad",
+      "style": "alt"
+     },
+     {
+      "id": "skipped",
+      "value": "skipped",
+      "label": "看不清（跳过）",
+      "label_plain": "看不清（跳过）",
+      "tone": "neutral",
+      "style": "alt"
+     }
+    ],
+    "hint": "点击大按钮作答；选项来源见 option.origin（判据库 / 契约 / 口述）",
+    "min_touch_px": 44,
+    "layout_note": "只给语义与建议样式；具体矩形由流程页统一布局，本文件不绑定"
+   },
+   "vision_policy": "hint_only",
+   "author_confirm": true,
+   "notes": [
+    "本项 field 在判据库无登记行（vision_bindings field_src=synth）；field 按 vision_rules 命名沿用",
+    "判据库无 scan 字段异常值行；no 来自 vision_rules.SCREEN_CHECKS"
+   ]
+  },
+  {
+   "qa_id": "SQ010",
+   "seq": 10,
+   "step_id": "19-7",
+   "screen_key": "19.7",
+   "flow_no": "19",
+   "sub_no": "7",
+   "check_item": "（操显）航向噪声有",
+   "category": "显示画面",
+   "subject": "（操显）航向噪声",
+   "display": "operator_display",
+   "position": "操显",
+   "part": "z14",
+   "route": "",
+   "part_source": "vision_bindings.json",
+   "screen_kind": "noise",
+   "binding_ref": "course_noise",
+   "evidence_field": "(image)(operator_display)_course_noise",
+   "question": "现在屏幕上「（操显）航向噪声」有底噪吗？",
+   "normal": "屏面有底噪 / 噪声（判据库正常期望：有噪声）",
+   "options": [
+    {
+     "id": "normal",
+     "value": "normal",
+     "label": "有底噪（正常）✔",
+     "label_plain": "有底噪（正常）",
+     "tone": "ok",
+     "abnormal": false,
+     "screen_state": "noise_ok",
+     "origin": "contract_core_enum",
+     "label_origin": "user_dictated",
+     "db_backed": false,
+     "feature_id": null,
+     "feature_source": null,
+     "author_confirm": true,
+     "note": "「有底噪」是作者口述用词，不是判据库 abnormal_value；判据库正常期望是 expect=ok、现象列用词「有噪声」。本选项 value=normal。；知识库无精确对应，待作者确认"
+    },
+    {
+     "id": "no_noise",
+     "value": "no_noise",
+     "label": "无底噪（无噪声）",
+     "label_plain": "无底噪（无噪声）",
+     "tone": "bad",
+     "abnormal": true,
+     "screen_state": "no_noise",
+     "origin": "fault_db",
+     "label_origin": "user_dictated",
+     "db_backed": true,
+     "feature_id": "F_(image)(operator_display)_course_noise_no_noise",
+     "feature_source": "fault_library",
+     "db_feature_id": "F_(image)(operator_display)_course_noise_no_noise",
+     "db_label": "（操显）航向_无噪声",
+     "db_sub_unit": "Z14（信号处理分机）(I)",
+     "author_confirm": true,
+     "note": "abnormal_value=no_noise 精确命中；「底噪」是作者口述，判据库原词是「无噪声」，db_label 保留原文；知识库无精确对应，待作者确认"
+    },
+    {
+     "id": "skipped",
+     "value": "skipped",
+     "label": "看不清（跳过）",
+     "label_plain": "看不清（跳过）",
+     "tone": "neutral",
+     "abnormal": null,
+     "screen_state": "skipped",
+     "origin": "qa_flow_vocab",
+     "label_origin": "system",
+     "db_backed": false,
+     "feature_id": null,
+     "feature_source": null,
+     "author_confirm": false,
+     "note": "看不清/跳过 = 未验证；不产生正常/异常结论，confidence=0.0"
+    }
+   ],
+   "ui": {
+    "screen": {
+     "w": 1024,
+     "h": 600
+    },
+    "title": "屏幕状态确认",
+    "progress": "10/15",
+    "question": "现在屏幕上「（操显）航向噪声」有底噪吗？",
+    "normal": "正常判据：屏面有底噪 / 噪声（判据库正常期望：有噪声）",
+    "part_chip": "Z14",
+    "route_chip": "",
+    "buttons": [
+     {
+      "id": "normal",
+      "value": "normal",
+      "label": "有底噪（正常）✔",
+      "label_plain": "有底噪（正常）",
+      "tone": "ok",
+      "style": "primary"
+     },
+     {
+      "id": "no_noise",
+      "value": "no_noise",
+      "label": "无底噪（无噪声）",
+      "label_plain": "无底噪（无噪声）",
+      "tone": "bad",
+      "style": "alt"
+     },
+     {
+      "id": "skipped",
+      "value": "skipped",
+      "label": "看不清（跳过）",
+      "label_plain": "看不清（跳过）",
+      "tone": "neutral",
+      "style": "alt"
+     }
+    ],
+    "hint": "点击大按钮作答；选项来源见 option.origin（判据库 / 契约 / 口述）",
+    "min_touch_px": 44,
+    "layout_note": "只给语义与建议样式；具体矩形由流程页统一布局，本文件不绑定"
+   },
+   "vision_policy": "hint_only",
+   "author_confirm": true,
+   "notes": [
+    "field / part / route 沿用 vision_bindings.json（判据库字段名）",
+    "「底噪」为作者口述；判据库原词「无噪声」（no_noise）"
+   ]
+  },
+  {
+   "qa_id": "SQ011",
+   "seq": 11,
+   "step_id": "19-8",
+   "screen_key": "19.8",
+   "flow_no": "19",
+   "sub_no": "8",
+   "check_item": "（操显）下滑噪声有",
+   "category": "显示画面",
+   "subject": "（操显）下滑噪声",
+   "display": "operator_display",
+   "position": "操显",
+   "part": "z14",
+   "route": "",
+   "part_source": "vision_bindings.json",
+   "screen_kind": "noise",
+   "binding_ref": "glide_noise",
+   "evidence_field": "(image)(operator_display)_glide_noise",
+   "question": "现在屏幕上「（操显）下滑噪声」有底噪吗？",
+   "normal": "屏面有底噪 / 噪声（判据库正常期望：有噪声）",
+   "options": [
+    {
+     "id": "normal",
+     "value": "normal",
+     "label": "有底噪（正常）✔",
+     "label_plain": "有底噪（正常）",
+     "tone": "ok",
+     "abnormal": false,
+     "screen_state": "noise_ok",
+     "origin": "contract_core_enum",
+     "label_origin": "user_dictated",
+     "db_backed": false,
+     "feature_id": null,
+     "feature_source": null,
+     "author_confirm": true,
+     "note": "「有底噪」是作者口述用词，不是判据库 abnormal_value；判据库正常期望是 expect=ok、现象列用词「有噪声」。本选项 value=normal。；知识库无精确对应，待作者确认"
+    },
+    {
+     "id": "no_noise",
+     "value": "no_noise",
+     "label": "无底噪（无噪声）",
+     "label_plain": "无底噪（无噪声）",
+     "tone": "bad",
+     "abnormal": true,
+     "screen_state": "no_noise",
+     "origin": "fault_db",
+     "label_origin": "user_dictated",
+     "db_backed": true,
+     "feature_id": "F_(image)(operator_display)_course_glide_no_noise",
+     "feature_source": "fault_library",
+     "db_feature_id": "F_(image)(operator_display)_course_glide_no_noise",
+     "db_label": "（操显）下滑_无噪声",
+     "db_sub_unit": "Z14（信号处理分机）(I)",
+     "author_confirm": true,
+     "note": "abnormal_value=no_noise 精确命中；「底噪」是作者口述，判据库原词是「无噪声」，db_label 保留原文；知识库无精确对应，待作者确认"
+    },
+    {
+     "id": "skipped",
+     "value": "skipped",
+     "label": "看不清（跳过）",
+     "label_plain": "看不清（跳过）",
+     "tone": "neutral",
+     "abnormal": null,
+     "screen_state": "skipped",
+     "origin": "qa_flow_vocab",
+     "label_origin": "system",
+     "db_backed": false,
+     "feature_id": null,
+     "feature_source": null,
+     "author_confirm": false,
+     "note": "看不清/跳过 = 未验证；不产生正常/异常结论，confidence=0.0"
+    }
+   ],
+   "ui": {
+    "screen": {
+     "w": 1024,
+     "h": 600
+    },
+    "title": "屏幕状态确认",
+    "progress": "11/15",
+    "question": "现在屏幕上「（操显）下滑噪声」有底噪吗？",
+    "normal": "正常判据：屏面有底噪 / 噪声（判据库正常期望：有噪声）",
+    "part_chip": "Z14",
+    "route_chip": "",
+    "buttons": [
+     {
+      "id": "normal",
+      "value": "normal",
+      "label": "有底噪（正常）✔",
+      "label_plain": "有底噪（正常）",
+      "tone": "ok",
+      "style": "primary"
+     },
+     {
+      "id": "no_noise",
+      "value": "no_noise",
+      "label": "无底噪（无噪声）",
+      "label_plain": "无底噪（无噪声）",
+      "tone": "bad",
+      "style": "alt"
+     },
+     {
+      "id": "skipped",
+      "value": "skipped",
+      "label": "看不清（跳过）",
+      "label_plain": "看不清（跳过）",
+      "tone": "neutral",
+      "style": "alt"
+     }
+    ],
+    "hint": "点击大按钮作答；选项来源见 option.origin（判据库 / 契约 / 口述）",
+    "min_touch_px": 44,
+    "layout_note": "只给语义与建议样式；具体矩形由流程页统一布局，本文件不绑定"
+   },
+   "vision_policy": "hint_only",
+   "author_confirm": true,
+   "notes": [
+    "field / part / route 沿用 vision_bindings.json（判据库字段名）",
+    "「底噪」为作者口述；判据库原词「无噪声」（no_noise）"
+   ]
+  },
+  {
+   "qa_id": "SQ012",
+   "seq": 12,
+   "step_id": "21",
+   "screen_key": "21.~2",
+   "flow_no": "21",
+   "sub_no": "",
+   "check_item": "航向回波正常",
+   "category": "显示画面",
+   "subject": "（操显）航向回波",
+   "display": "",
+   "position": "操显",
+   "part": "z16",
+   "route": "I",
+   "part_source": "vision_bindings.json",
+   "screen_kind": "echo",
+   "binding_ref": "course_echo",
+   "evidence_field": "(image)(operator_display)_course_echo",
+   "question": "现在屏幕上「（操显）航向回波」有回波吗？",
+   "normal": "屏面有正常回波（判据库正常期望：有回波）",
+   "options": [
+    {
+     "id": "normal",
+     "value": "normal",
+     "label": "有回波（正常）✔",
+     "label_plain": "有回波（正常）",
+     "tone": "ok",
+     "abnormal": false,
+     "screen_state": "echo_ok",
+     "origin": "contract_core_enum",
+     "label_origin": "system",
+     "db_backed": false,
+     "feature_id": null,
+     "feature_source": null,
+     "author_confirm": false,
+     "note": "判据库正常期望 expect=ok；现象列用词「航向回波 / 下滑回波」"
+    },
+    {
+     "id": "no",
+     "value": "no",
+     "label": "无回波",
+     "label_plain": "无回波",
+     "tone": "bad",
+     "abnormal": true,
+     "screen_state": "no_echo",
+     "origin": "fault_db",
+     "label_origin": "fault_db",
+     "db_backed": true,
+     "feature_id": "F_(image)(operator_display)_course_echo_no",
+     "feature_source": "fault_library",
+     "db_feature_id": "F_(image)(operator_display)_course_echo_no",
+     "db_label": "（I）路-Z11（收发）-[工作]-指示灯_不亮",
+     "db_sub_unit": "Z11（收发分机） （I路）",
+     "author_confirm": false,
+     "note": "判据库 abnormal_value=no 精确命中"
+    },
+    {
+     "id": "weak",
+     "value": "weak",
+     "label": "回波弱",
+     "label_plain": "回波弱",
+     "tone": "bad",
+     "abnormal": true,
+     "screen_state": "no_echo_weak",
+     "origin": "fault_db",
+     "label_origin": "fault_db",
+     "db_backed": true,
+     "feature_id": "F_(image)(operator_display)_course_echo_weak",
+     "feature_source": "fault_library",
+     "db_feature_id": "F_(image)(operator_display)_course_echo_weak",
+     "db_label": "航向回波(无)",
+     "db_sub_unit": "Z11（收发分机） （I路）",
+     "author_confirm": false,
+     "note": "判据库 abnormal_value=weak 精确命中"
+    },
+    {
+     "id": "skipped",
+     "value": "skipped",
+     "label": "看不清（跳过）",
+     "label_plain": "看不清（跳过）",
+     "tone": "neutral",
+     "abnormal": null,
+     "screen_state": "skipped",
+     "origin": "qa_flow_vocab",
+     "label_origin": "system",
+     "db_backed": false,
+     "feature_id": null,
+     "feature_source": null,
+     "author_confirm": false,
+     "note": "看不清/跳过 = 未验证；不产生正常/异常结论，confidence=0.0"
+    }
+   ],
+   "ui": {
+    "screen": {
+     "w": 1024,
+     "h": 600
+    },
+    "title": "屏幕状态确认",
+    "progress": "12/15",
+    "question": "现在屏幕上「（操显）航向回波」有回波吗？",
+    "normal": "正常判据：屏面有正常回波（判据库正常期望：有回波）",
+    "part_chip": "Z11",
+    "route_chip": "I 路",
+    "buttons": [
+     {
+      "id": "normal",
+      "value": "normal",
+      "label": "有回波（正常）✔",
+      "label_plain": "有回波（正常）",
+      "tone": "ok",
+      "style": "primary"
+     },
+     {
+      "id": "no",
+      "value": "no",
+      "label": "无回波",
+      "label_plain": "无回波",
+      "tone": "bad",
+      "style": "alt"
+     },
+     {
+      "id": "weak",
+      "value": "weak",
+      "label": "回波弱",
+      "label_plain": "回波弱",
+      "tone": "bad",
+      "style": "alt"
+     },
+     {
+      "id": "skipped",
+      "value": "skipped",
+      "label": "看不清（跳过）",
+      "label_plain": "看不清（跳过）",
+      "tone": "neutral",
+      "style": "alt"
+     }
+    ],
+    "hint": "点击大按钮作答；选项来源见 option.origin（判据库 / 契约 / 口述）",
+    "min_touch_px": 44,
+    "layout_note": "只给语义与建议样式；具体矩形由流程页统一布局，本文件不绑定"
+   },
+   "vision_policy": "hint_only",
+   "author_confirm": false,
+   "notes": [
+    "本项 field 在判据库无登记行（vision_bindings field_src=synth）；field 按 vision_rules 命名沿用",
+    "该领显/操显回波项的 field 在 vision_bindings 里是 operator_display；本文件原样沿用，是否改 leader_display 待作者确认"
+   ]
+  },
+  {
+   "qa_id": "SQ013",
+   "seq": 13,
+   "step_id": "21",
+   "screen_key": "21.~3",
+   "flow_no": "21",
+   "sub_no": "",
+   "check_item": "下滑回波正常",
+   "category": "显示画面",
+   "subject": "（操显）下滑回波",
+   "display": "",
+   "position": "操显",
+   "part": "z16",
+   "route": "I",
+   "part_source": "vision_bindings.json",
+   "screen_kind": "echo",
+   "binding_ref": "glide_echo",
+   "evidence_field": "(image)(operator_display)_glide_echo",
+   "question": "现在屏幕上「（操显）下滑回波」有回波吗？",
+   "normal": "屏面有正常回波（判据库正常期望：有回波）",
+   "options": [
+    {
+     "id": "normal",
+     "value": "normal",
+     "label": "有回波（正常）✔",
+     "label_plain": "有回波（正常）",
+     "tone": "ok",
+     "abnormal": false,
+     "screen_state": "echo_ok",
+     "origin": "contract_core_enum",
+     "label_origin": "system",
+     "db_backed": false,
+     "feature_id": null,
+     "feature_source": null,
+     "author_confirm": false,
+     "note": "判据库正常期望 expect=ok；现象列用词「航向回波 / 下滑回波」"
+    },
+    {
+     "id": "no",
+     "value": "no",
+     "label": "无回波",
+     "label_plain": "无回波",
+     "tone": "bad",
+     "abnormal": true,
+     "screen_state": "no_echo",
+     "origin": "fault_db",
+     "label_origin": "fault_db",
+     "db_backed": true,
+     "feature_id": "F_(image)(operator_display)_glide_echo_no",
+     "feature_source": "fault_library",
+     "db_feature_id": "F_(image)(operator_display)_glide_echo_no",
+     "db_label": "Z20（控制台）-[发射机控制]-[发射机工作]-[I]-指示灯_不亮",
+     "db_sub_unit": "Z11（收发分机） （I路）",
+     "author_confirm": false,
+     "note": "判据库 abnormal_value=no 精确命中"
+    },
+    {
+     "id": "weak",
+     "value": "weak",
+     "label": "回波弱",
+     "label_plain": "回波弱",
+     "tone": "bad",
+     "abnormal": true,
+     "screen_state": "no_echo_weak",
+     "origin": "fault_db",
+     "label_origin": "fault_db",
+     "db_backed": true,
+     "feature_id": "F_(image)(operator_display)_glide_echo_weak",
+     "feature_source": "fault_library",
+     "db_feature_id": "F_(image)(operator_display)_glide_echo_weak",
+     "db_label": "下滑回波(无）",
+     "db_sub_unit": "Z11（收发分机） （I路）",
+     "author_confirm": false,
+     "note": "判据库 abnormal_value=weak 精确命中"
+    },
+    {
+     "id": "skipped",
+     "value": "skipped",
+     "label": "看不清（跳过）",
+     "label_plain": "看不清（跳过）",
+     "tone": "neutral",
+     "abnormal": null,
+     "screen_state": "skipped",
+     "origin": "qa_flow_vocab",
+     "label_origin": "system",
+     "db_backed": false,
+     "feature_id": null,
+     "feature_source": null,
+     "author_confirm": false,
+     "note": "看不清/跳过 = 未验证；不产生正常/异常结论，confidence=0.0"
+    }
+   ],
+   "ui": {
+    "screen": {
+     "w": 1024,
+     "h": 600
+    },
+    "title": "屏幕状态确认",
+    "progress": "13/15",
+    "question": "现在屏幕上「（操显）下滑回波」有回波吗？",
+    "normal": "正常判据：屏面有正常回波（判据库正常期望：有回波）",
+    "part_chip": "Z11",
+    "route_chip": "I 路",
+    "buttons": [
+     {
+      "id": "normal",
+      "value": "normal",
+      "label": "有回波（正常）✔",
+      "label_plain": "有回波（正常）",
+      "tone": "ok",
+      "style": "primary"
+     },
+     {
+      "id": "no",
+      "value": "no",
+      "label": "无回波",
+      "label_plain": "无回波",
+      "tone": "bad",
+      "style": "alt"
+     },
+     {
+      "id": "weak",
+      "value": "weak",
+      "label": "回波弱",
+      "label_plain": "回波弱",
+      "tone": "bad",
+      "style": "alt"
+     },
+     {
+      "id": "skipped",
+      "value": "skipped",
+      "label": "看不清（跳过）",
+      "label_plain": "看不清（跳过）",
+      "tone": "neutral",
+      "style": "alt"
+     }
+    ],
+    "hint": "点击大按钮作答；选项来源见 option.origin（判据库 / 契约 / 口述）",
+    "min_touch_px": 44,
+    "layout_note": "只给语义与建议样式；具体矩形由流程页统一布局，本文件不绑定"
+   },
+   "vision_policy": "hint_only",
+   "author_confirm": false,
+   "notes": [
+    "本项 field 在判据库无登记行（vision_bindings field_src=synth）；field 按 vision_rules 命名沿用",
+    "该领显/操显回波项的 field 在 vision_bindings 里是 operator_display；本文件原样沿用，是否改 leader_display 待作者确认"
+   ]
+  },
+  {
+   "qa_id": "SQ014",
+   "seq": 14,
+   "step_id": "26",
+   "screen_key": "26.~3",
+   "flow_no": "26",
+   "sub_no": "",
+   "check_item": "航向回波正常",
+   "category": "显示画面",
+   "subject": "（领显）航向回波",
+   "display": "",
+   "position": "操显",
+   "part": "z16",
+   "route": "II",
+   "part_source": "vision_bindings.json",
+   "screen_kind": "echo",
+   "binding_ref": "course_echo",
+   "evidence_field": "(image)(operator_display)_course_echo",
+   "question": "现在屏幕上「（领显）航向回波」有回波吗？",
+   "normal": "屏面有正常回波（判据库正常期望：有回波）",
+   "options": [
+    {
+     "id": "normal",
+     "value": "normal",
+     "label": "有回波（正常）✔",
+     "label_plain": "有回波（正常）",
+     "tone": "ok",
+     "abnormal": false,
+     "screen_state": "echo_ok",
+     "origin": "contract_core_enum",
+     "label_origin": "system",
+     "db_backed": false,
+     "feature_id": null,
+     "feature_source": null,
+     "author_confirm": false,
+     "note": "判据库正常期望 expect=ok；现象列用词「航向回波 / 下滑回波」"
+    },
+    {
+     "id": "no",
+     "value": "no",
+     "label": "无回波",
+     "label_plain": "无回波",
+     "tone": "bad",
+     "abnormal": true,
+     "screen_state": "no_echo",
+     "origin": "fault_db",
+     "label_origin": "fault_db",
+     "db_backed": true,
+     "feature_id": "F_(image)(operator_display)_course_echo_no",
+     "feature_source": "fault_library",
+     "db_feature_id": "F_(image)(operator_display)_course_echo_no",
+     "db_label": "（I）路-Z11（收发）-[工作]-指示灯_不亮",
+     "db_sub_unit": "Z11（收发分机） （I路）",
+     "author_confirm": false,
+     "note": "判据库 abnormal_value=no 精确命中"
+    },
+    {
+     "id": "weak",
+     "value": "weak",
+     "label": "回波弱",
+     "label_plain": "回波弱",
+     "tone": "bad",
+     "abnormal": true,
+     "screen_state": "no_echo_weak",
+     "origin": "fault_db",
+     "label_origin": "fault_db",
+     "db_backed": true,
+     "feature_id": "F_(image)(operator_display)_course_echo_weak",
+     "feature_source": "fault_library",
+     "db_feature_id": "F_(image)(operator_display)_course_echo_weak",
+     "db_label": "航向回波(无)",
+     "db_sub_unit": "Z11（收发分机） （I路）",
+     "author_confirm": false,
+     "note": "判据库 abnormal_value=weak 精确命中"
+    },
+    {
+     "id": "skipped",
+     "value": "skipped",
+     "label": "看不清（跳过）",
+     "label_plain": "看不清（跳过）",
+     "tone": "neutral",
+     "abnormal": null,
+     "screen_state": "skipped",
+     "origin": "qa_flow_vocab",
+     "label_origin": "system",
+     "db_backed": false,
+     "feature_id": null,
+     "feature_source": null,
+     "author_confirm": false,
+     "note": "看不清/跳过 = 未验证；不产生正常/异常结论，confidence=0.0"
+    }
+   ],
+   "ui": {
+    "screen": {
+     "w": 1024,
+     "h": 600
+    },
+    "title": "屏幕状态确认",
+    "progress": "14/15",
+    "question": "现在屏幕上「（领显）航向回波」有回波吗？",
+    "normal": "正常判据：屏面有正常回波（判据库正常期望：有回波）",
+    "part_chip": "Z11",
+    "route_chip": "II 路",
+    "buttons": [
+     {
+      "id": "normal",
+      "value": "normal",
+      "label": "有回波（正常）✔",
+      "label_plain": "有回波（正常）",
+      "tone": "ok",
+      "style": "primary"
+     },
+     {
+      "id": "no",
+      "value": "no",
+      "label": "无回波",
+      "label_plain": "无回波",
+      "tone": "bad",
+      "style": "alt"
+     },
+     {
+      "id": "weak",
+      "value": "weak",
+      "label": "回波弱",
+      "label_plain": "回波弱",
+      "tone": "bad",
+      "style": "alt"
+     },
+     {
+      "id": "skipped",
+      "value": "skipped",
+      "label": "看不清（跳过）",
+      "label_plain": "看不清（跳过）",
+      "tone": "neutral",
+      "style": "alt"
+     }
+    ],
+    "hint": "点击大按钮作答；选项来源见 option.origin（判据库 / 契约 / 口述）",
+    "min_touch_px": 44,
+    "layout_note": "只给语义与建议样式；具体矩形由流程页统一布局，本文件不绑定"
+   },
+   "vision_policy": "hint_only",
+   "author_confirm": false,
+   "notes": [
+    "本项 field 在判据库无登记行（vision_bindings field_src=synth）；field 按 vision_rules 命名沿用",
+    "该领显/操显回波项的 field 在 vision_bindings 里是 operator_display；本文件原样沿用，是否改 leader_display 待作者确认"
+   ]
+  },
+  {
+   "qa_id": "SQ015",
+   "seq": 15,
+   "step_id": "26",
+   "screen_key": "26.~4",
+   "flow_no": "26",
+   "sub_no": "",
+   "check_item": "下滑回波正常",
+   "category": "显示画面",
+   "subject": "（领显）下滑回波",
+   "display": "",
+   "position": "操显",
+   "part": "z16",
+   "route": "II",
+   "part_source": "vision_bindings.json",
+   "screen_kind": "echo",
+   "binding_ref": "glide_echo",
+   "evidence_field": "(image)(operator_display)_glide_echo",
+   "question": "现在屏幕上「（领显）下滑回波」有回波吗？",
+   "normal": "屏面有正常回波（判据库正常期望：有回波）",
+   "options": [
+    {
+     "id": "normal",
+     "value": "normal",
+     "label": "有回波（正常）✔",
+     "label_plain": "有回波（正常）",
+     "tone": "ok",
+     "abnormal": false,
+     "screen_state": "echo_ok",
+     "origin": "contract_core_enum",
+     "label_origin": "system",
+     "db_backed": false,
+     "feature_id": null,
+     "feature_source": null,
+     "author_confirm": false,
+     "note": "判据库正常期望 expect=ok；现象列用词「航向回波 / 下滑回波」"
+    },
+    {
+     "id": "no",
+     "value": "no",
+     "label": "无回波",
+     "label_plain": "无回波",
+     "tone": "bad",
+     "abnormal": true,
+     "screen_state": "no_echo",
+     "origin": "fault_db",
+     "label_origin": "fault_db",
+     "db_backed": true,
+     "feature_id": "F_(image)(operator_display)_glide_echo_no",
+     "feature_source": "fault_library",
+     "db_feature_id": "F_(image)(operator_display)_glide_echo_no",
+     "db_label": "Z20（控制台）-[发射机控制]-[发射机工作]-[I]-指示灯_不亮",
+     "db_sub_unit": "Z11（收发分机） （I路）",
+     "author_confirm": false,
+     "note": "判据库 abnormal_value=no 精确命中"
+    },
+    {
+     "id": "weak",
+     "value": "weak",
+     "label": "回波弱",
+     "label_plain": "回波弱",
+     "tone": "bad",
+     "abnormal": true,
+     "screen_state": "no_echo_weak",
+     "origin": "fault_db",
+     "label_origin": "fault_db",
+     "db_backed": true,
+     "feature_id": "F_(image)(operator_display)_glide_echo_weak",
+     "feature_source": "fault_library",
+     "db_feature_id": "F_(image)(operator_display)_glide_echo_weak",
+     "db_label": "下滑回波(无）",
+     "db_sub_unit": "Z11（收发分机） （I路）",
+     "author_confirm": false,
+     "note": "判据库 abnormal_value=weak 精确命中"
+    },
+    {
+     "id": "skipped",
+     "value": "skipped",
+     "label": "看不清（跳过）",
+     "label_plain": "看不清（跳过）",
+     "tone": "neutral",
+     "abnormal": null,
+     "screen_state": "skipped",
+     "origin": "qa_flow_vocab",
+     "label_origin": "system",
+     "db_backed": false,
+     "feature_id": null,
+     "feature_source": null,
+     "author_confirm": false,
+     "note": "看不清/跳过 = 未验证；不产生正常/异常结论，confidence=0.0"
+    }
+   ],
+   "ui": {
+    "screen": {
+     "w": 1024,
+     "h": 600
+    },
+    "title": "屏幕状态确认",
+    "progress": "15/15",
+    "question": "现在屏幕上「（领显）下滑回波」有回波吗？",
+    "normal": "正常判据：屏面有正常回波（判据库正常期望：有回波）",
+    "part_chip": "Z11",
+    "route_chip": "II 路",
+    "buttons": [
+     {
+      "id": "normal",
+      "value": "normal",
+      "label": "有回波（正常）✔",
+      "label_plain": "有回波（正常）",
+      "tone": "ok",
+      "style": "primary"
+     },
+     {
+      "id": "no",
+      "value": "no",
+      "label": "无回波",
+      "label_plain": "无回波",
+      "tone": "bad",
+      "style": "alt"
+     },
+     {
+      "id": "weak",
+      "value": "weak",
+      "label": "回波弱",
+      "label_plain": "回波弱",
+      "tone": "bad",
+      "style": "alt"
+     },
+     {
+      "id": "skipped",
+      "value": "skipped",
+      "label": "看不清（跳过）",
+      "label_plain": "看不清（跳过）",
+      "tone": "neutral",
+      "style": "alt"
+     }
+    ],
+    "hint": "点击大按钮作答；选项来源见 option.origin（判据库 / 契约 / 口述）",
+    "min_touch_px": 44,
+    "layout_note": "只给语义与建议样式；具体矩形由流程页统一布局，本文件不绑定"
+   },
+   "vision_policy": "hint_only",
+   "author_confirm": false,
+   "notes": [
+    "本项 field 在判据库无登记行（vision_bindings field_src=synth）；field 按 vision_rules 命名沿用",
+    "该领显/操显回波项的 field 在 vision_bindings 里是 operator_display；本文件原样沿用，是否改 leader_display 待作者确认"
+   ]
+  }
+ ],
+ "author_confirm_ext": [
+  {
+   "id": "AC9",
+   "scope": "items_ext 全部 18 题",
+   "issue": "放在 items_ext（不改 items）：因为 screen_qa.py:66 EXPECTED_SCREEN_ITEMS=15 且 load_items() 校验 qa_id 必须是 SQ001..SQ015 连续序列（screen_qa.py:750-758）。直接并入 items 会让 ScreenQA() 运行时报错、test_screen_qa.py / test_cause_explainer.py（断言 15 题）立即失败。",
+   "status": "pending"
+  },
+  {
+   "id": "AC10",
+   "scope": "items_ext 中 screen_kind=meter / pointer 的题（SQ016–SQ020、SQ029–SQ031）",
+   "issue": "screen_qa.py:_kind_of() 只认 display_screen/_line/_scan/_noise/_echo 五类，meter/pointer 不在白名单；若重跑 build_items() 会 ValueError。升级时需同步扩白名单，否则只能用 items_ext 静态加载。",
+   "status": "pending"
+  },
+  {
+   "id": "AC11",
+   "scope": "SQ020（自检代码 30/40）",
+   "issue": "自检30/40 在屏上的具体形态（数字？文字？哪个区域？）作者尚未答复（决策与问答答复.md L43）⇒ 本题只能问「有没有出现字样」，不能定位区域。",
+   "status": "pending"
+  },
+  {
+   "id": "AC12",
+   "scope": "SQ030 / SQ031（天线无法换向 / 面板方向指示）",
+   "issue": "两条都挂在 step 18-2；18.1「天线换向到位指示灯亮」的 ANT_DIR#* 是整排规则，换向到位与方向指示是否同一块指示、能否分出「无换向」，待作者确认。",
+   "status": "pending"
+  }
+ ],
+ "items_ext": [
+  {
+   "qa_id": "SQ016",
+   "seq": 1,
+   "step_id": "15(10-I)-7",
+   "screen_key": "15(10-I).7",
+   "flow_no": "15(10-I)",
+   "sub_no": "7",
+   "check_item": "(操显)-自检正常",
+   "category": "微表区",
+   "subject": "（操显）自检状态",
+   "derived_from": [
+    "(操显)-自检正常"
+   ],
+   "display": "operator_display",
+   "position": "操显",
+   "part": "z16",
+   "route": "I",
+   "part_source": "vision_bindings.json key=15(10-I).7（part=z16，依据 SOP flow_name「操显-指示分机」）",
+   "screen_kind": "meter",
+   "binding_ref": "meter_self_test",
+   "evidence_field": "(image)(operator_display)_meter_self_test",
+   "question": "自检方向：现在操显「微表区」的自检指示是否正常？",
+   "normal": "自检状态显示「正常」，屏上没有「自检30」「自检40」字样",
+   "options": [
+    {
+     "id": "normal",
+     "value": "normal",
+     "label": "正常 ✔",
+     "label_plain": "正常",
+     "tone": "ok",
+     "abnormal": false,
+     "origin": "sop_db",
+     "label_origin": "system",
+     "db_backed": true,
+     "feature_id": null,
+     "feature_source": null,
+     "author_confirm": false,
+     "note": "判据原文「(操显)-自检正常」",
+     "trace": "判据库_SOP.csv 记录#47"
+    },
+    {
+     "id": "selftest_30",
+     "value": "selftest_30",
+     "label": "自检30（显示画面不扫描）",
+     "label_plain": "自检30",
+     "tone": "bad",
+     "abnormal": true,
+     "origin": "fault_db",
+     "label_origin": "fault_db",
+     "db_backed": true,
+     "feature_id": null,
+     "feature_source": null,
+     "author_confirm": true,
+     "note": "故障库「自检30，显示画面不扫描」现象原文（该行无 field/abnormal_value）",
+     "trace": "判据库_故障.csv rec#86"
+    },
+    {
+     "id": "selftest_40",
+     "value": "selftest_40",
+     "label": "自检40（自动录取与跟踪失效）",
+     "label_plain": "自检40",
+     "tone": "bad",
+     "abnormal": true,
+     "origin": "fault_db",
+     "label_origin": "fault_db",
+     "db_backed": true,
+     "feature_id": null,
+     "feature_source": null,
+     "author_confirm": true,
+     "note": "故障库「自检40，自动录取与跟踪功能失效」现象原文（该行无 field/abnormal_value）",
+     "trace": "判据库_故障.csv rec#85"
+    },
+    {
+     "id": "skipped",
+     "value": "skipped",
+     "label": "看不清（跳过）",
+     "label_plain": "看不清（跳过）",
+     "tone": "neutral",
+     "abnormal": null,
+     "origin": "qa_flow_vocab",
+     "label_origin": "system",
+     "db_backed": false,
+     "feature_id": null,
+     "feature_source": null,
+     "author_confirm": false,
+     "note": "看不清/跳过 = 未验证，不产生结论",
+     "trace": ""
+    }
+   ],
+   "ui": {
+    "title": "屏幕/微表区确认（新增）",
+    "progress": "1/18（新增项）",
+    "question": "自检方向：现在操显「微表区」的自检指示是否正常？",
+    "normal": "正常判据：自检状态显示「正常」，屏上没有「自检30」「自检40」字样",
+    "part_chip": "Z16",
+    "route_chip": "I 路",
+    "buttons": [
+     {
+      "id": "normal",
+      "value": "normal",
+      "label": "正常 ✔",
+      "label_plain": "正常",
+      "tone": "ok",
+      "style": "primary"
+     },
+     {
+      "id": "selftest_30",
+      "value": "selftest_30",
+      "label": "自检30（显示画面不扫描）",
+      "label_plain": "自检30",
+      "tone": "bad",
+      "style": "alt"
+     },
+     {
+      "id": "selftest_40",
+      "value": "selftest_40",
+      "label": "自检40（自动录取与跟踪失效）",
+      "label_plain": "自检40",
+      "tone": "bad",
+      "style": "alt"
+     },
+     {
+      "id": "skipped",
+      "value": "skipped",
+      "label": "看不清（跳过）",
+      "label_plain": "看不清（跳过）",
+      "tone": "neutral",
+      "style": "alt"
+     }
+    ],
+    "min_touch_px": 44,
+    "layout_note": "沿用 qa_items_screen items 的样式；具体矩形由流程页统一布局，本文件不绑定"
+   },
+   "vision_policy": "hint_only",
+   "author_confirm": true,
+   "pending_apply": true,
+   "origin": {
+    "kind": "原文派生（判据库 SOP/故障库）",
+    "trace": [
+     "判据库_SOP.csv 记录#47 ▸ 15(10-I).7「(操显)-自检正常」category=微表区 / method=摄像头拍摄 / need_qa=是",
+     "自检原始位置.md ▸ SOP D65「(操显)-自检正常」+ F65「（操显）自检状态」",
+     "README_vision.md §4.3 ▸ 微表区 4 条（天线方向/自检状态）本机恒为 undetermined",
+     "README_vision.md L72 ▸ 微表区取值域 正常/左/右/错误/自检30/自检40/undetermined"
+    ],
+    "author_confirm": true,
+    "pending_apply": "追加在 items_ext，未并入 items（理由见 屏幕与问答判据_全量检索_20261025.md §0.3）"
+   },
+   "notes": [
+    "question 由判据原文改写；options 全部来自判据库/故障库/作者答复原文，无编造",
+    "author_confirm=true：原文派生，待作者确认"
+   ]
+  },
+  {
+   "qa_id": "SQ017",
+   "seq": 2,
+   "step_id": "15(10-I)-8",
+   "screen_key": "15(10-I).8",
+   "flow_no": "15(10-I)",
+   "sub_no": "8",
+   "check_item": "(操显)-天线方向正常（方向左或方向右）",
+   "category": "微表区",
+   "subject": "（操显）天线方向",
+   "derived_from": [
+    "(操显)-天线方向正常（方向左或方向右）",
+    "天线方向：错误"
+   ],
+   "display": "operator_display",
+   "position": "操显",
+   "part": "z18",
+   "route": "I",
+   "part_source": "vision_bindings.json key=15(10-I).8（part=z18，依据故障库 meter_antenna_direction 归属 Z18）",
+   "screen_kind": "meter",
+   "binding_ref": "meter_antenna_direction",
+   "evidence_field": "(image)(operator_display)_meter_antenna_direction",
+   "question": "天线方向：现在操显「微表区」显示的天线方向是否正常（应显示「左」或「右」）？",
+   "normal": "方向显示「左」或「右」，不显示「错误」",
+   "options": [
+    {
+     "id": "normal",
+     "value": "normal",
+     "label": "正常（显示左/右）✔",
+     "label_plain": "正常（左/右）",
+     "tone": "ok",
+     "abnormal": false,
+     "origin": "sop_db",
+     "label_origin": "system",
+     "db_backed": true,
+     "feature_id": null,
+     "feature_source": null,
+     "author_confirm": false,
+     "note": "判据原文「天线方向正常（方向左或方向右）」；微表区取值域含 左/右",
+     "trace": "判据库_SOP.csv 记录#48"
+    },
+    {
+     "id": "error",
+     "value": "error",
+     "label": "方向错误 ✗",
+     "label_plain": "方向错误",
+     "tone": "bad",
+     "abnormal": true,
+     "origin": "fault_db",
+     "label_origin": "fault_db",
+     "db_backed": true,
+     "feature_id": "F_(image)(operator_display)_meter_antenna_direction_error",
+     "feature_source": "fault_library",
+     "author_confirm": false,
+     "note": "故障库 abnormal_value=error「天线方向：错误」",
+     "trace": "判据库_故障.csv rec#198"
+    },
+    {
+     "id": "skipped",
+     "value": "skipped",
+     "label": "看不清（跳过）",
+     "label_plain": "看不清（跳过）",
+     "tone": "neutral",
+     "abnormal": null,
+     "origin": "qa_flow_vocab",
+     "label_origin": "system",
+     "db_backed": false,
+     "feature_id": null,
+     "feature_source": null,
+     "author_confirm": false,
+     "note": "看不清/跳过 = 未验证",
+     "trace": ""
+    }
+   ],
+   "ui": {
+    "title": "屏幕/微表区确认（新增）",
+    "progress": "2/18（新增项）",
+    "question": "天线方向：现在操显「微表区」显示的天线方向是否正常（应显示「左」或「右」）？",
+    "normal": "正常判据：方向显示「左」或「右」，不显示「错误」",
+    "part_chip": "Z18",
+    "route_chip": "I 路",
+    "buttons": [
+     {
+      "id": "normal",
+      "value": "normal",
+      "label": "正常（显示左/右）✔",
+      "label_plain": "正常（左/右）",
+      "tone": "ok",
+      "style": "primary"
+     },
+     {
+      "id": "error",
+      "value": "error",
+      "label": "方向错误 ✗",
+      "label_plain": "方向错误",
+      "tone": "bad",
+      "style": "alt"
+     },
+     {
+      "id": "skipped",
+      "value": "skipped",
+      "label": "看不清（跳过）",
+      "label_plain": "看不清（跳过）",
+      "tone": "neutral",
+      "style": "alt"
+     }
+    ],
+    "min_touch_px": 44,
+    "layout_note": "沿用 qa_items_screen items 的样式；具体矩形由流程页统一布局，本文件不绑定"
+   },
+   "vision_policy": "hint_only",
+   "author_confirm": true,
+   "pending_apply": true,
+   "origin": {
+    "kind": "原文派生（判据库 SOP/故障库）",
+    "trace": [
+     "判据库_SOP.csv 记录#48 ▸ 15(10-I).8「(操显)-天线方向正常（方向左或方向右）」微表区 / need_qa=是",
+     "判据库_故障.csv rec#198 ▸ step_name=(操显)-天线方向 / field=(image)(operator_display)_meter_antenna_direction / abnormal_value=error",
+     "SOP_field_id_V1.5.md L65 ▸ 微表区 （操显）天线方向",
+     "README_vision.md §4.3 ▸ 词表里没有「错/误/左/右」⇒ 视觉读不出，必须问答"
+    ],
+    "author_confirm": true,
+    "pending_apply": "追加在 items_ext，未并入 items（理由见 屏幕与问答判据_全量检索_20261025.md §0.3）"
+   },
+   "notes": [
+    "question 由判据原文改写；options 全部来自判据库/故障库/作者答复原文，无编造",
+    "author_confirm=true：原文派生，待作者确认"
+   ]
+  },
+  {
+   "qa_id": "SQ018",
+   "seq": 3,
+   "step_id": "16（10-II）-7",
+   "screen_key": "16（10-II）.7",
+   "flow_no": "16（10-II）",
+   "sub_no": "7",
+   "check_item": "(领显)-自检正常",
+   "category": "微表区",
+   "subject": "（领显）自检状态",
+   "derived_from": [
+    "(领显)-自检正常"
+   ],
+   "display": "leader_display",
+   "position": "领显",
+   "part": "z16",
+   "route": "II",
+   "part_source": "vision_bindings.json key=16（10-II）.7（part=z16）",
+   "screen_kind": "meter",
+   "binding_ref": "meter_self_test",
+   "evidence_field": "(image)(leader_display)_meter_self_test",
+   "question": "自检方向：现在领显「微表区」的自检指示是否正常？",
+   "normal": "自检状态显示「正常」，屏上没有「自检30」「自检40」字样",
+   "options": [
+    {
+     "id": "normal",
+     "value": "normal",
+     "label": "正常 ✔",
+     "label_plain": "正常",
+     "tone": "ok",
+     "abnormal": false,
+     "origin": "sop_db",
+     "label_origin": "system",
+     "db_backed": true,
+     "feature_id": null,
+     "feature_source": null,
+     "author_confirm": false,
+     "note": "判据原文「(领显)-自检正常」",
+     "trace": "判据库_SOP.csv 记录#69"
+    },
+    {
+     "id": "selftest_30",
+     "value": "selftest_30",
+     "label": "自检30（显示画面不扫描）",
+     "label_plain": "自检30",
+     "tone": "bad",
+     "abnormal": true,
+     "origin": "fault_db",
+     "label_origin": "fault_db",
+     "db_backed": true,
+     "feature_id": null,
+     "feature_source": null,
+     "author_confirm": true,
+     "note": "故障库「自检30，显示画面不扫描」",
+     "trace": "判据库_故障.csv rec#86"
+    },
+    {
+     "id": "selftest_40",
+     "value": "selftest_40",
+     "label": "自检40（自动录取与跟踪失效）",
+     "label_plain": "自检40",
+     "tone": "bad",
+     "abnormal": true,
+     "origin": "fault_db",
+     "label_origin": "fault_db",
+     "db_backed": true,
+     "feature_id": null,
+     "feature_source": null,
+     "author_confirm": true,
+     "note": "故障库「自检40，自动录取与跟踪功能失效」",
+     "trace": "判据库_故障.csv rec#85"
+    },
+    {
+     "id": "skipped",
+     "value": "skipped",
+     "label": "看不清（跳过）",
+     "label_plain": "看不清（跳过）",
+     "tone": "neutral",
+     "abnormal": null,
+     "origin": "qa_flow_vocab",
+     "label_origin": "system",
+     "db_backed": false,
+     "feature_id": null,
+     "feature_source": null,
+     "author_confirm": false,
+     "note": "看不清/跳过 = 未验证",
+     "trace": ""
+    }
+   ],
+   "ui": {
+    "title": "屏幕/微表区确认（新增）",
+    "progress": "3/18（新增项）",
+    "question": "自检方向：现在领显「微表区」的自检指示是否正常？",
+    "normal": "正常判据：自检状态显示「正常」，屏上没有「自检30」「自检40」字样",
+    "part_chip": "Z16",
+    "route_chip": "II 路",
+    "buttons": [
+     {
+      "id": "normal",
+      "value": "normal",
+      "label": "正常 ✔",
+      "label_plain": "正常",
+      "tone": "ok",
+      "style": "primary"
+     },
+     {
+      "id": "selftest_30",
+      "value": "selftest_30",
+      "label": "自检30（显示画面不扫描）",
+      "label_plain": "自检30",
+      "tone": "bad",
+      "style": "alt"
+     },
+     {
+      "id": "selftest_40",
+      "value": "selftest_40",
+      "label": "自检40（自动录取与跟踪失效）",
+      "label_plain": "自检40",
+      "tone": "bad",
+      "style": "alt"
+     },
+     {
+      "id": "skipped",
+      "value": "skipped",
+      "label": "看不清（跳过）",
+      "label_plain": "看不清（跳过）",
+      "tone": "neutral",
+      "style": "alt"
+     }
+    ],
+    "min_touch_px": 44,
+    "layout_note": "沿用 qa_items_screen items 的样式；具体矩形由流程页统一布局，本文件不绑定"
+   },
+   "vision_policy": "hint_only",
+   "author_confirm": true,
+   "pending_apply": true,
+   "origin": {
+    "kind": "原文派生（判据库 SOP/故障库）",
+    "trace": [
+     "判据库_SOP.csv 记录#69 ▸ 16（10-II）.7「(领显)-自检正常」微表区 / need_qa=是",
+     "自检原始位置.md ▸ SOP D88「(领显)-自检正常」+ F88「（领显）自检状态」"
+    ],
+    "author_confirm": true,
+    "pending_apply": "追加在 items_ext，未并入 items（理由见 屏幕与问答判据_全量检索_20261025.md §0.3）"
+   },
+   "notes": [
+    "question 由判据原文改写；options 全部来自判据库/故障库/作者答复原文，无编造",
+    "author_confirm=true：原文派生，待作者确认"
+   ]
+  },
+  {
+   "qa_id": "SQ019",
+   "seq": 4,
+   "step_id": "16（10-II）-8",
+   "screen_key": "16（10-II）.8",
+   "flow_no": "16（10-II）",
+   "sub_no": "8",
+   "check_item": "(领显)-天线方向正常（方向左或方向右）",
+   "category": "微表区",
+   "subject": "（领显）天线方向",
+   "derived_from": [
+    "(领显)-天线方向正常（方向左或方向右）"
+   ],
+   "display": "leader_display",
+   "position": "领显",
+   "part": "z18",
+   "route": "II",
+   "part_source": "vision_bindings.json key=16（10-II）.8（part=z18）",
+   "screen_kind": "meter",
+   "binding_ref": "meter_antenna_direction",
+   "evidence_field": "(image)(leader_display)_meter_antenna_direction",
+   "question": "天线方向：现在领显「微表区」显示的天线方向是否正常（应显示「左」或「右」）？",
+   "normal": "方向显示「左」或「右」，不显示「错误」",
+   "options": [
+    {
+     "id": "normal",
+     "value": "normal",
+     "label": "正常（显示左/右）✔",
+     "label_plain": "正常（左/右）",
+     "tone": "ok",
+     "abnormal": false,
+     "origin": "sop_db",
+     "label_origin": "system",
+     "db_backed": true,
+     "feature_id": null,
+     "feature_source": null,
+     "author_confirm": false,
+     "note": "判据原文「天线方向正常（方向左或方向右）」",
+     "trace": "判据库_SOP.csv 记录#70"
+    },
+    {
+     "id": "error",
+     "value": "error",
+     "label": "方向错误 ✗",
+     "label_plain": "方向错误",
+     "tone": "bad",
+     "abnormal": true,
+     "origin": "fault_db",
+     "label_origin": "fault_db",
+     "db_backed": true,
+     "feature_id": null,
+     "feature_source": null,
+     "author_confirm": true,
+     "note": "故障库 abnormal_value=error「天线方向：错误」",
+     "trace": "判据库_故障.csv rec#198"
+    },
+    {
+     "id": "skipped",
+     "value": "skipped",
+     "label": "看不清（跳过）",
+     "label_plain": "看不清（跳过）",
+     "tone": "neutral",
+     "abnormal": null,
+     "origin": "qa_flow_vocab",
+     "label_origin": "system",
+     "db_backed": false,
+     "feature_id": null,
+     "feature_source": null,
+     "author_confirm": false,
+     "note": "看不清/跳过 = 未验证",
+     "trace": ""
+    }
+   ],
+   "ui": {
+    "title": "屏幕/微表区确认（新增）",
+    "progress": "4/18（新增项）",
+    "question": "天线方向：现在领显「微表区」显示的天线方向是否正常（应显示「左」或「右」）？",
+    "normal": "正常判据：方向显示「左」或「右」，不显示「错误」",
+    "part_chip": "Z18",
+    "route_chip": "II 路",
+    "buttons": [
+     {
+      "id": "normal",
+      "value": "normal",
+      "label": "正常（显示左/右）✔",
+      "label_plain": "正常（左/右）",
+      "tone": "ok",
+      "style": "primary"
+     },
+     {
+      "id": "error",
+      "value": "error",
+      "label": "方向错误 ✗",
+      "label_plain": "方向错误",
+      "tone": "bad",
+      "style": "alt"
+     },
+     {
+      "id": "skipped",
+      "value": "skipped",
+      "label": "看不清（跳过）",
+      "label_plain": "看不清（跳过）",
+      "tone": "neutral",
+      "style": "alt"
+     }
+    ],
+    "min_touch_px": 44,
+    "layout_note": "沿用 qa_items_screen items 的样式；具体矩形由流程页统一布局，本文件不绑定"
+   },
+   "vision_policy": "hint_only",
+   "author_confirm": true,
+   "pending_apply": true,
+   "origin": {
+    "kind": "原文派生（判据库 SOP/故障库）",
+    "trace": [
+     "判据库_SOP.csv 记录#70 ▸ 16（10-II）.8「(领显)-天线方向正常（方向左或方向右）」微表区",
+     "SOP_field_id_V1.5.md L88 ▸ 微表区 （领显）天线方向"
+    ],
+    "author_confirm": true,
+    "pending_apply": "追加在 items_ext，未并入 items（理由见 屏幕与问答判据_全量检索_20261025.md §0.3）"
+   },
+   "notes": [
+    "question 由判据原文改写；options 全部来自判据库/故障库/作者答复原文，无编造",
+    "author_confirm=true：原文派生，待作者确认"
+   ]
+  },
+  {
+   "qa_id": "SQ020",
+   "seq": 5,
+   "step_id": "15(10-I)-7",
+   "screen_key": "15(10-I).7#selftest_code",
+   "flow_no": "15(10-I)",
+   "sub_no": "7",
+   "check_item": "(操显)-自检正常（自检代码 30/40）",
+   "category": "微表区",
+   "subject": "（操显）自检代码显示",
+   "derived_from": [
+    "(操显)-自检正常",
+    "自检30，显示画面不扫描",
+    "自检40，自动录取与跟踪功能失效"
+   ],
+   "display": "operator_display",
+   "position": "操显",
+   "part": "z16",
+   "route": "I",
+   "part_source": "推导：自检读数在微表区（README_vision §3.1 自检状态→z16）；对应板件为 Z15 扫描变换板/检测获取板",
+   "screen_kind": "meter",
+   "binding_ref": "meter_self_test_selftest_code",
+   "evidence_field": "(image)(operator_display)_meter_self_test",
+   "question": "自检方向：屏幕上（自检区）现在有没有出现「自检30」或「自检40」的字样？",
+   "normal": "没有出现自检代码（作者答复：未出现即判正常/不适用）",
+   "options": [
+    {
+     "id": "normal",
+     "value": "normal",
+     "label": "没有出现 ✔",
+     "label_plain": "没有出现",
+     "tone": "ok",
+     "abnormal": false,
+     "origin": "author_reply",
+     "label_origin": "system",
+     "db_backed": true,
+     "feature_id": null,
+     "feature_source": null,
+     "author_confirm": false,
+     "note": "作者答复_20261018.md §三.3「若未出现自检码 ⇒ 判正常/不适用」",
+     "trace": "作者答复_20261018.md L44"
+    },
+    {
+     "id": "selftest_30",
+     "value": "selftest_30",
+     "label": "出现「自检30」✗",
+     "label_plain": "自检30",
+     "tone": "bad",
+     "abnormal": true,
+     "origin": "fault_db",
+     "label_origin": "fault_db",
+     "db_backed": true,
+     "feature_id": null,
+     "feature_source": null,
+     "author_confirm": true,
+     "note": "故障库「自检30，显示画面不扫描」（扫描变换板）",
+     "trace": "判据库_故障.csv rec#86"
+    },
+    {
+     "id": "selftest_40",
+     "value": "selftest_40",
+     "label": "出现「自检40」✗",
+     "label_plain": "自检40",
+     "tone": "bad",
+     "abnormal": true,
+     "origin": "fault_db",
+     "label_origin": "fault_db",
+     "db_backed": true,
+     "feature_id": null,
+     "feature_source": null,
+     "author_confirm": true,
+     "note": "故障库「自检40，自动录取与跟踪功能失效」（检测获取板）",
+     "trace": "判据库_故障.csv rec#85"
+    },
+    {
+     "id": "skipped",
+     "value": "skipped",
+     "label": "看不清（跳过）",
+     "label_plain": "看不清（跳过）",
+     "tone": "neutral",
+     "abnormal": null,
+     "origin": "qa_flow_vocab",
+     "label_origin": "system",
+     "db_backed": false,
+     "feature_id": null,
+     "feature_source": null,
+     "author_confirm": false,
+     "note": "看不清/跳过 = 未验证",
+     "trace": ""
+    }
+   ],
+   "ui": {
+    "title": "屏幕/微表区确认（新增）",
+    "progress": "5/18（新增项）",
+    "question": "自检方向：屏幕上（自检区）现在有没有出现「自检30」或「自检40」的字样？",
+    "normal": "正常判据：没有出现自检代码（作者答复：未出现即判正常/不适用）",
+    "part_chip": "Z16",
+    "route_chip": "I 路",
+    "buttons": [
+     {
+      "id": "normal",
+      "value": "normal",
+      "label": "没有出现 ✔",
+      "label_plain": "没有出现",
+      "tone": "ok",
+      "style": "primary"
+     },
+     {
+      "id": "selftest_30",
+      "value": "selftest_30",
+      "label": "出现「自检30」✗",
+      "label_plain": "自检30",
+      "tone": "bad",
+      "style": "alt"
+     },
+     {
+      "id": "selftest_40",
+      "value": "selftest_40",
+      "label": "出现「自检40」✗",
+      "label_plain": "自检40",
+      "tone": "bad",
+      "style": "alt"
+     },
+     {
+      "id": "skipped",
+      "value": "skipped",
+      "label": "看不清（跳过）",
+      "label_plain": "看不清（跳过）",
+      "tone": "neutral",
+      "style": "alt"
+     }
+    ],
+    "min_touch_px": 44,
+    "layout_note": "沿用 qa_items_screen items 的样式；具体矩形由流程页统一布局，本文件不绑定"
+   },
+   "vision_policy": "hint_only",
+   "author_confirm": true,
+   "pending_apply": true,
+   "origin": {
+    "kind": "原文派生（判据库 SOP/故障库）",
+    "trace": [
+     "判据库_故障.csv rec#86 ▸ 扫描变换板 /「自检30，显示画面不扫描」",
+     "判据库_故障.csv rec#85 ▸ 检测获取板 /「自检40，自动录取与跟踪功能失效」",
+     "作者答复_20261018.md §三 ▸ 自检30→扫描变换板、自检40→检测获取板；出现才报、不强判",
+     "决策与问答答复.md L43 ▸「自检30/40 在屏幕上的具体形态（数字？文字？哪个区域）尚未答复」（→ 本项待作者确认）"
+    ],
+    "author_confirm": true,
+    "pending_apply": "追加在 items_ext，未并入 items（理由见 屏幕与问答判据_全量检索_20261025.md §0.3）"
+   },
+   "notes": [
+    "question 由判据原文改写；options 全部来自判据库/故障库/作者答复原文，无编造",
+    "author_confirm=true：原文派生，待作者确认"
+   ]
+  },
+  {
+   "qa_id": "SQ021",
+   "seq": 6,
+   "step_id": "15(10-I)-21",
+   "screen_key": "15(10-I).21",
+   "flow_no": "15(10-I)",
+   "sub_no": "21",
+   "check_item": "(操显)-航向指向亮线与暗带正常随动",
+   "category": "显示画面",
+   "subject": "（操显）航向指向亮线与暗带",
+   "derived_from": [
+    "(操显)-航向指向亮线与暗带正常随动"
+   ],
+   "display": "operator_display",
+   "position": "操显",
+   "part": "z16",
+   "route": "",
+   "part_source": "vision_bindings.json key=15(10-I).21（part=z11, binding=dynamic）",
+   "screen_kind": "pointer",
+   "binding_ref": "course_pointer",
+   "evidence_field": "(image)(operator_display)_course_pointer",
+   "question": "操显航向的「指向亮线与暗带」：现在是否跟着天线/信号正常随动？",
+   "normal": "亮线与暗带随信号正常随动，不反向、不卡住",
+   "options": [
+    {
+     "id": "normal",
+     "value": "normal",
+     "label": "正常随动 ✔",
+     "label_plain": "正常随动",
+     "tone": "ok",
+     "abnormal": false,
+     "origin": "sop_db",
+     "label_origin": "system",
+     "db_backed": true,
+     "feature_id": null,
+     "feature_source": null,
+     "author_confirm": false,
+     "note": "判据原文「航向指向亮线与暗带正常随动」",
+     "trace": "判据库_SOP.csv 记录#61"
+    },
+    {
+     "id": "not_done",
+     "value": "not_done",
+     "label": "不随动 ✗",
+     "label_plain": "不随动",
+     "tone": "bad",
+     "abnormal": true,
+     "origin": "fault_db",
+     "label_origin": "fault_db",
+     "db_backed": true,
+     "feature_id": null,
+     "feature_source": null,
+     "author_confirm": true,
+     "note": "故障库「航向指向亮线与暗带_不随动」/ rec#142 abnormal_value=not_done",
+     "trace": "判据库_故障.csv rec#143"
+    },
+    {
+     "id": "reverse",
+     "value": "reverse",
+     "label": "反向随动 ✗",
+     "label_plain": "反向随动",
+     "tone": "bad",
+     "abnormal": true,
+     "origin": "fault_db",
+     "label_origin": "fault_db",
+     "db_backed": true,
+     "feature_id": null,
+     "feature_source": null,
+     "author_confirm": true,
+     "note": "故障库「（操显）（内控）航向仰指向亮线与暗带反向随动」",
+     "trace": "判据库_故障.csv rec#3"
+    },
+    {
+     "id": "angle_limit",
+     "value": "angle_limit",
+     "label": "停在角度极限 ✗",
+     "label_plain": "角度极限",
+     "tone": "bad",
+     "abnormal": true,
+     "origin": "fault_db",
+     "label_origin": "fault_db",
+     "db_backed": true,
+     "feature_id": null,
+     "feature_source": null,
+     "author_confirm": true,
+     "note": "故障库 abnormal_value=angle_limit「航向指向亮线与暗带处于角度极限」",
+     "trace": "判据库_故障.csv rec#254"
+    },
+    {
+     "id": "skipped",
+     "value": "skipped",
+     "label": "看不清（跳过）",
+     "label_plain": "看不清（跳过）",
+     "tone": "neutral",
+     "abnormal": null,
+     "origin": "qa_flow_vocab",
+     "label_origin": "system",
+     "db_backed": false,
+     "feature_id": null,
+     "feature_source": null,
+     "author_confirm": false,
+     "note": "看不清/跳过 = 未验证",
+     "trace": ""
+    }
+   ],
+   "ui": {
+    "title": "屏幕/微表区确认（新增）",
+    "progress": "6/18（新增项）",
+    "question": "操显航向的「指向亮线与暗带」：现在是否跟着天线/信号正常随动？",
+    "normal": "正常判据：亮线与暗带随信号正常随动，不反向、不卡住",
+    "part_chip": "Z11",
+    "route_chip": "",
+    "buttons": [
+     {
+      "id": "normal",
+      "value": "normal",
+      "label": "正常随动 ✔",
+      "label_plain": "正常随动",
+      "tone": "ok",
+      "style": "primary"
+     },
+     {
+      "id": "not_done",
+      "value": "not_done",
+      "label": "不随动 ✗",
+      "label_plain": "不随动",
+      "tone": "bad",
+      "style": "alt"
+     },
+     {
+      "id": "reverse",
+      "value": "reverse",
+      "label": "反向随动 ✗",
+      "label_plain": "反向随动",
+      "tone": "bad",
+      "style": "alt"
+     },
+     {
+      "id": "angle_limit",
+      "value": "angle_limit",
+      "label": "停在角度极限 ✗",
+      "label_plain": "角度极限",
+      "tone": "bad",
+      "style": "alt"
+     },
+     {
+      "id": "skipped",
+      "value": "skipped",
+      "label": "看不清（跳过）",
+      "label_plain": "看不清（跳过）",
+      "tone": "neutral",
+      "style": "alt"
+     }
+    ],
+    "min_touch_px": 44,
+    "layout_note": "沿用 qa_items_screen items 的样式；具体矩形由流程页统一布局，本文件不绑定"
+   },
+   "vision_policy": "hint_only",
+   "author_confirm": true,
+   "pending_apply": true,
+   "origin": {
+    "kind": "原文派生（判据库 SOP/故障库）",
+    "trace": [
+     "判据库_SOP.csv 记录#61 ▸ 15(10-I).21「(操显)-航向指向亮线与暗带正常随动」显示画面 / need_qa=是",
+     "判据库_故障.csv rec#143/#168/#191/#213 ▸ 航向指向亮线与暗带_不随动",
+     "判据库_故障.csv rec#3 ▸ 航向仰指向亮线与暗带反向随动（模块 ABC相序错误）",
+     "判据库_故障.csv rec#254 ▸ field=(manual_action)(operator_display)_course_guidance_bright_line_dark_band / av=angle_limit",
+     "README_vision.md L90 ▸ dynamic 4 条「单帧不判」⇒ 视觉恒未判定，只能问答"
+    ],
+    "author_confirm": true,
+    "pending_apply": "追加在 items_ext，未并入 items（理由见 屏幕与问答判据_全量检索_20261025.md §0.3）"
+   },
+   "notes": [
+    "question 由判据原文改写；options 全部来自判据库/故障库/作者答复原文，无编造",
+    "author_confirm=true：原文派生，待作者确认"
+   ]
+  },
+  {
+   "qa_id": "SQ022",
+   "seq": 7,
+   "step_id": "15(10-I)-22",
+   "screen_key": "15(10-I).22",
+   "flow_no": "15(10-I)",
+   "sub_no": "22",
+   "check_item": "(操显)-下滑指向亮线与暗带正常随动",
+   "category": "显示画面",
+   "subject": "（操显）下滑指向亮线与暗带",
+   "derived_from": [
+    "(操显)-下滑指向亮线与暗带正常随动"
+   ],
+   "display": "operator_display",
+   "position": "操显",
+   "part": "z16",
+   "route": "",
+   "part_source": "vision_bindings.json key=15(10-I).22（part=z11, binding=dynamic）",
+   "screen_kind": "pointer",
+   "binding_ref": "glide_pointer",
+   "evidence_field": "(image)(operator_display)_glide_pointer",
+   "question": "操显下滑的「指向亮线与暗带」：现在是否跟着天线/信号正常随动？",
+   "normal": "亮线与暗带随信号正常随动，不反向、不卡住",
+   "options": [
+    {
+     "id": "normal",
+     "value": "normal",
+     "label": "正常随动 ✔",
+     "label_plain": "正常随动",
+     "tone": "ok",
+     "abnormal": false,
+     "origin": "sop_db",
+     "label_origin": "system",
+     "db_backed": true,
+     "feature_id": null,
+     "feature_source": null,
+     "author_confirm": false,
+     "note": "判据原文「下滑指向亮线与暗带正常随动」",
+     "trace": "判据库_SOP.csv 记录#62"
+    },
+    {
+     "id": "not_done",
+     "value": "not_done",
+     "label": "不随动 ✗",
+     "label_plain": "不随动",
+     "tone": "bad",
+     "abnormal": true,
+     "origin": "fault_db",
+     "label_origin": "fault_db",
+     "db_backed": true,
+     "feature_id": null,
+     "feature_source": null,
+     "author_confirm": true,
+     "note": "故障库「下滑指向亮线与暗带_不随动」/ abnormal_value=not_done",
+     "trace": "判据库_故障.csv rec#142"
+    },
+    {
+     "id": "reverse",
+     "value": "reverse",
+     "label": "反向随动 ✗",
+     "label_plain": "反向随动",
+     "tone": "bad",
+     "abnormal": true,
+     "origin": "fault_db",
+     "label_origin": "fault_db",
+     "db_backed": true,
+     "feature_id": null,
+     "feature_source": null,
+     "author_confirm": true,
+     "note": "故障库「（操显）（内控）下滑左指向亮线与暗带反向随动」",
+     "trace": "判据库_故障.csv rec#5"
+    },
+    {
+     "id": "angle_limit",
+     "value": "angle_limit",
+     "label": "停在角度极限 ✗",
+     "label_plain": "角度极限",
+     "tone": "bad",
+     "abnormal": true,
+     "origin": "fault_db",
+     "label_origin": "fault_db",
+     "db_backed": true,
+     "feature_id": null,
+     "feature_source": null,
+     "author_confirm": true,
+     "note": "故障库 abnormal_value=angle_limit「下滑指向亮线与暗带处于角度极限」",
+     "trace": "判据库_故障.csv rec#256"
+    },
+    {
+     "id": "skipped",
+     "value": "skipped",
+     "label": "看不清（跳过）",
+     "label_plain": "看不清（跳过）",
+     "tone": "neutral",
+     "abnormal": null,
+     "origin": "qa_flow_vocab",
+     "label_origin": "system",
+     "db_backed": false,
+     "feature_id": null,
+     "feature_source": null,
+     "author_confirm": false,
+     "note": "看不清/跳过 = 未验证",
+     "trace": ""
+    }
+   ],
+   "ui": {
+    "title": "屏幕/微表区确认（新增）",
+    "progress": "7/18（新增项）",
+    "question": "操显下滑的「指向亮线与暗带」：现在是否跟着天线/信号正常随动？",
+    "normal": "正常判据：亮线与暗带随信号正常随动，不反向、不卡住",
+    "part_chip": "Z11",
+    "route_chip": "",
+    "buttons": [
+     {
+      "id": "normal",
+      "value": "normal",
+      "label": "正常随动 ✔",
+      "label_plain": "正常随动",
+      "tone": "ok",
+      "style": "primary"
+     },
+     {
+      "id": "not_done",
+      "value": "not_done",
+      "label": "不随动 ✗",
+      "label_plain": "不随动",
+      "tone": "bad",
+      "style": "alt"
+     },
+     {
+      "id": "reverse",
+      "value": "reverse",
+      "label": "反向随动 ✗",
+      "label_plain": "反向随动",
+      "tone": "bad",
+      "style": "alt"
+     },
+     {
+      "id": "angle_limit",
+      "value": "angle_limit",
+      "label": "停在角度极限 ✗",
+      "label_plain": "角度极限",
+      "tone": "bad",
+      "style": "alt"
+     },
+     {
+      "id": "skipped",
+      "value": "skipped",
+      "label": "看不清（跳过）",
+      "label_plain": "看不清（跳过）",
+      "tone": "neutral",
+      "style": "alt"
+     }
+    ],
+    "min_touch_px": 44,
+    "layout_note": "沿用 qa_items_screen items 的样式；具体矩形由流程页统一布局，本文件不绑定"
+   },
+   "vision_policy": "hint_only",
+   "author_confirm": true,
+   "pending_apply": true,
+   "origin": {
+    "kind": "原文派生（判据库 SOP/故障库）",
+    "trace": [
+     "判据库_SOP.csv 记录#62 ▸ 15(10-I).22「(操显)-下滑指向亮线与暗带正常随动」",
+     "判据库_故障.csv rec#142/#147/#169/#192/#214 ▸ 下滑指向亮线与暗带_不随动",
+     "判据库_故障.csv rec#5 ▸ 下滑左指向亮线与暗带反向随动",
+     "判据库_故障.csv rec#256 ▸ av=angle_limit"
+    ],
+    "author_confirm": true,
+    "pending_apply": "追加在 items_ext，未并入 items（理由见 屏幕与问答判据_全量检索_20261025.md §0.3）"
+   },
+   "notes": [
+    "question 由判据原文改写；options 全部来自判据库/故障库/作者答复原文，无编造",
+    "author_confirm=true：原文派生，待作者确认"
+   ]
+  },
+  {
+   "qa_id": "SQ023",
+   "seq": 8,
+   "step_id": "16（10-II）-21",
+   "screen_key": "16（10-II）.21",
+   "flow_no": "16（10-II）",
+   "sub_no": "21",
+   "check_item": "(领显)-航向指向亮线与暗带正常随动",
+   "category": "显示画面",
+   "subject": "（领显）航向指向亮线与暗带",
+   "derived_from": [
+    "(领显)-航向指向亮线与暗带正常随动"
+   ],
+   "display": "leader_display",
+   "position": "领显",
+   "part": "z16",
+   "route": "",
+   "part_source": "vision_bindings.json key=16（10-II）.21（part=z11, binding=dynamic）",
+   "screen_kind": "pointer",
+   "binding_ref": "course_pointer",
+   "evidence_field": "(image)(leader_display)_course_pointer",
+   "question": "领显航向的「指向亮线与暗带」：现在是否跟着天线/信号正常随动？",
+   "normal": "亮线与暗带随信号正常随动，不反向、不卡住",
+   "options": [
+    {
+     "id": "normal",
+     "value": "normal",
+     "label": "正常随动 ✔",
+     "label_plain": "正常随动",
+     "tone": "ok",
+     "abnormal": false,
+     "origin": "sop_db",
+     "label_origin": "system",
+     "db_backed": true,
+     "feature_id": null,
+     "feature_source": null,
+     "author_confirm": false,
+     "note": "判据原文「航向指向亮线与暗带正常随动」",
+     "trace": "判据库_SOP.csv 记录#83"
+    },
+    {
+     "id": "not_done",
+     "value": "not_done",
+     "label": "不随动 ✗",
+     "label_plain": "不随动",
+     "tone": "bad",
+     "abnormal": true,
+     "origin": "fault_db",
+     "label_origin": "fault_db",
+     "db_backed": true,
+     "feature_id": null,
+     "feature_source": null,
+     "author_confirm": true,
+     "note": "故障库「航向指向亮线与暗带_不随动」",
+     "trace": "判据库_故障.csv rec#143"
+    },
+    {
+     "id": "reverse",
+     "value": "reverse",
+     "label": "反向随动 ✗",
+     "label_plain": "反向随动",
+     "tone": "bad",
+     "abnormal": true,
+     "origin": "fault_db",
+     "label_origin": "fault_db",
+     "db_backed": true,
+     "feature_id": null,
+     "feature_source": null,
+     "author_confirm": true,
+     "note": "故障库「航向仰指向亮线与暗带反向随动」",
+     "trace": "判据库_故障.csv rec#3"
+    },
+    {
+     "id": "skipped",
+     "value": "skipped",
+     "label": "看不清（跳过）",
+     "label_plain": "看不清（跳过）",
+     "tone": "neutral",
+     "abnormal": null,
+     "origin": "qa_flow_vocab",
+     "label_origin": "system",
+     "db_backed": false,
+     "feature_id": null,
+     "feature_source": null,
+     "author_confirm": false,
+     "note": "看不清/跳过 = 未验证",
+     "trace": ""
+    }
+   ],
+   "ui": {
+    "title": "屏幕/微表区确认（新增）",
+    "progress": "8/18（新增项）",
+    "question": "领显航向的「指向亮线与暗带」：现在是否跟着天线/信号正常随动？",
+    "normal": "正常判据：亮线与暗带随信号正常随动，不反向、不卡住",
+    "part_chip": "Z11",
+    "route_chip": "",
+    "buttons": [
+     {
+      "id": "normal",
+      "value": "normal",
+      "label": "正常随动 ✔",
+      "label_plain": "正常随动",
+      "tone": "ok",
+      "style": "primary"
+     },
+     {
+      "id": "not_done",
+      "value": "not_done",
+      "label": "不随动 ✗",
+      "label_plain": "不随动",
+      "tone": "bad",
+      "style": "alt"
+     },
+     {
+      "id": "reverse",
+      "value": "reverse",
+      "label": "反向随动 ✗",
+      "label_plain": "反向随动",
+      "tone": "bad",
+      "style": "alt"
+     },
+     {
+      "id": "skipped",
+      "value": "skipped",
+      "label": "看不清（跳过）",
+      "label_plain": "看不清（跳过）",
+      "tone": "neutral",
+      "style": "alt"
+     }
+    ],
+    "min_touch_px": 44,
+    "layout_note": "沿用 qa_items_screen items 的样式；具体矩形由流程页统一布局，本文件不绑定"
+   },
+   "vision_policy": "hint_only",
+   "author_confirm": true,
+   "pending_apply": true,
+   "origin": {
+    "kind": "原文派生（判据库 SOP/故障库）",
+    "trace": [
+     "判据库_SOP.csv 记录#83 ▸ 16（10-II）.21「(领显)-航向指向亮线与暗带正常随动」",
+     "判据库_故障.csv rec#143 ▸ 航向指向亮线与暗带_不随动"
+    ],
+    "author_confirm": true,
+    "pending_apply": "追加在 items_ext，未并入 items（理由见 屏幕与问答判据_全量检索_20261025.md §0.3）"
+   },
+   "notes": [
+    "question 由判据原文改写；options 全部来自判据库/故障库/作者答复原文，无编造",
+    "author_confirm=true：原文派生，待作者确认"
+   ]
+  },
+  {
+   "qa_id": "SQ024",
+   "seq": 9,
+   "step_id": "16（10-II）-22",
+   "screen_key": "16（10-II）.22",
+   "flow_no": "16（10-II）",
+   "sub_no": "22",
+   "check_item": "(领显)-下滑指向亮线与暗带正常随动",
+   "category": "显示画面",
+   "subject": "（领显）下滑指向亮线与暗带",
+   "derived_from": [
+    "(领显)-下滑指向亮线与暗带正常随动"
+   ],
+   "display": "leader_display",
+   "position": "领显",
+   "part": "z16",
+   "route": "",
+   "part_source": "vision_bindings.json key=16（10-II）.22（part=z11, binding=dynamic）",
+   "screen_kind": "pointer",
+   "binding_ref": "glide_pointer",
+   "evidence_field": "(image)(leader_display)_glide_pointer",
+   "question": "领显下滑的「指向亮线与暗带」：现在是否跟着天线/信号正常随动？",
+   "normal": "亮线与暗带随信号正常随动，不反向、不卡住",
+   "options": [
+    {
+     "id": "normal",
+     "value": "normal",
+     "label": "正常随动 ✔",
+     "label_plain": "正常随动",
+     "tone": "ok",
+     "abnormal": false,
+     "origin": "sop_db",
+     "label_origin": "system",
+     "db_backed": true,
+     "feature_id": null,
+     "feature_source": null,
+     "author_confirm": false,
+     "note": "判据原文「下滑指向亮线与暗带正常随动」",
+     "trace": "判据库_SOP.csv 记录#84"
+    },
+    {
+     "id": "not_done",
+     "value": "not_done",
+     "label": "不随动 ✗",
+     "label_plain": "不随动",
+     "tone": "bad",
+     "abnormal": true,
+     "origin": "fault_db",
+     "label_origin": "fault_db",
+     "db_backed": true,
+     "feature_id": null,
+     "feature_source": null,
+     "author_confirm": true,
+     "note": "故障库「下滑指向亮线与暗带_不随动」",
+     "trace": "判据库_故障.csv rec#142"
+    },
+    {
+     "id": "reverse",
+     "value": "reverse",
+     "label": "反向随动 ✗",
+     "label_plain": "反向随动",
+     "tone": "bad",
+     "abnormal": true,
+     "origin": "fault_db",
+     "label_origin": "fault_db",
+     "db_backed": true,
+     "feature_id": null,
+     "feature_source": null,
+     "author_confirm": true,
+     "note": "故障库「下滑左指向亮线与暗带反向随动」",
+     "trace": "判据库_故障.csv rec#5"
+    },
+    {
+     "id": "skipped",
+     "value": "skipped",
+     "label": "看不清（跳过）",
+     "label_plain": "看不清（跳过）",
+     "tone": "neutral",
+     "abnormal": null,
+     "origin": "qa_flow_vocab",
+     "label_origin": "system",
+     "db_backed": false,
+     "feature_id": null,
+     "feature_source": null,
+     "author_confirm": false,
+     "note": "看不清/跳过 = 未验证",
+     "trace": ""
+    }
+   ],
+   "ui": {
+    "title": "屏幕/微表区确认（新增）",
+    "progress": "9/18（新增项）",
+    "question": "领显下滑的「指向亮线与暗带」：现在是否跟着天线/信号正常随动？",
+    "normal": "正常判据：亮线与暗带随信号正常随动，不反向、不卡住",
+    "part_chip": "Z11",
+    "route_chip": "",
+    "buttons": [
+     {
+      "id": "normal",
+      "value": "normal",
+      "label": "正常随动 ✔",
+      "label_plain": "正常随动",
+      "tone": "ok",
+      "style": "primary"
+     },
+     {
+      "id": "not_done",
+      "value": "not_done",
+      "label": "不随动 ✗",
+      "label_plain": "不随动",
+      "tone": "bad",
+      "style": "alt"
+     },
+     {
+      "id": "reverse",
+      "value": "reverse",
+      "label": "反向随动 ✗",
+      "label_plain": "反向随动",
+      "tone": "bad",
+      "style": "alt"
+     },
+     {
+      "id": "skipped",
+      "value": "skipped",
+      "label": "看不清（跳过）",
+      "label_plain": "看不清（跳过）",
+      "tone": "neutral",
+      "style": "alt"
+     }
+    ],
+    "min_touch_px": 44,
+    "layout_note": "沿用 qa_items_screen items 的样式；具体矩形由流程页统一布局，本文件不绑定"
+   },
+   "vision_policy": "hint_only",
+   "author_confirm": true,
+   "pending_apply": true,
+   "origin": {
+    "kind": "原文派生（判据库 SOP/故障库）",
+    "trace": [
+     "判据库_SOP.csv 记录#84 ▸ 16（10-II）.22「(领显)-下滑指向亮线与暗带正常随动」",
+     "判据库_故障.csv rec#142 ▸ 下滑指向亮线与暗带_不随动"
+    ],
+    "author_confirm": true,
+    "pending_apply": "追加在 items_ext，未并入 items（理由见 屏幕与问答判据_全量检索_20261025.md §0.3）"
+   },
+   "notes": [
+    "question 由判据原文改写；options 全部来自判据库/故障库/作者答复原文，无编造",
+    "author_confirm=true：原文派生，待作者确认"
+   ]
+  },
+  {
+   "qa_id": "SQ025",
+   "seq": 10,
+   "step_id": "19-9",
+   "screen_key": "19.9",
+   "flow_no": "19",
+   "sub_no": "9",
+   "check_item": "（领显）航向画面扫描正常",
+   "category": "显示画面",
+   "subject": "（领显）航向画面扫描",
+   "derived_from": [
+    "（领显）航向画面扫描正常"
+   ],
+   "display": "leader_display",
+   "position": "领显",
+   "part": "z16",
+   "route": "",
+   "part_source": "推导：与 19.5（操显）同义同屏；19.9 在 vision_bindings.json 无条目",
+   "screen_kind": "scan",
+   "binding_ref": "course_scan",
+   "evidence_field": "(image)(leader_display)_course_scan",
+   "question": "领显「航向」画面：现在是否在正常扫描（画面在动，不是卡住的静止画面）？",
+   "normal": "画面正常扫描，不是静止/冻结",
+   "options": [
+    {
+     "id": "normal",
+     "value": "normal",
+     "label": "正常扫描 ✔",
+     "label_plain": "正常扫描",
+     "tone": "ok",
+     "abnormal": false,
+     "origin": "sop_db",
+     "label_origin": "system",
+     "db_backed": true,
+     "feature_id": null,
+     "feature_source": null,
+     "author_confirm": false,
+     "note": "判据原文「（领显）航向画面扫描正常」",
+     "trace": "判据库_SOP.csv 记录#102"
+    },
+    {
+     "id": "no_scan",
+     "value": "no_scan",
+     "label": "不扫描 / 画面静止 ✗",
+     "label_plain": "不扫描",
+     "tone": "bad",
+     "abnormal": true,
+     "origin": "fault_db",
+     "label_origin": "fault_db",
+     "db_backed": true,
+     "feature_id": null,
+     "feature_source": null,
+     "author_confirm": true,
+     "note": "故障库「（航向）_不扫描」（Z15 角码变换板-U1）",
+     "trace": "判据库_故障.csv rec#83"
+    },
+    {
+     "id": "skipped",
+     "value": "skipped",
+     "label": "看不清（跳过）",
+     "label_plain": "看不清（跳过）",
+     "tone": "neutral",
+     "abnormal": null,
+     "origin": "qa_flow_vocab",
+     "label_origin": "system",
+     "db_backed": false,
+     "feature_id": null,
+     "feature_source": null,
+     "author_confirm": false,
+     "note": "看不清/跳过 = 未验证",
+     "trace": ""
+    }
+   ],
+   "ui": {
+    "title": "屏幕/微表区确认（新增）",
+    "progress": "10/18（新增项）",
+    "question": "领显「航向」画面：现在是否在正常扫描（画面在动，不是卡住的静止画面）？",
+    "normal": "正常判据：画面正常扫描，不是静止/冻结",
+    "part_chip": "Z11",
+    "route_chip": "",
+    "buttons": [
+     {
+      "id": "normal",
+      "value": "normal",
+      "label": "正常扫描 ✔",
+      "label_plain": "正常扫描",
+      "tone": "ok",
+      "style": "primary"
+     },
+     {
+      "id": "no_scan",
+      "value": "no_scan",
+      "label": "不扫描 / 画面静止 ✗",
+      "label_plain": "不扫描",
+      "tone": "bad",
+      "style": "alt"
+     },
+     {
+      "id": "skipped",
+      "value": "skipped",
+      "label": "看不清（跳过）",
+      "label_plain": "看不清（跳过）",
+      "tone": "neutral",
+      "style": "alt"
+     }
+    ],
+    "min_touch_px": 44,
+    "layout_note": "沿用 qa_items_screen items 的样式；具体矩形由流程页统一布局，本文件不绑定"
+   },
+   "vision_policy": "hint_only",
+   "author_confirm": true,
+   "pending_apply": true,
+   "origin": {
+    "kind": "原文派生（判据库 SOP/故障库）",
+    "trace": [
+     "判据库_SOP.csv 记录#102 ▸ 19.9「（领显）航向画面扫描正常」显示画面（need_qa 列空）",
+     "判据库_故障.csv rec#83 ▸ (操显)-显示画面 /（航向）_不扫描",
+     "steps.json ▸ 19-9 part=z4 modality=none（部位疑误，见报告 §7）"
+    ],
+    "author_confirm": true,
+    "pending_apply": "追加在 items_ext，未并入 items（理由见 屏幕与问答判据_全量检索_20261025.md §0.3）"
+   },
+   "notes": [
+    "question 由判据原文改写；options 全部来自判据库/故障库/作者答复原文，无编造",
+    "author_confirm=true：原文派生，待作者确认"
+   ]
+  },
+  {
+   "qa_id": "SQ026",
+   "seq": 11,
+   "step_id": "19-10",
+   "screen_key": "19.10",
+   "flow_no": "19",
+   "sub_no": "10",
+   "check_item": "（领显）下滑画面扫描正常",
+   "category": "显示画面",
+   "subject": "（领显）下滑画面扫描",
+   "derived_from": [
+    "（领显）下滑画面扫描正常"
+   ],
+   "display": "leader_display",
+   "position": "领显",
+   "part": "z16",
+   "route": "",
+   "part_source": "推导：与 19.6（操显）同义同屏；19.10 在 vision_bindings.json 无条目",
+   "screen_kind": "scan",
+   "binding_ref": "glide_scan",
+   "evidence_field": "(image)(leader_display)_glide_scan",
+   "question": "领显「下滑」画面：现在是否在正常扫描（画面在动，不是卡住的静止画面）？",
+   "normal": "画面正常扫描，不是静止/冻结",
+   "options": [
+    {
+     "id": "normal",
+     "value": "normal",
+     "label": "正常扫描 ✔",
+     "label_plain": "正常扫描",
+     "tone": "ok",
+     "abnormal": false,
+     "origin": "sop_db",
+     "label_origin": "system",
+     "db_backed": true,
+     "feature_id": null,
+     "feature_source": null,
+     "author_confirm": false,
+     "note": "判据原文「（领显）下滑画面扫描正常」",
+     "trace": "判据库_SOP.csv 记录#103"
+    },
+    {
+     "id": "no_scan",
+     "value": "no_scan",
+     "label": "不扫描 / 画面静止 ✗",
+     "label_plain": "不扫描",
+     "tone": "bad",
+     "abnormal": true,
+     "origin": "fault_db",
+     "label_origin": "fault_db",
+     "db_backed": true,
+     "feature_id": null,
+     "feature_source": null,
+     "author_confirm": true,
+     "note": "故障库「（下滑）_不扫描」（Z15 角码变换板-U2）",
+     "trace": "判据库_故障.csv rec#84"
+    },
+    {
+     "id": "skipped",
+     "value": "skipped",
+     "label": "看不清（跳过）",
+     "label_plain": "看不清（跳过）",
+     "tone": "neutral",
+     "abnormal": null,
+     "origin": "qa_flow_vocab",
+     "label_origin": "system",
+     "db_backed": false,
+     "feature_id": null,
+     "feature_source": null,
+     "author_confirm": false,
+     "note": "看不清/跳过 = 未验证",
+     "trace": ""
+    }
+   ],
+   "ui": {
+    "title": "屏幕/微表区确认（新增）",
+    "progress": "11/18（新增项）",
+    "question": "领显「下滑」画面：现在是否在正常扫描（画面在动，不是卡住的静止画面）？",
+    "normal": "正常判据：画面正常扫描，不是静止/冻结",
+    "part_chip": "Z11",
+    "route_chip": "",
+    "buttons": [
+     {
+      "id": "normal",
+      "value": "normal",
+      "label": "正常扫描 ✔",
+      "label_plain": "正常扫描",
+      "tone": "ok",
+      "style": "primary"
+     },
+     {
+      "id": "no_scan",
+      "value": "no_scan",
+      "label": "不扫描 / 画面静止 ✗",
+      "label_plain": "不扫描",
+      "tone": "bad",
+      "style": "alt"
+     },
+     {
+      "id": "skipped",
+      "value": "skipped",
+      "label": "看不清（跳过）",
+      "label_plain": "看不清（跳过）",
+      "tone": "neutral",
+      "style": "alt"
+     }
+    ],
+    "min_touch_px": 44,
+    "layout_note": "沿用 qa_items_screen items 的样式；具体矩形由流程页统一布局，本文件不绑定"
+   },
+   "vision_policy": "hint_only",
+   "author_confirm": true,
+   "pending_apply": true,
+   "origin": {
+    "kind": "原文派生（判据库 SOP/故障库）",
+    "trace": [
+     "判据库_SOP.csv 记录#103 ▸ 19.10「（领显）下滑画面扫描正常」",
+     "判据库_故障.csv rec#84 ▸（下滑）_不扫描"
+    ],
+    "author_confirm": true,
+    "pending_apply": "追加在 items_ext，未并入 items（理由见 屏幕与问答判据_全量检索_20261025.md §0.3）"
+   },
+   "notes": [
+    "question 由判据原文改写；options 全部来自判据库/故障库/作者答复原文，无编造",
+    "author_confirm=true：原文派生，待作者确认"
+   ]
+  },
+  {
+   "qa_id": "SQ027",
+   "seq": 12,
+   "step_id": "19-11",
+   "screen_key": "19.11",
+   "flow_no": "19",
+   "sub_no": "11",
+   "check_item": "（领显）航向噪声有",
+   "category": "显示画面",
+   "subject": "（领显）航向噪声",
+   "derived_from": [
+    "（领显）航向噪声有"
+   ],
+   "display": "leader_display",
+   "position": "领显",
+   "part": "z14",
+   "route": "",
+   "part_source": "推导：噪声类归 z14（README_vision §3.1）；19.11 在 vision_bindings.json 无条目",
+   "screen_kind": "noise",
+   "binding_ref": "course_noise",
+   "evidence_field": "(image)(leader_display)_course_noise",
+   "question": "领显「航向」画面：现在有底噪（麻点）吗？",
+   "normal": "有底噪（麻点），不是一片干净的白/黑",
+   "options": [
+    {
+     "id": "normal",
+     "value": "normal",
+     "label": "有底噪 ✔",
+     "label_plain": "有底噪",
+     "tone": "ok",
+     "abnormal": false,
+     "origin": "sop_db",
+     "label_origin": "system",
+     "db_backed": true,
+     "feature_id": null,
+     "feature_source": null,
+     "author_confirm": false,
+     "note": "判据原文「（领显）航向噪声有」",
+     "trace": "判据库_SOP.csv 记录#104"
+    },
+    {
+     "id": "no_noise",
+     "value": "no_noise",
+     "label": "无噪声 ✗",
+     "label_plain": "无噪声",
+     "tone": "bad",
+     "abnormal": true,
+     "origin": "fault_db",
+     "label_origin": "fault_db",
+     "db_backed": true,
+     "feature_id": null,
+     "feature_source": null,
+     "author_confirm": true,
+     "note": "故障库「（操显）航向_无噪声」/ abnormal_value=no_noise",
+     "trace": "判据库_故障.csv rec#116"
+    },
+    {
+     "id": "skipped",
+     "value": "skipped",
+     "label": "看不清（跳过）",
+     "label_plain": "看不清（跳过）",
+     "tone": "neutral",
+     "abnormal": null,
+     "origin": "qa_flow_vocab",
+     "label_origin": "system",
+     "db_backed": false,
+     "feature_id": null,
+     "feature_source": null,
+     "author_confirm": false,
+     "note": "看不清/跳过 = 未验证",
+     "trace": ""
+    }
+   ],
+   "ui": {
+    "title": "屏幕/微表区确认（新增）",
+    "progress": "12/18（新增项）",
+    "question": "领显「航向」画面：现在有底噪（麻点）吗？",
+    "normal": "正常判据：有底噪（麻点），不是一片干净的白/黑",
+    "part_chip": "Z14",
+    "route_chip": "",
+    "buttons": [
+     {
+      "id": "normal",
+      "value": "normal",
+      "label": "有底噪 ✔",
+      "label_plain": "有底噪",
+      "tone": "ok",
+      "style": "primary"
+     },
+     {
+      "id": "no_noise",
+      "value": "no_noise",
+      "label": "无噪声 ✗",
+      "label_plain": "无噪声",
+      "tone": "bad",
+      "style": "alt"
+     },
+     {
+      "id": "skipped",
+      "value": "skipped",
+      "label": "看不清（跳过）",
+      "label_plain": "看不清（跳过）",
+      "tone": "neutral",
+      "style": "alt"
+     }
+    ],
+    "min_touch_px": 44,
+    "layout_note": "沿用 qa_items_screen items 的样式；具体矩形由流程页统一布局，本文件不绑定"
+   },
+   "vision_policy": "hint_only",
+   "author_confirm": true,
+   "pending_apply": true,
+   "origin": {
+    "kind": "原文派生（判据库 SOP/故障库）",
+    "trace": [
+     "判据库_SOP.csv 记录#104 ▸ 19.11「（领显）航向噪声有」",
+     "判据库_故障.csv rec#99/#116 ▸ 航向_无噪声（field=(image)(operator_display)_course_noise, av=no_noise）",
+     "vision_bindings.json 无 19.11；steps.json 19-11 part=z4 modality=none"
+    ],
+    "author_confirm": true,
+    "pending_apply": "追加在 items_ext，未并入 items（理由见 屏幕与问答判据_全量检索_20261025.md §0.3）"
+   },
+   "notes": [
+    "question 由判据原文改写；options 全部来自判据库/故障库/作者答复原文，无编造",
+    "author_confirm=true：原文派生，待作者确认"
+   ]
+  },
+  {
+   "qa_id": "SQ028",
+   "seq": 13,
+   "step_id": "19-12",
+   "screen_key": "19.12",
+   "flow_no": "19",
+   "sub_no": "12",
+   "check_item": "（领显）下滑噪声有",
+   "category": "显示画面",
+   "subject": "（领显）下滑噪声",
+   "derived_from": [
+    "（领显）下滑噪声有"
+   ],
+   "display": "leader_display",
+   "position": "领显",
+   "part": "z14",
+   "route": "",
+   "part_source": "推导：噪声类归 z14；19.12 在 vision_bindings.json 无条目",
+   "screen_kind": "noise",
+   "binding_ref": "glide_noise",
+   "evidence_field": "(image)(leader_display)_glide_noise",
+   "question": "领显「下滑」画面：现在有底噪（麻点）吗？",
+   "normal": "有底噪（麻点），不是一片干净的白/黑",
+   "options": [
+    {
+     "id": "normal",
+     "value": "normal",
+     "label": "有底噪 ✔",
+     "label_plain": "有底噪",
+     "tone": "ok",
+     "abnormal": false,
+     "origin": "sop_db",
+     "label_origin": "system",
+     "db_backed": true,
+     "feature_id": null,
+     "feature_source": null,
+     "author_confirm": false,
+     "note": "判据原文「（领显）下滑噪声有」",
+     "trace": "判据库_SOP.csv 记录#105"
+    },
+    {
+     "id": "no_noise",
+     "value": "no_noise",
+     "label": "无噪声 ✗",
+     "label_plain": "无噪声",
+     "tone": "bad",
+     "abnormal": true,
+     "origin": "fault_db",
+     "label_origin": "fault_db",
+     "db_backed": true,
+     "feature_id": null,
+     "feature_source": null,
+     "author_confirm": true,
+     "note": "故障库「（操显）下滑_无噪声」/ abnormal_value=no_noise",
+     "trace": "判据库_故障.csv rec#117"
+    },
+    {
+     "id": "skipped",
+     "value": "skipped",
+     "label": "看不清（跳过）",
+     "label_plain": "看不清（跳过）",
+     "tone": "neutral",
+     "abnormal": null,
+     "origin": "qa_flow_vocab",
+     "label_origin": "system",
+     "db_backed": false,
+     "feature_id": null,
+     "feature_source": null,
+     "author_confirm": false,
+     "note": "看不清/跳过 = 未验证",
+     "trace": ""
+    }
+   ],
+   "ui": {
+    "title": "屏幕/微表区确认（新增）",
+    "progress": "13/18（新增项）",
+    "question": "领显「下滑」画面：现在有底噪（麻点）吗？",
+    "normal": "正常判据：有底噪（麻点），不是一片干净的白/黑",
+    "part_chip": "Z14",
+    "route_chip": "",
+    "buttons": [
+     {
+      "id": "normal",
+      "value": "normal",
+      "label": "有底噪 ✔",
+      "label_plain": "有底噪",
+      "tone": "ok",
+      "style": "primary"
+     },
+     {
+      "id": "no_noise",
+      "value": "no_noise",
+      "label": "无噪声 ✗",
+      "label_plain": "无噪声",
+      "tone": "bad",
+      "style": "alt"
+     },
+     {
+      "id": "skipped",
+      "value": "skipped",
+      "label": "看不清（跳过）",
+      "label_plain": "看不清（跳过）",
+      "tone": "neutral",
+      "style": "alt"
+     }
+    ],
+    "min_touch_px": 44,
+    "layout_note": "沿用 qa_items_screen items 的样式；具体矩形由流程页统一布局，本文件不绑定"
+   },
+   "vision_policy": "hint_only",
+   "author_confirm": true,
+   "pending_apply": true,
+   "origin": {
+    "kind": "原文派生（判据库 SOP/故障库）",
+    "trace": [
+     "判据库_SOP.csv 记录#105 ▸ 19.12「（领显）下滑噪声有」",
+     "判据库_故障.csv rec#100/#117 ▸ 下滑_无噪声（av=no_noise）"
+    ],
+    "author_confirm": true,
+    "pending_apply": "追加在 items_ext，未并入 items（理由见 屏幕与问答判据_全量检索_20261025.md §0.3）"
+   },
+   "notes": [
+    "question 由判据原文改写；options 全部来自判据库/故障库/作者答复原文，无编造",
+    "author_confirm=true：原文派生，待作者确认"
+   ]
+  },
+  {
+   "qa_id": "SQ029",
+   "seq": 14,
+   "step_id": "15(10-I)-21",
+   "screen_key": "15(10-I).21#reverse",
+   "flow_no": "15(10-I)",
+   "sub_no": "21",
+   "check_item": "(操显)-航向/下滑指向亮线与暗带反向随动",
+   "category": "显示画面",
+   "subject": "（操显）指向亮线与暗带反向随动",
+   "derived_from": [
+    "(操显)-航向指向亮线与暗带正常随动",
+    "（操显）（内控）航向仰指向亮线与暗带反向随动"
+   ],
+   "display": "operator_display",
+   "position": "操显",
+   "part": "z16",
+   "route": "",
+   "part_source": "推导：指向亮线属 z11（README_vision §3.1）；故障库该行无 field",
+   "screen_kind": "pointer",
+   "binding_ref": "course_pointer",
+   "evidence_field": null,
+   "question": "操显上「航向/下滑指向亮线与暗带」是否与操纵方向反向随动（ABC 相序错误的典型现象）？",
+   "normal": "不反向：亮线与暗带随操纵同向随动",
+   "options": [
+    {
+     "id": "normal",
+     "value": "normal",
+     "label": "不反向 ✔",
+     "label_plain": "不反向",
+     "tone": "ok",
+     "abnormal": false,
+     "origin": "sop_db",
+     "label_origin": "system",
+     "db_backed": true,
+     "feature_id": null,
+     "feature_source": null,
+     "author_confirm": false,
+     "note": "判据原文「指向亮线与暗带正常随动」（SOP 15(10-I).21/.22）",
+     "trace": "判据库_SOP.csv 记录#61/#62"
+    },
+    {
+     "id": "reverse",
+     "value": "reverse",
+     "label": "反向随动 ✗",
+     "label_plain": "反向随动",
+     "tone": "bad",
+     "abnormal": true,
+     "origin": "fault_db",
+     "label_origin": "fault_db",
+     "db_backed": true,
+     "feature_id": null,
+     "feature_source": null,
+     "author_confirm": true,
+     "note": "故障库「（操显）（内控）航向仰/航向俯/下滑左/下滑右指向亮线与暗带反向随动」",
+     "trace": "判据库_故障.csv rec#3~#6"
+    },
+    {
+     "id": "skipped",
+     "value": "skipped",
+     "label": "看不清（跳过）",
+     "label_plain": "看不清（跳过）",
+     "tone": "neutral",
+     "abnormal": null,
+     "origin": "qa_flow_vocab",
+     "label_origin": "system",
+     "db_backed": false,
+     "feature_id": null,
+     "feature_source": null,
+     "author_confirm": false,
+     "note": "看不清/跳过 = 未验证",
+     "trace": ""
+    }
+   ],
+   "ui": {
+    "title": "屏幕/微表区确认（新增）",
+    "progress": "14/18（新增项）",
+    "question": "操显上「航向/下滑指向亮线与暗带」是否与操纵方向反向随动（ABC 相序错误的典型现象）？",
+    "normal": "正常判据：不反向：亮线与暗带随操纵同向随动",
+    "part_chip": "Z11",
+    "route_chip": "",
+    "buttons": [
+     {
+      "id": "normal",
+      "value": "normal",
+      "label": "不反向 ✔",
+      "label_plain": "不反向",
+      "tone": "ok",
+      "style": "primary"
+     },
+     {
+      "id": "reverse",
+      "value": "reverse",
+      "label": "反向随动 ✗",
+      "label_plain": "反向随动",
+      "tone": "bad",
+      "style": "alt"
+     },
+     {
+      "id": "skipped",
+      "value": "skipped",
+      "label": "看不清（跳过）",
+      "label_plain": "看不清（跳过）",
+      "tone": "neutral",
+      "style": "alt"
+     }
+    ],
+    "min_touch_px": 44,
+    "layout_note": "沿用 qa_items_screen items 的样式；具体矩形由流程页统一布局，本文件不绑定"
+   },
+   "vision_policy": "hint_only",
+   "author_confirm": true,
+   "pending_apply": true,
+   "origin": {
+    "kind": "原文派生（判据库 SOP/故障库）",
+    "trace": [
+     "判据库_故障.csv rec#3 / #4 / #5 / #6 ▸ 柜 Z31 / sub=配电箱 / module=ABC相序错误 / 现象「…指向亮线与暗带反向随动」/ field 与 abnormal_value 均为空",
+     "判据库_SOP.csv 记录#11 ▸ 3.4「Z18（控制）-(下柜）-[相序指示]-指示灯亮」（相序的另一条判据，已有视觉绑定 3.4 -> PD_BOARD#0）"
+    ],
+    "author_confirm": true,
+    "pending_apply": "追加在 items_ext，未并入 items（理由见 屏幕与问答判据_全量检索_20261025.md §0.3）"
+   },
+   "notes": [
+    "question 由判据原文改写；options 全部来自判据库/故障库/作者答复原文，无编造",
+    "author_confirm=true：原文派生，待作者确认"
+   ]
+  },
+  {
+   "qa_id": "SQ030",
+   "seq": 15,
+   "step_id": "18-2",
+   "screen_key": "18.2#no_reverse",
+   "flow_no": "18",
+   "sub_no": "2",
+   "check_item": "天线无法换向",
+   "category": "指示灯",
+   "subject": "天线换向",
+   "derived_from": [
+    "天线换向到位指示灯亮",
+    "天线无法换向"
+   ],
+   "display": "",
+   "position": "",
+   "part": "z18",
+   "route": "",
+   "part_source": "推导：故障库 rec#193 归属 sub_unit=Z18（控制分机）",
+   "screen_kind": "meter",
+   "binding_ref": "meter_antenna_direction",
+   "evidence_field": null,
+   "question": "做天线电控换向时：天线是否真的换了方向（换向机构动了吗）？",
+   "normal": "换向正常：方向按操作改变，天线换向到位指示灯亮",
+   "options": [
+    {
+     "id": "normal",
+     "value": "normal",
+     "label": "换向正常 ✔",
+     "label_plain": "换向正常",
+     "tone": "ok",
+     "abnormal": false,
+     "origin": "sop_db",
+     "label_origin": "system",
+     "db_backed": true,
+     "feature_id": null,
+     "feature_source": null,
+     "author_confirm": false,
+     "note": "判据原文「天线换向到位指示灯亮」/「天线方向正常（方向左或方向右）」（SOP 18.1/18.2）",
+     "trace": "判据库_SOP.csv 记录#89/#90"
+    },
+    {
+     "id": "no_reverse",
+     "value": "no_reverse",
+     "label": "天线无法换向 ✗",
+     "label_plain": "无法换向",
+     "tone": "bad",
+     "abnormal": true,
+     "origin": "fault_db",
+     "label_origin": "fault_db",
+     "db_backed": true,
+     "feature_id": null,
+     "feature_source": null,
+     "author_confirm": true,
+     "note": "故障库「天线无法换向」（Z18 纽子开关SA1）/「雷达无B相电，天线无法换向」（FU2 20A）",
+     "trace": "判据库_故障.csv rec#193 / rec#250"
+    },
+    {
+     "id": "skipped",
+     "value": "skipped",
+     "label": "看不清（跳过）",
+     "label_plain": "看不清（跳过）",
+     "tone": "neutral",
+     "abnormal": null,
+     "origin": "qa_flow_vocab",
+     "label_origin": "system",
+     "db_backed": false,
+     "feature_id": null,
+     "feature_source": null,
+     "author_confirm": false,
+     "note": "看不清/跳过 = 未验证",
+     "trace": ""
+    }
+   ],
+   "ui": {
+    "title": "屏幕/微表区确认（新增）",
+    "progress": "15/18（新增项）",
+    "question": "做天线电控换向时：天线是否真的换了方向（换向机构动了吗）？",
+    "normal": "正常判据：换向正常：方向按操作改变，天线换向到位指示灯亮",
+    "part_chip": "Z18",
+    "route_chip": "",
+    "buttons": [
+     {
+      "id": "normal",
+      "value": "normal",
+      "label": "换向正常 ✔",
+      "label_plain": "换向正常",
+      "tone": "ok",
+      "style": "primary"
+     },
+     {
+      "id": "no_reverse",
+      "value": "no_reverse",
+      "label": "天线无法换向 ✗",
+      "label_plain": "无法换向",
+      "tone": "bad",
+      "style": "alt"
+     },
+     {
+      "id": "skipped",
+      "value": "skipped",
+      "label": "看不清（跳过）",
+      "label_plain": "看不清（跳过）",
+      "tone": "neutral",
+      "style": "alt"
+     }
+    ],
+    "min_touch_px": 44,
+    "layout_note": "沿用 qa_items_screen items 的样式；具体矩形由流程页统一布局，本文件不绑定"
+   },
+   "vision_policy": "hint_only",
+   "author_confirm": true,
+   "pending_apply": true,
+   "origin": {
+    "kind": "原文派生（判据库 SOP/故障库）",
+    "trace": [
+     "判据库_故障.csv rec#193 ▸ Z18（控制分机）/ 纽子开关SA1 /「天线无法换向」",
+     "判据库_故障.csv rec#250 ▸ 转控部分 / 保险丝FU2（20A）损坏 /「雷达无B相电，天线无法换向」",
+     "判据库_SOP.csv 记录#89 ▸ 18.1「天线换向到位指示灯亮」；记录#90 ▸ 18.2「天线方向正常（方向左或方向右）」"
+    ],
+    "author_confirm": true,
+    "pending_apply": "追加在 items_ext，未并入 items（理由见 屏幕与问答判据_全量检索_20261025.md §0.3）"
+   },
+   "notes": [
+    "question 由判据原文改写；options 全部来自判据库/故障库/作者答复原文，无编造",
+    "author_confirm=true：原文派生，待作者确认"
+   ]
+  },
+  {
+   "qa_id": "SQ031",
+   "seq": 16,
+   "step_id": "18-2",
+   "screen_key": "18.2#panel",
+   "flow_no": "18",
+   "sub_no": "2",
+   "check_item": "天线方向正常（方向左或方向右）",
+   "category": "指示灯",
+   "subject": "天线方向（Z18 面板）",
+   "derived_from": [
+    "天线方向正常（方向左或方向右）",
+    "天线方向：错误"
+   ],
+   "display": "",
+   "position": "",
+   "part": "z18",
+   "route": "",
+   "part_source": "vision_bindings.json key=18.2（part=z18, binding=led, ref=ANT_DIR#*）",
+   "screen_kind": "meter",
+   "binding_ref": "meter_antenna_direction",
+   "evidence_field": "(led_indicator)_z18_antenna_direction",
+   "question": "天线电控换向后：Z18 面板上的「方向」指示是否正常（显示左或右）？",
+   "normal": "方向指示正常（左或右），与换向操作一致",
+   "options": [
+    {
+     "id": "normal",
+     "value": "normal",
+     "label": "正常（左/右）✔",
+     "label_plain": "正常（左/右）",
+     "tone": "ok",
+     "abnormal": false,
+     "origin": "sop_db",
+     "label_origin": "system",
+     "db_backed": true,
+     "feature_id": null,
+     "feature_source": null,
+     "author_confirm": false,
+     "note": "判据原文「天线方向正常（方向左或方向右）」（SOP 18.2）",
+     "trace": "判据库_SOP.csv 记录#90"
+    },
+    {
+     "id": "error",
+     "value": "error",
+     "label": "方向错误 ✗",
+     "label_plain": "方向错误",
+     "tone": "bad",
+     "abnormal": true,
+     "origin": "fault_db",
+     "label_origin": "fault_db",
+     "db_backed": true,
+     "feature_id": null,
+     "feature_source": null,
+     "author_confirm": true,
+     "note": "故障库 abnormal_value=error「天线方向：错误」",
+     "trace": "判据库_故障.csv rec#198"
+    },
+    {
+     "id": "skipped",
+     "value": "skipped",
+     "label": "看不清（跳过）",
+     "label_plain": "看不清（跳过）",
+     "tone": "neutral",
+     "abnormal": null,
+     "origin": "qa_flow_vocab",
+     "label_origin": "system",
+     "db_backed": false,
+     "feature_id": null,
+     "feature_source": null,
+     "author_confirm": false,
+     "note": "看不清/跳过 = 未验证",
+     "trace": ""
+    }
+   ],
+   "ui": {
+    "title": "屏幕/微表区确认（新增）",
+    "progress": "16/18（新增项）",
+    "question": "天线电控换向后：Z18 面板上的「方向」指示是否正常（显示左或右）？",
+    "normal": "正常判据：方向指示正常（左或右），与换向操作一致",
+    "part_chip": "Z18",
+    "route_chip": "",
+    "buttons": [
+     {
+      "id": "normal",
+      "value": "normal",
+      "label": "正常（左/右）✔",
+      "label_plain": "正常（左/右）",
+      "tone": "ok",
+      "style": "primary"
+     },
+     {
+      "id": "error",
+      "value": "error",
+      "label": "方向错误 ✗",
+      "label_plain": "方向错误",
+      "tone": "bad",
+      "style": "alt"
+     },
+     {
+      "id": "skipped",
+      "value": "skipped",
+      "label": "看不清（跳过）",
+      "label_plain": "看不清（跳过）",
+      "tone": "neutral",
+      "style": "alt"
+     }
+    ],
+    "min_touch_px": 44,
+    "layout_note": "沿用 qa_items_screen items 的样式；具体矩形由流程页统一布局，本文件不绑定"
+   },
+   "vision_policy": "hint_only",
+   "author_confirm": true,
+   "pending_apply": true,
+   "origin": {
+    "kind": "原文派生（判据库 SOP/故障库）",
+    "trace": [
+     "判据库_SOP.csv 记录#90 ▸ 18.2「天线方向正常（方向左或方向右）」指示灯（need_qa 列空）",
+     "vision_bindings.json ▸ key=18.2 / field=(led_indicator)_z18_antenna_direction / expect=正常 / ref=ANT_DIR#*",
+     "判据库_故障.csv rec#198 ▸ abnormal_value=error"
+    ],
+    "author_confirm": true,
+    "pending_apply": "追加在 items_ext，未并入 items（理由见 屏幕与问答判据_全量检索_20261025.md §0.3）"
+   },
+   "notes": [
+    "question 由判据原文改写；options 全部来自判据库/故障库/作者答复原文，无编造",
+    "author_confirm=true：原文派生，待作者确认"
+   ]
+  },
+  {
+   "qa_id": "SQ032",
+   "seq": 17,
+   "step_id": "21",
+   "screen_key": "21.#range",
+   "flow_no": "21",
+   "sub_no": "",
+   "check_item": "航向回波正常（近/中/远距离门）",
+   "category": "显示画面",
+   "subject": "（操显）航向回波距离门",
+   "derived_from": [
+    "航向回波正常"
+   ],
+   "display": "operator_display",
+   "position": "操显",
+   "part": "z16",
+   "route": "I",
+   "part_source": "vision_bindings.json key=21.~2（航向回波 part=z11）",
+   "screen_kind": "echo",
+   "binding_ref": "course_echo",
+   "evidence_field": "(image)(operator_display)_course_echo",
+   "question": "操显「航向回波」：近距、中距、远距三档现在是否都有回波？",
+   "normal": "近距、中距、远距都有回波",
+   "options": [
+    {
+     "id": "normal",
+     "value": "normal",
+     "label": "三段都有 ✔",
+     "label_plain": "三段都有",
+     "tone": "ok",
+     "abnormal": false,
+     "origin": "sop_db",
+     "label_origin": "system",
+     "db_backed": true,
+     "feature_id": null,
+     "feature_source": null,
+     "author_confirm": false,
+     "note": "判据原文「航向回波正常」（SOP 21.）」",
+     "trace": "判据库_SOP.csv 记录#113"
+    },
+    {
+     "id": "missing_near_mid",
+     "value": "missing_near_mid",
+     "label": "近距、中距无，远距有 ✗",
+     "label_plain": "近中距无",
+     "tone": "bad",
+     "abnormal": true,
+     "origin": "fault_db",
+     "label_origin": "fault_db",
+     "db_backed": true,
+     "feature_id": null,
+     "feature_source": null,
+     "author_confirm": true,
+     "note": "故障库「航向回波-近距（无）、中距（无），远距（有）」（时钟板-0110）",
+     "trace": "判据库_故障.csv rec#128"
+    },
+    {
+     "id": "missing_near",
+     "value": "missing_near",
+     "label": "只有近距有 ✗",
+     "label_plain": "只有近距",
+     "tone": "bad",
+     "abnormal": true,
+     "origin": "fault_db",
+     "label_origin": "fault_db",
+     "db_backed": true,
+     "feature_id": null,
+     "feature_source": null,
+     "author_confirm": true,
+     "note": "故障库「航向回波-近距（有）、中距（无），远距（无）」（时钟板-0010）",
+     "trace": "判据库_故障.csv rec#133"
+    },
+    {
+     "id": "no_echo",
+     "value": "no_echo",
+     "label": "完全无回波 ✗",
+     "label_plain": "无回波",
+     "tone": "bad",
+     "abnormal": true,
+     "origin": "fault_db",
+     "label_origin": "fault_db",
+     "db_backed": true,
+     "feature_id": "F_(image)(operator_display)_course_echo_no",
+     "feature_source": "fault_library",
+     "author_confirm": false,
+     "note": "故障库「无回波」/ abnormal_value=no",
+     "trace": "判据库_故障.csv rec#25 / rec#31"
+    },
+    {
+     "id": "skipped",
+     "value": "skipped",
+     "label": "看不清（跳过）",
+     "label_plain": "看不清（跳过）",
+     "tone": "neutral",
+     "abnormal": null,
+     "origin": "qa_flow_vocab",
+     "label_origin": "system",
+     "db_backed": false,
+     "feature_id": null,
+     "feature_source": null,
+     "author_confirm": false,
+     "note": "看不清/跳过 = 未验证",
+     "trace": ""
+    }
+   ],
+   "ui": {
+    "title": "屏幕/微表区确认（新增）",
+    "progress": "17/18（新增项）",
+    "question": "操显「航向回波」：近距、中距、远距三档现在是否都有回波？",
+    "normal": "正常判据：近距、中距、远距都有回波",
+    "part_chip": "Z11",
+    "route_chip": "I 路",
+    "buttons": [
+     {
+      "id": "normal",
+      "value": "normal",
+      "label": "三段都有 ✔",
+      "label_plain": "三段都有",
+      "tone": "ok",
+      "style": "primary"
+     },
+     {
+      "id": "missing_near_mid",
+      "value": "missing_near_mid",
+      "label": "近距、中距无，远距有 ✗",
+      "label_plain": "近中距无",
+      "tone": "bad",
+      "style": "alt"
+     },
+     {
+      "id": "missing_near",
+      "value": "missing_near",
+      "label": "只有近距有 ✗",
+      "label_plain": "只有近距",
+      "tone": "bad",
+      "style": "alt"
+     },
+     {
+      "id": "no_echo",
+      "value": "no_echo",
+      "label": "完全无回波 ✗",
+      "label_plain": "无回波",
+      "tone": "bad",
+      "style": "alt"
+     },
+     {
+      "id": "skipped",
+      "value": "skipped",
+      "label": "看不清（跳过）",
+      "label_plain": "看不清（跳过）",
+      "tone": "neutral",
+      "style": "alt"
+     }
+    ],
+    "min_touch_px": 44,
+    "layout_note": "沿用 qa_items_screen items 的样式；具体矩形由流程页统一布局，本文件不绑定"
+   },
+   "vision_policy": "hint_only",
+   "author_confirm": true,
+   "pending_apply": true,
+   "origin": {
+    "kind": "原文派生（判据库 SOP/故障库）",
+    "trace": [
+     "判据库_SOP.csv 记录#113 ▸ 21.「航向回波正常」显示画面 / need_qa=是",
+     "判据库_故障.csv rec#128 / #131 / #133 ▸ 时钟板-0110/0100/0010 回波距段缺失",
+     "判据库_故障.csv rec#25 / #31 ▸ 无回波（av=no）"
+    ],
+    "author_confirm": true,
+    "pending_apply": "追加在 items_ext，未并入 items（理由见 屏幕与问答判据_全量检索_20261025.md §0.3）"
+   },
+   "notes": [
+    "question 由判据原文改写；options 全部来自判据库/故障库/作者答复原文，无编造",
+    "author_confirm=true：原文派生，待作者确认"
+   ]
+  },
+  {
+   "qa_id": "SQ033",
+   "seq": 18,
+   "step_id": "26",
+   "screen_key": "26.#range",
+   "flow_no": "26",
+   "sub_no": "",
+   "check_item": "下滑回波正常（近/中/远距离门）",
+   "category": "显示画面",
+   "subject": "（领显）下滑回波距离门",
+   "derived_from": [
+    "下滑回波正常"
+   ],
+   "display": "leader_display",
+   "position": "领显",
+   "part": "z16",
+   "route": "II",
+   "part_source": "vision_bindings.json key=26.~4（下滑回波 part=z11）",
+   "screen_kind": "echo",
+   "binding_ref": "glide_echo",
+   "evidence_field": "(image)(operator_display)_glide_echo",
+   "question": "「下滑回波」：近距、中距、远距三档现在是否都有回波？",
+   "normal": "近距、中距、远距都有回波",
+   "options": [
+    {
+     "id": "normal",
+     "value": "normal",
+     "label": "三段都有 ✔",
+     "label_plain": "三段都有",
+     "tone": "ok",
+     "abnormal": false,
+     "origin": "sop_db",
+     "label_origin": "system",
+     "db_backed": true,
+     "feature_id": null,
+     "feature_source": null,
+     "author_confirm": false,
+     "note": "判据原文「下滑回波正常」（SOP 26.）",
+     "trace": "判据库_SOP.csv 记录#145"
+    },
+    {
+     "id": "missing_near_mid",
+     "value": "missing_near_mid",
+     "label": "近距、中距无，远距有 ✗",
+     "label_plain": "近中距无",
+     "tone": "bad",
+     "abnormal": true,
+     "origin": "fault_db",
+     "label_origin": "fault_db",
+     "db_backed": true,
+     "feature_id": null,
+     "feature_source": null,
+     "author_confirm": true,
+     "note": "故障库「下滑回波-近距（无）、中距（无），远距（有）」",
+     "trace": "判据库_故障.csv rec#129"
+    },
+    {
+     "id": "missing_near",
+     "value": "missing_near",
+     "label": "只有近距有 ✗",
+     "label_plain": "只有近距",
+     "tone": "bad",
+     "abnormal": true,
+     "origin": "fault_db",
+     "label_origin": "fault_db",
+     "db_backed": true,
+     "feature_id": null,
+     "feature_source": null,
+     "author_confirm": true,
+     "note": "故障库「下滑回波-近距（有）、中距（无），远距（无）」",
+     "trace": "判据库_故障.csv rec#134"
+    },
+    {
+     "id": "no_echo",
+     "value": "no_echo",
+     "label": "完全无回波 ✗",
+     "label_plain": "无回波",
+     "tone": "bad",
+     "abnormal": true,
+     "origin": "fault_db",
+     "label_origin": "fault_db",
+     "db_backed": true,
+     "feature_id": "F_(image)(operator_display)_glide_echo_no",
+     "feature_source": "fault_library",
+     "author_confirm": false,
+     "note": "故障库「无回波」/ abnormal_value=no",
+     "trace": "判据库_故障.csv rec#26 / rec#32"
+    },
+    {
+     "id": "skipped",
+     "value": "skipped",
+     "label": "看不清（跳过）",
+     "label_plain": "看不清（跳过）",
+     "tone": "neutral",
+     "abnormal": null,
+     "origin": "qa_flow_vocab",
+     "label_origin": "system",
+     "db_backed": false,
+     "feature_id": null,
+     "feature_source": null,
+     "author_confirm": false,
+     "note": "看不清/跳过 = 未验证",
+     "trace": ""
+    }
+   ],
+   "ui": {
+    "title": "屏幕/微表区确认（新增）",
+    "progress": "18/18（新增项）",
+    "question": "「下滑回波」：近距、中距、远距三档现在是否都有回波？",
+    "normal": "正常判据：近距、中距、远距都有回波",
+    "part_chip": "Z11",
+    "route_chip": "II 路",
+    "buttons": [
+     {
+      "id": "normal",
+      "value": "normal",
+      "label": "三段都有 ✔",
+      "label_plain": "三段都有",
+      "tone": "ok",
+      "style": "primary"
+     },
+     {
+      "id": "missing_near_mid",
+      "value": "missing_near_mid",
+      "label": "近距、中距无，远距有 ✗",
+      "label_plain": "近中距无",
+      "tone": "bad",
+      "style": "alt"
+     },
+     {
+      "id": "missing_near",
+      "value": "missing_near",
+      "label": "只有近距有 ✗",
+      "label_plain": "只有近距",
+      "tone": "bad",
+      "style": "alt"
+     },
+     {
+      "id": "no_echo",
+      "value": "no_echo",
+      "label": "完全无回波 ✗",
+      "label_plain": "无回波",
+      "tone": "bad",
+      "style": "alt"
+     },
+     {
+      "id": "skipped",
+      "value": "skipped",
+      "label": "看不清（跳过）",
+      "label_plain": "看不清（跳过）",
+      "tone": "neutral",
+      "style": "alt"
+     }
+    ],
+    "min_touch_px": 44,
+    "layout_note": "沿用 qa_items_screen items 的样式；具体矩形由流程页统一布局，本文件不绑定"
+   },
+   "vision_policy": "hint_only",
+   "author_confirm": true,
+   "pending_apply": true,
+   "origin": {
+    "kind": "原文派生（判据库 SOP/故障库）",
+    "trace": [
+     "判据库_SOP.csv 记录#145 ▸ 26.「下滑回波正常」显示画面 / need_qa=是",
+     "判据库_故障.csv rec#129 / #132 / #134 ▸ 下滑回波距段缺失",
+     "判据库_故障.csv rec#26 / #32 ▸ 无回波"
+    ],
+    "author_confirm": true,
+    "pending_apply": "追加在 items_ext，未并入 items（理由见 屏幕与问答判据_全量检索_20261025.md §0.3）"
+   },
+   "notes": [
+    "question 由判据原文改写；options 全部来自判据库/故障库/作者答复原文，无编造",
+    "author_confirm=true：原文派生，待作者确认"
+   ]
+  }
+ ],
+ "items_ext_n": 18,
+ "items_ext_note": "★ 新增 18 题（SQ016–SQ033），来自「屏幕/自检方向/天线方向 全量检索」的问答缺口（原文派生，author_confirm=true）。为什么放在 items_ext 而不是 items：screen_qa.load_items() 硬编码 EXPECTED_SCREEN_ITEMS=15，并要求 items 的 qa_id 必须是 SQ001..SQ015 连续序列；直接 append 到 items 会让 ScreenQA/ScreenQA()/test_screen_qa.py 在加载时抛 ValueError。故本文件只**新增键**，items 保持 15 题不动，运行期零影响；升级方式见 engine/steps_screen_qa_patch_v2.json 的 promote_to_items 段（需作者批准后改 1 个常量 + 1 处断言）。"
+}

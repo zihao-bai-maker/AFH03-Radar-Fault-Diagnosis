@@ -1,0 +1,659 @@
+{
+  "schema": "scope_items_lan/v1",
+  "title": "示波器关键参数项（28 项，LAN/USBTMC 路线·只取 MEASURE 参数，不取波形）",
+  "generated_at": "2026-10-18",
+  "owner": "scope_lan/scope_usbtmc 模块（新建文件；未改动同目录 scope_items.json / scope_rules.py 等旧相机方案文件）",
+  "source_files": [
+    {
+      "path": "雷达判据/判据库_SOP.csv",
+      "filter": "method == 采集示波器输出数据",
+      "rows": 28,
+      "sha256": "d8cac6c082a3b13e0a518b3d7651dc4df7b30f01fbda69fb7d12042ac0fd28ac"
+    },
+    {
+      "path": "雷达判据/SOP_field_id_V1.5.md",
+      "use": "L143-L197 逐条核对 check_item 与「现象科目」；该表 field_id 列对 28 项为空，故 field_id 由本表自定"
+    },
+    {
+      "path": "雷达判据/故障源表_V2.1.md",
+      "use": "L21/L48/L52/L125 佐证 10M/30M/40M 的部件归属"
+    }
+  ],
+  "policy": {
+    "default_tol_pct": 3.0,
+    "tol_pct_note": "判据库未给容差，3% 为工程判定阈值（可调，不是库内数值）",
+    "no_signal_verdict": "abnormal",
+    "present_but_unquantified_verdict": "undetermined",
+    "undetermined_wins": true,
+    "never_compare_20m_or_40m_to_10m": true,
+    "corrections": [
+      "28 项中没有 20 MHz 信号；40 MHz 只有「40M时钟」一项。10M/30M/40M 各自按信号取频率，不得混用。"
+    ],
+    "forbidden_scpi": [
+      ":WAVeform:*",
+      ":WAV:*",
+      ":DATA?",
+      "深存储/RAW 读回"
+    ],
+    "io_modes": [
+      "lan",
+      "usbtmc"
+    ]
+  },
+  "io_defaults": {
+    "lan": {
+      "host": "192.168.1.20",
+      "port": 5555
+    },
+    "usbtmc": {
+      "paths": [
+        "/dev/usbtmc0",
+        "/dev/usbtmc1",
+        "/dev/usbtmc2"
+      ]
+    }
+  },
+  "counts": {
+    "total": 28,
+    "freq_judged": 6,
+    "presence_only": 22,
+    "parts": {
+      "z11": 16,
+      "z14": 12
+    },
+    "routes": {
+      "I": 14,
+      "II": 14
+    }
+  },
+  "items": [
+    {
+      "idx": 1,
+      "flow_no": 22,
+      "sub_no": "4",
+      "route": "I",
+      "part": "z11",
+      "field": "(scope)z11_10m_reference",
+      "signal": "（I）路10M相参基准波形",
+      "check_item": "（I）路-测量10M相参基准波形正常",
+      "expect_freq_hz": 10000000,
+      "tol_pct": 3.0,
+      "judge_mode": "freq",
+      "params": [
+        "FREQuency",
+        "VPP"
+      ],
+      "part_basis": "故障源表_V2.1.md L21「（Z11-1频综）（10M相参基准）」",
+      "part_confidence": 0.9,
+      "freq_basis": "signal_name",
+      "note": ""
+    },
+    {
+      "idx": 2,
+      "flow_no": 22,
+      "sub_no": "5",
+      "route": "I",
+      "part": "z11",
+      "field": "(scope)z11_30m_if",
+      "signal": "（I）路30M发射中频波形",
+      "check_item": "（I）路-测量30M发射中频波形正常",
+      "expect_freq_hz": 30000000,
+      "tol_pct": 3.0,
+      "judge_mode": "freq",
+      "params": [
+        "FREQuency",
+        "VPP"
+      ],
+      "part_basis": "故障源表_V2.1.md L48/L52「（发射中频）线断 / 测量示波器（Z11-背板-BNC Z11-XS4）」",
+      "part_confidence": 0.85,
+      "freq_basis": "signal_name",
+      "note": ""
+    },
+    {
+      "idx": 3,
+      "flow_no": 22,
+      "sub_no": "6",
+      "route": "I",
+      "part": "z14",
+      "field": "(scope)z14_40m_clock",
+      "signal": "（I）路40M时钟波形",
+      "check_item": "（I）路-测量40M时钟波形正常",
+      "expect_freq_hz": 40000000,
+      "tol_pct": 3.0,
+      "judge_mode": "freq",
+      "params": [
+        "FREQuency",
+        "VPP"
+      ],
+      "part_basis": "故障源表_V2.1.md L125「Z14-1（时钟插件板）」+ SOP L149 信号名「40M时钟」",
+      "part_confidence": 0.8,
+      "freq_basis": "signal_name",
+      "note": ""
+    },
+    {
+      "idx": 4,
+      "flow_no": 22,
+      "sub_no": "7",
+      "route": "I",
+      "part": "z14",
+      "field": "(scope)z14_display_sync",
+      "signal": "（I）路显示同步波形",
+      "check_item": "（I）路-测量显示同步波形正常",
+      "expect_freq_hz": null,
+      "tol_pct": null,
+      "judge_mode": "presence",
+      "params": [
+        "FREQuency",
+        "VPP"
+      ],
+      "part_basis": "推断：flow 22/27 在「信处分机」打开时测量，显示同步由 Z14 信处产生（判据库无频率值）",
+      "part_confidence": 0.55,
+      "freq_basis": "not_documented",
+      "note": "判据库仅要求「波形正常」，无频率数值；仅能判有/无信号，有信号也为 undetermined"
+    },
+    {
+      "idx": 5,
+      "flow_no": 22,
+      "sub_no": "8",
+      "route": "I",
+      "part": "z14",
+      "field": "(scope)z14_course_gate",
+      "signal": "（I）路航向门波波形",
+      "check_item": "（I）路-测量航向-门波-波形正常",
+      "expect_freq_hz": null,
+      "tol_pct": null,
+      "judge_mode": "presence",
+      "params": [
+        "FREQuency",
+        "VPP"
+      ],
+      "part_basis": "推断：flow 22/27「信处分机」测量点；门波由 Z14 信处生成（判据库无频率值）",
+      "part_confidence": 0.55,
+      "freq_basis": "not_documented",
+      "note": "判据库仅要求「波形正常」，无频率数值；仅能判有/无信号，有信号也为 undetermined"
+    },
+    {
+      "idx": 6,
+      "flow_no": 22,
+      "sub_no": "9",
+      "route": "I",
+      "part": "z14",
+      "field": "(scope)z14_glide_gate",
+      "signal": "（I）路下滑门波波形",
+      "check_item": "（I）路-测量下滑-门波-波形正常",
+      "expect_freq_hz": null,
+      "tol_pct": null,
+      "judge_mode": "presence",
+      "params": [
+        "FREQuency",
+        "VPP"
+      ],
+      "part_basis": "推断：flow 22/27「信处分机」测量点；门波由 Z14 信处生成（判据库无频率值）",
+      "part_confidence": 0.55,
+      "freq_basis": "not_documented",
+      "note": "判据库仅要求「波形正常」，无频率数值；仅能判有/无信号，有信号也为 undetermined"
+    },
+    {
+      "idx": 7,
+      "flow_no": 22,
+      "sub_no": "10",
+      "route": "I",
+      "part": "z14",
+      "field": "(scope)z14_course_mod",
+      "signal": "（I）路航向调制波形",
+      "check_item": "（I）路-测量航向-调制-波形正常",
+      "expect_freq_hz": null,
+      "tol_pct": null,
+      "judge_mode": "presence",
+      "params": [
+        "FREQuency",
+        "VPP"
+      ],
+      "part_basis": "推断：flow 22/27「信处分机」测量点；调制由 Z14 信处生成（判据库无频率值）",
+      "part_confidence": 0.55,
+      "freq_basis": "not_documented",
+      "note": "判据库仅要求「波形正常」，无频率数值；仅能判有/无信号，有信号也为 undetermined"
+    },
+    {
+      "idx": 8,
+      "flow_no": 22,
+      "sub_no": "11",
+      "route": "I",
+      "part": "z14",
+      "field": "(scope)z14_glide_mod",
+      "signal": "（I）路下滑调制波形",
+      "check_item": "（I）路-测量下滑-调制-波形正常",
+      "expect_freq_hz": null,
+      "tol_pct": null,
+      "judge_mode": "presence",
+      "params": [
+        "FREQuency",
+        "VPP"
+      ],
+      "part_basis": "推断：flow 22/27「信处分机」测量点；调制由 Z14 信处生成（判据库无频率值）",
+      "part_confidence": 0.55,
+      "freq_basis": "not_documented",
+      "note": "判据库仅要求「波形正常」，无频率数值；仅能判有/无信号，有信号也为 undetermined"
+    },
+    {
+      "idx": 9,
+      "flow_no": 23,
+      "sub_no": "",
+      "route": "I",
+      "part": "z11",
+      "field": "(scope)z11_tx_control",
+      "signal": "测量（I）路发射控制波形",
+      "check_item": "测量（I）路发射控制波形正常",
+      "expect_freq_hz": null,
+      "tol_pct": null,
+      "judge_mode": "presence",
+      "params": [
+        "FREQuency",
+        "VPP"
+      ],
+      "part_basis": "推断：flow 23/28「收发转控部分」→ Z11（收发）；判据库无频率值",
+      "part_confidence": 0.7,
+      "freq_basis": "not_documented",
+      "note": "判据库仅要求「波形正常」，无频率数值；仅能判有/无信号，有信号也为 undetermined"
+    },
+    {
+      "idx": 10,
+      "flow_no": 23,
+      "sub_no": "",
+      "route": "I",
+      "part": "z11",
+      "field": "(scope)z11_rx_on",
+      "signal": "测量（I）路接收通波形",
+      "check_item": "测量（I）路-接收通波形正常",
+      "expect_freq_hz": null,
+      "tol_pct": null,
+      "judge_mode": "presence",
+      "params": [
+        "FREQuency",
+        "VPP"
+      ],
+      "part_basis": "推断：flow 23/28「收发转控部分」→ Z11（收发）；判据库无频率值",
+      "part_confidence": 0.7,
+      "freq_basis": "not_documented",
+      "note": "判据库仅要求「波形正常」，无频率数值；仅能判有/无信号，有信号也为 undetermined"
+    },
+    {
+      "idx": 11,
+      "flow_no": 23,
+      "sub_no": "",
+      "route": "I",
+      "part": "z11",
+      "field": "(scope)z11_rx_off",
+      "signal": "测量（I）路接收断波形",
+      "check_item": "测量（I）路接收断波形正常",
+      "expect_freq_hz": null,
+      "tol_pct": null,
+      "judge_mode": "presence",
+      "params": [
+        "FREQuency",
+        "VPP"
+      ],
+      "part_basis": "推断：flow 23/28「收发转控部分」→ Z11（收发）；判据库无频率值",
+      "part_confidence": 0.7,
+      "freq_basis": "not_documented",
+      "note": "判据库仅要求「波形正常」，无频率数值；仅能判有/无信号，有信号也为 undetermined"
+    },
+    {
+      "idx": 12,
+      "flow_no": 23,
+      "sub_no": "",
+      "route": "I",
+      "part": "z11",
+      "field": "(scope)z11_power_ctrl_a",
+      "signal": "测量（I）路功控A波形",
+      "check_item": "测量（I）路功控A波形正常",
+      "expect_freq_hz": null,
+      "tol_pct": null,
+      "judge_mode": "presence",
+      "params": [
+        "FREQuency",
+        "VPP"
+      ],
+      "part_basis": "推断：flow 23/28「收发转控部分」→ Z11（收发）；判据库无频率值",
+      "part_confidence": 0.7,
+      "freq_basis": "not_documented",
+      "note": "判据库仅要求「波形正常」，无频率数值；仅能判有/无信号，有信号也为 undetermined"
+    },
+    {
+      "idx": 13,
+      "flow_no": 23,
+      "sub_no": "",
+      "route": "I",
+      "part": "z11",
+      "field": "(scope)z11_power_ctrl_b",
+      "signal": "测量（I）路功控B波形",
+      "check_item": "测量（I）路功控B波形正常",
+      "expect_freq_hz": null,
+      "tol_pct": null,
+      "judge_mode": "presence",
+      "params": [
+        "FREQuency",
+        "VPP"
+      ],
+      "part_basis": "推断：flow 23/28「收发转控部分」→ Z11（收发）；判据库无频率值",
+      "part_confidence": 0.7,
+      "freq_basis": "not_documented",
+      "note": "判据库仅要求「波形正常」，无频率数值；仅能判有/无信号，有信号也为 undetermined"
+    },
+    {
+      "idx": 14,
+      "flow_no": 23,
+      "sub_no": "",
+      "route": "I",
+      "part": "z11",
+      "field": "(scope)z11_power_ctrl_c",
+      "signal": "测量（I）路功控C波形",
+      "check_item": "测量（I）路功控C波形正常",
+      "expect_freq_hz": null,
+      "tol_pct": null,
+      "judge_mode": "presence",
+      "params": [
+        "FREQuency",
+        "VPP"
+      ],
+      "part_basis": "推断：flow 23/28「收发转控部分」→ Z11（收发）；判据库无频率值",
+      "part_confidence": 0.7,
+      "freq_basis": "not_documented",
+      "note": "判据库仅要求「波形正常」，无频率数值；仅能判有/无信号，有信号也为 undetermined"
+    },
+    {
+      "idx": 15,
+      "flow_no": 27,
+      "sub_no": "",
+      "route": "II",
+      "part": "z11",
+      "field": "(scope)z11_10m_reference",
+      "signal": "（II）路10M相参基准波形",
+      "check_item": "测量10M相参基准波形正常",
+      "expect_freq_hz": 10000000,
+      "tol_pct": 3.0,
+      "judge_mode": "freq",
+      "params": [
+        "FREQuency",
+        "VPP"
+      ],
+      "part_basis": "故障源表_V2.1.md L21「（Z11-1频综）（10M相参基准）」",
+      "part_confidence": 0.9,
+      "freq_basis": "signal_name",
+      "note": ""
+    },
+    {
+      "idx": 16,
+      "flow_no": 27,
+      "sub_no": "",
+      "route": "II",
+      "part": "z11",
+      "field": "(scope)z11_30m_if",
+      "signal": "（II）路30M发射中频波形",
+      "check_item": "测量30M发射中频波形正常",
+      "expect_freq_hz": 30000000,
+      "tol_pct": 3.0,
+      "judge_mode": "freq",
+      "params": [
+        "FREQuency",
+        "VPP"
+      ],
+      "part_basis": "故障源表_V2.1.md L48/L52「（发射中频）线断 / 测量示波器（Z11-背板-BNC Z11-XS4）」",
+      "part_confidence": 0.85,
+      "freq_basis": "signal_name",
+      "note": ""
+    },
+    {
+      "idx": 17,
+      "flow_no": 27,
+      "sub_no": "",
+      "route": "II",
+      "part": "z14",
+      "field": "(scope)z14_40m_clock",
+      "signal": "（II）路40M时钟波形",
+      "check_item": "测量40M时钟波形正常",
+      "expect_freq_hz": 40000000,
+      "tol_pct": 3.0,
+      "judge_mode": "freq",
+      "params": [
+        "FREQuency",
+        "VPP"
+      ],
+      "part_basis": "故障源表_V2.1.md L125「Z14-1（时钟插件板）」+ SOP L149 信号名「40M时钟」",
+      "part_confidence": 0.8,
+      "freq_basis": "signal_name",
+      "note": ""
+    },
+    {
+      "idx": 18,
+      "flow_no": 27,
+      "sub_no": "",
+      "route": "II",
+      "part": "z14",
+      "field": "(scope)z14_display_sync",
+      "signal": "（II）路显示同步波形",
+      "check_item": "测量显示同步波形正常",
+      "expect_freq_hz": null,
+      "tol_pct": null,
+      "judge_mode": "presence",
+      "params": [
+        "FREQuency",
+        "VPP"
+      ],
+      "part_basis": "推断：flow 22/27 在「信处分机」打开时测量，显示同步由 Z14 信处产生（判据库无频率值）",
+      "part_confidence": 0.55,
+      "freq_basis": "not_documented",
+      "note": "判据库仅要求「波形正常」，无频率数值；仅能判有/无信号，有信号也为 undetermined"
+    },
+    {
+      "idx": 19,
+      "flow_no": 27,
+      "sub_no": "",
+      "route": "II",
+      "part": "z14",
+      "field": "(scope)z14_course_gate",
+      "signal": "（II）路航向门波波形",
+      "check_item": "测量航向门波波形正常",
+      "expect_freq_hz": null,
+      "tol_pct": null,
+      "judge_mode": "presence",
+      "params": [
+        "FREQuency",
+        "VPP"
+      ],
+      "part_basis": "推断：flow 22/27「信处分机」测量点；门波由 Z14 信处生成（判据库无频率值）",
+      "part_confidence": 0.55,
+      "freq_basis": "not_documented",
+      "note": "判据库仅要求「波形正常」，无频率数值；仅能判有/无信号，有信号也为 undetermined"
+    },
+    {
+      "idx": 20,
+      "flow_no": 27,
+      "sub_no": "",
+      "route": "II",
+      "part": "z14",
+      "field": "(scope)z14_glide_gate",
+      "signal": "（II）路下滑门波波形",
+      "check_item": "测量下滑门波波形正常",
+      "expect_freq_hz": null,
+      "tol_pct": null,
+      "judge_mode": "presence",
+      "params": [
+        "FREQuency",
+        "VPP"
+      ],
+      "part_basis": "推断：flow 22/27「信处分机」测量点；门波由 Z14 信处生成（判据库无频率值）",
+      "part_confidence": 0.55,
+      "freq_basis": "not_documented",
+      "note": "判据库仅要求「波形正常」，无频率数值；仅能判有/无信号，有信号也为 undetermined"
+    },
+    {
+      "idx": 21,
+      "flow_no": 27,
+      "sub_no": "",
+      "route": "II",
+      "part": "z14",
+      "field": "(scope)z14_course_mod",
+      "signal": "（II）路航向调制波形",
+      "check_item": "测量航向调制波形正常",
+      "expect_freq_hz": null,
+      "tol_pct": null,
+      "judge_mode": "presence",
+      "params": [
+        "FREQuency",
+        "VPP"
+      ],
+      "part_basis": "推断：flow 22/27「信处分机」测量点；调制由 Z14 信处生成（判据库无频率值）",
+      "part_confidence": 0.55,
+      "freq_basis": "not_documented",
+      "note": "判据库仅要求「波形正常」，无频率数值；仅能判有/无信号，有信号也为 undetermined"
+    },
+    {
+      "idx": 22,
+      "flow_no": 27,
+      "sub_no": "",
+      "route": "II",
+      "part": "z14",
+      "field": "(scope)z14_glide_mod",
+      "signal": "（II）路下滑调制波形",
+      "check_item": "测量下滑调制波形正常",
+      "expect_freq_hz": null,
+      "tol_pct": null,
+      "judge_mode": "presence",
+      "params": [
+        "FREQuency",
+        "VPP"
+      ],
+      "part_basis": "推断：flow 22/27「信处分机」测量点；调制由 Z14 信处生成（判据库无频率值）",
+      "part_confidence": 0.55,
+      "freq_basis": "not_documented",
+      "note": "判据库仅要求「波形正常」，无频率数值；仅能判有/无信号，有信号也为 undetermined"
+    },
+    {
+      "idx": 23,
+      "flow_no": 28,
+      "sub_no": "",
+      "route": "II",
+      "part": "z11",
+      "field": "(scope)z11_tx_control",
+      "signal": "测量（II）路发射控制波形",
+      "check_item": "测量（II）路发射控制波形正常",
+      "expect_freq_hz": null,
+      "tol_pct": null,
+      "judge_mode": "presence",
+      "params": [
+        "FREQuency",
+        "VPP"
+      ],
+      "part_basis": "推断：flow 23/28「收发转控部分」→ Z11（收发）；判据库无频率值",
+      "part_confidence": 0.7,
+      "freq_basis": "not_documented",
+      "note": "判据库仅要求「波形正常」，无频率数值；仅能判有/无信号，有信号也为 undetermined"
+    },
+    {
+      "idx": 24,
+      "flow_no": 28,
+      "sub_no": "",
+      "route": "II",
+      "part": "z11",
+      "field": "(scope)z11_rx_on",
+      "signal": "测量（II）路接收通波形",
+      "check_item": "测量（II）路接收通波形正常",
+      "expect_freq_hz": null,
+      "tol_pct": null,
+      "judge_mode": "presence",
+      "params": [
+        "FREQuency",
+        "VPP"
+      ],
+      "part_basis": "推断：flow 23/28「收发转控部分」→ Z11（收发）；判据库无频率值",
+      "part_confidence": 0.7,
+      "freq_basis": "not_documented",
+      "note": "判据库仅要求「波形正常」，无频率数值；仅能判有/无信号，有信号也为 undetermined"
+    },
+    {
+      "idx": 25,
+      "flow_no": 28,
+      "sub_no": "",
+      "route": "II",
+      "part": "z11",
+      "field": "(scope)z11_rx_off",
+      "signal": "测量（II）路接收断波形",
+      "check_item": "测量（II）路接收断波形正常",
+      "expect_freq_hz": null,
+      "tol_pct": null,
+      "judge_mode": "presence",
+      "params": [
+        "FREQuency",
+        "VPP"
+      ],
+      "part_basis": "推断：flow 23/28「收发转控部分」→ Z11（收发）；判据库无频率值",
+      "part_confidence": 0.7,
+      "freq_basis": "not_documented",
+      "note": "判据库仅要求「波形正常」，无频率数值；仅能判有/无信号，有信号也为 undetermined"
+    },
+    {
+      "idx": 26,
+      "flow_no": 28,
+      "sub_no": "",
+      "route": "II",
+      "part": "z11",
+      "field": "(scope)z11_power_ctrl_a",
+      "signal": "测量（II）路功控A波形",
+      "check_item": "测量（II）路功控A波形正常",
+      "expect_freq_hz": null,
+      "tol_pct": null,
+      "judge_mode": "presence",
+      "params": [
+        "FREQuency",
+        "VPP"
+      ],
+      "part_basis": "推断：flow 23/28「收发转控部分」→ Z11（收发）；判据库无频率值",
+      "part_confidence": 0.7,
+      "freq_basis": "not_documented",
+      "note": "判据库仅要求「波形正常」，无频率数值；仅能判有/无信号，有信号也为 undetermined"
+    },
+    {
+      "idx": 27,
+      "flow_no": 28,
+      "sub_no": "",
+      "route": "II",
+      "part": "z11",
+      "field": "(scope)z11_power_ctrl_b",
+      "signal": "测量（II）路功控B波形",
+      "check_item": "测量（II）路功控B波形正常",
+      "expect_freq_hz": null,
+      "tol_pct": null,
+      "judge_mode": "presence",
+      "params": [
+        "FREQuency",
+        "VPP"
+      ],
+      "part_basis": "推断：flow 23/28「收发转控部分」→ Z11（收发）；判据库无频率值",
+      "part_confidence": 0.7,
+      "freq_basis": "not_documented",
+      "note": "判据库仅要求「波形正常」，无频率数值；仅能判有/无信号，有信号也为 undetermined"
+    },
+    {
+      "idx": 28,
+      "flow_no": 28,
+      "sub_no": "",
+      "route": "II",
+      "part": "z11",
+      "field": "(scope)z11_power_ctrl_c",
+      "signal": "测量（II）路功控C波形",
+      "check_item": "测量（II）路功控C波形正常",
+      "expect_freq_hz": null,
+      "tol_pct": null,
+      "judge_mode": "presence",
+      "params": [
+        "FREQuency",
+        "VPP"
+      ],
+      "part_basis": "推断：flow 23/28「收发转控部分」→ Z11（收发）；判据库无频率值",
+      "part_confidence": 0.7,
+      "freq_basis": "not_documented",
+      "note": "判据库仅要求「波形正常」，无频率数值；仅能判有/无信号，有信号也为 undetermined"
+    }
+  ]
+}

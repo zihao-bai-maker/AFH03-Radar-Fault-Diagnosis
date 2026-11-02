@@ -1,0 +1,89 @@
+{
+  "note": "G18 三块七段表：左=电池电压、右=市电电压、中=计时器（不读）。只显示读数，不做 A/B/C 相别自动判定；QA 仍为主判据。",
+  "version": "2026-11-01.1",
+  "reference_size": [
+    1920,
+    1080
+  ],
+  "displays": [
+    {
+      "key": "left",
+      "label": "电池电压",
+      "role": "battery_voltage",
+      "role_note": "最左侧七段表=电池电压；只显示示数，不自动判正常/异常（现场确认范围后再加判据）",
+      "ndigits": 3,
+      "has_dp": false,
+      "dp_index_hint": null,
+      "roi_tight": [
+        300,
+        320,
+        500,
+        260
+      ],
+      "roi_band": [
+        250,
+        300,
+        600,
+        340
+      ],
+      "evidence_field": "(vision)_g18_display_left"
+    },
+    {
+      "key": "middle",
+      "label": "计时器",
+      "role": "counter",
+      "role_note": "中间表是计时器，不读、不显示",
+      "ndigits": 6,
+      "has_dp": true,
+      "dp_index_hint": 4,
+      "roi_tight": [
+        845,
+        440,
+        300,
+        100
+      ],
+      "roi_band": [
+        720,
+        375,
+        470,
+        215
+      ],
+      "evidence_field": "(vision)_g18_display_middle",
+      "enabled": false
+    },
+    {
+      "key": "right",
+      "label": "市电电压",
+      "role": "mains_voltage",
+      "role_note": "最右侧七段表=市电电压；只显示示数（198~242V 仅作参考）",
+      "ndigits": 3,
+      "has_dp": false,
+      "dp_index_hint": null,
+      "roi_tight": [
+        1300,
+        430,
+        420,
+        220
+      ],
+      "roi_band": [
+        1000,
+        350,
+        900,
+        400
+      ],
+      "evidence_field": "(vision)_g18_display_right"
+    }
+  ],
+  "phase_voltage_display": "",
+  "phase_voltage_range": [
+    198.0,
+    242.0
+  ],
+  "phase_qa_ids": {
+    "A": "QA002",
+    "B": "QA003",
+    "C": "QA004"
+  },
+  "mapping_confirmed": false,
+  "mapping_note": "左=工作电压、右=市电电压、中=计时器（不读）；不做 A/B/C 相别自动映射。"
+}

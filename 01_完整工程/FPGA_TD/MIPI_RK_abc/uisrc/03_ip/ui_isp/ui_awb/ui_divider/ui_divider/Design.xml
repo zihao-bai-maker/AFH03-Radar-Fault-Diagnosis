@@ -1,0 +1,90 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ipxact:design xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:ipxact="http://www.accellera.org/XMLSchema/IPXACT/1685-2014" xmlns:anlogic="http" xsi:schemaLocation="http://www.accellera.org/XMLSchema/IPXACT/1685-2014 http://www.accellera.org/XMLSchema/IPXACT/1685-2014/index.xsd">
+    <ipxact:vendor>anlogic.com</ipxact:vendor>
+    <ipxact:library>customized</ipxact:library>
+    <ipxact:name>design_ui_divider</ipxact:name>
+    <ipxact:version>1.0</ipxact:version>
+    <ipxact:componentInstances>
+        <ipxact:componentInstance>
+            <ipxact:instanceName>divider_top_ae263170b655_Inst</ipxact:instanceName>
+            <ipxact:componentRef vendor="anlogic.com" library="ip" name="Divider" version="2.0"/>
+            <ipxact:configurableElementValues>
+                <ipxact:configurableElementValue referenceId="DIVIDEND_DW">48</ipxact:configurableElementValue>
+                <ipxact:configurableElementValue referenceId="DIVISOR_DW">32</ipxact:configurableElementValue>
+                <ipxact:configurableElementValue referenceId="OUT_BLOCKING">0</ipxact:configurableElementValue>
+                <ipxact:configurableElementValue referenceId="LATENCY">50</ipxact:configurableElementValue>
+                <ipxact:configurableElementValue referenceId="SIGN">&quot;unsigned&quot;</ipxact:configurableElementValue>
+                <ipxact:configurableElementValue referenceId="FLOW">&quot;non blocking&quot;</ipxact:configurableElementValue>
+                <ipxact:configurableElementValue referenceId="OPERAND_SIGN">0</ipxact:configurableElementValue>
+                <ipxact:configurableElementValue referenceId="DIVIDEND_CEIL_DW">48</ipxact:configurableElementValue>
+                <ipxact:configurableElementValue referenceId="DIVISOR_CEIL_DW">32</ipxact:configurableElementValue>
+                <ipxact:configurableElementValue referenceId="OUTPUT_DW">80</ipxact:configurableElementValue>
+                <ipxact:configurableElementValue referenceId="FLOW_CONTROL">0</ipxact:configurableElementValue>
+            </ipxact:configurableElementValues>
+        </ipxact:componentInstance>
+    </ipxact:componentInstances>
+    <ipxact:adHocConnections>
+        <ipxact:adHocConnection>
+            <ipxact:name>aclk</ipxact:name>
+            <ipxact:portReferences>
+                <ipxact:internalPortReference componentRef="divider_top_ae263170b655_Inst" portRef="aclk"/>
+                <ipxact:externalPortReference portRef="aclk"/>
+            </ipxact:portReferences>
+        </ipxact:adHocConnection>
+        <ipxact:adHocConnection>
+            <ipxact:name>aresetn</ipxact:name>
+            <ipxact:portReferences>
+                <ipxact:internalPortReference componentRef="divider_top_ae263170b655_Inst" portRef="aresetn"/>
+                <ipxact:externalPortReference portRef="aresetn"/>
+            </ipxact:portReferences>
+        </ipxact:adHocConnection>
+        <ipxact:adHocConnection>
+            <ipxact:name>s_axis_dividend_tdata</ipxact:name>
+            <ipxact:portReferences>
+                <ipxact:internalPortReference componentRef="divider_top_ae263170b655_Inst" portRef="s_axis_dividend_tdata"/>
+                <ipxact:externalPortReference portRef="s_axis_dividend_tdata"/>
+            </ipxact:portReferences>
+        </ipxact:adHocConnection>
+        <ipxact:adHocConnection>
+            <ipxact:name>s_axis_dividend_tvalid</ipxact:name>
+            <ipxact:portReferences>
+                <ipxact:internalPortReference componentRef="divider_top_ae263170b655_Inst" portRef="s_axis_dividend_tvalid"/>
+                <ipxact:externalPortReference portRef="s_axis_dividend_tvalid"/>
+            </ipxact:portReferences>
+        </ipxact:adHocConnection>
+        <ipxact:adHocConnection>
+            <ipxact:name>s_axis_divisor_tdata</ipxact:name>
+            <ipxact:portReferences>
+                <ipxact:internalPortReference componentRef="divider_top_ae263170b655_Inst" portRef="s_axis_divisor_tdata"/>
+                <ipxact:externalPortReference portRef="s_axis_divisor_tdata"/>
+            </ipxact:portReferences>
+        </ipxact:adHocConnection>
+        <ipxact:adHocConnection>
+            <ipxact:name>s_axis_divisor_tvalid</ipxact:name>
+            <ipxact:portReferences>
+                <ipxact:internalPortReference componentRef="divider_top_ae263170b655_Inst" portRef="s_axis_divisor_tvalid"/>
+                <ipxact:externalPortReference portRef="s_axis_divisor_tvalid"/>
+            </ipxact:portReferences>
+        </ipxact:adHocConnection>
+        <ipxact:adHocConnection>
+            <ipxact:name>m_axis_dout_tdata</ipxact:name>
+            <ipxact:portReferences>
+                <ipxact:internalPortReference componentRef="divider_top_ae263170b655_Inst" portRef="m_axis_dout_tdata"/>
+                <ipxact:externalPortReference portRef="m_axis_dout_tdata"/>
+            </ipxact:portReferences>
+        </ipxact:adHocConnection>
+        <ipxact:adHocConnection>
+            <ipxact:name>m_axis_dout_tvalid</ipxact:name>
+            <ipxact:portReferences>
+                <ipxact:internalPortReference componentRef="divider_top_ae263170b655_Inst" portRef="m_axis_dout_tvalid"/>
+                <ipxact:externalPortReference portRef="m_axis_dout_tvalid"/>
+            </ipxact:portReferences>
+        </ipxact:adHocConnection>
+    </ipxact:adHocConnections>
+    <ipxact:vendorExtensions>
+        <anlogic:device>PH1A90SEG324</anlogic:device>
+        <anlogic:speed>-2</anlogic:speed>
+        <anlogic:displayname>Divider</anlogic:displayname>
+        <anlogic:ipGenVersion value="171484 2025/08/11">1.0</anlogic:ipGenVersion>
+    </ipxact:vendorExtensions>
+</ipxact:design>

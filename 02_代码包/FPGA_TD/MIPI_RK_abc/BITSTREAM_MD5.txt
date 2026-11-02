@@ -1,0 +1,2 @@
+8fc876d87cd7df97ff51ddb9b3c2ee5f  4850310  fpga_prj.bit
+20feb1f5f2262fea6a834a8acfea8daf  3213672  fpga_prj_compress.bit

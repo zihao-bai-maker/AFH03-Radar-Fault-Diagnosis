@@ -1,0 +1,3318 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+"""ui_kiosk.py —— 用户草图版 UI（**两页**，版式由 `config/ui_layout.json` 驱动）。
+
+流程（用户确认）
+----------------
+```
+页面1「故障检测」 = 相机**实时画面** + 底部【拍照】【波形检测】
+        │ 按【拍照】
+        ▼
+页面2「故障或者正常」 = 刚拍的**静止照片** + **醒目结论**（绿=正常 / 红=故障 / 灰=未判定）
+                     + **依据**（哪颗灯不亮 / 哪项不满足 / 实际值 vs 允许范围）+ 【返回】
+```
+* 版式/文案/颜色/按钮全部来自 `config/ui_layout.json` → **以后加功能按钮不用改代码**
+* 中文一律走 `soc_vision.cjk_text`（**绝不乱码**）
+* **出帧**：优先 OpenCV `VideoCapture`（实测独占设备时 0.08 s 就出帧）；连续失败会自动重开设备，
+  仍失败则**明确提示"取流失败"**并给出自 poll 命令（不静默）
+* 拍照 → 存 `/userdata/afh03_shots/<时间戳>/{full.jpg, annot.jpg, verdict.json}`
+
+用法
+----
+    python3 -m soc_vision.ui_kiosk --part PS_KONG --calib config/led_calib.json      # 板端实时
+    python3 -m soc_vision.ui_kiosk --part PS_KONG --auto                             # 无标定演示
+    python3 -m soc_vision.ui_kiosk --render page1 --frame f.jpg --out out/ui_page1.png
+    python3 -m soc_vision.ui_kiosk --render page2 --frame f.jpg --part PS_KONG --auto --out out/ui_page2.png
+"""
+from __future__ import annotations
+
+import argparse
+import json
+import os
+import re
+import sys
+import time
+from datetime import datetime
+
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
+import numpy as np                                                    # noqa: E402
+import cv2                                                            # noqa: E402
+
+# ★ 顺序敏感（板端实测 2026-10-18）：Pillow 的 `_imagingft` 必须在 cjk_text(Pango/gi)
+#   之前初始化。否则 Pango 先加载系统 libfreetype，part_recognizer 的模板 OCR 在
+#   `dr.text()` 里会抛 `DecompressionBombError: Image size (439886304 pixels)`，
+#   board_infer 捕获后仍会 print_exc ⇒ journal 里留下 Traceback（且部位识别被跳过）。
+#   这里先渲染一个最小字形把 Pillow 的 FreeType 钉住，再导入 cjk_text。
+try:
+    from PIL import Image as _PILImage, ImageDraw as _PILImageDraw, ImageFont as _PILImageFont
+    for _fp in ("/usr/share/fonts/truetype/wqy/wqy-zenhei.ttc",
+                "/usr/share/fonts/truetype/wqy/wqy-microhei.ttc",
+                "/usr/share/fonts/opentype/noto/NotoSansCJK-Regular.ttc"):
+        if os.path.isfile(_fp):
+            _PILImageDraw.Draw(_PILImage.new("L", (48, 24), 0)).text(
+                (2, 2), "Z12", font=_PILImageFont.truetype(_fp, 12), fill=255)
+            break
+except Exception:                                                      # noqa: BLE001
+    pass
+
+from soc_vision.cjk_text import (draw_text, text_size, backend as cjk_backend,  # noqa: E402
+                                 install_cv2_puttext_patch)
+from soc_vision.led_rules import RuleBook, VERDICT_OK, VERDICT_BAD, VERDICT_UNK                # noqa: E402
+from soc_vision.ui_app import judge, save_shot, scpi_verdict, build_parser as _ui_parser
+from soc_vision.touch_input import TouchScreen
+try:
+    from soc_vision import board_infer as BI        # ★ 部位识别 + 摄像头判定（薄适配层）
+except Exception as _bi:                            # noqa: BLE001
+    BI = None
+    print("[infer] 适配层不可用: %s" % _bi, flush=True)
+try:
+    from soc_vision.marker_id import MarkerId       # ★ 读标记 -> 锁定模块身份
+except Exception as _me:                            # noqa: BLE001
+    MarkerId = None
+    print("[marker] 不可用: %s" % _me, flush=True)  # noqa: E402
+
+HERE = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+LAYOUT_DEFAULT = os.path.join(HERE, "config", "ui_layout.json")
+
+# ===========================================================================
+# ★ v2 部位规则覆盖（**优雅降级**，2026-10-18）
+# ---------------------------------------------------------------------------
+# 背景：`markers_modules.json` 已扩到 24 个模块，v2 的 18 个（Z4..Z15-CPU）没有
+# `rule_key`；旧 `led_rules.check_catalog_coverage()` 只认 G1..G6 的 rule_key ⇒
+# 启动时把 18 个部位全报成「规则表缺口」并打 **FATAL**（其实 UI 仍在跑）。
+#
+# 这里的口径：
+#   * 标记 label → 规则部件 id（G1..G6 仍走 RULE_KEY_TO_PART；v2 走 JSON 的 aliases）
+#   * ready       = 有灯规则（能判）
+#   * draft       = 规则已登记但 status=待确认（灯序/期望未现场确认）⇒ 只提示，不判
+#   * registered  = 仅登记部位（lamps 为空）⇒ 只提示，不判
+#   * missing     = 规则表里完全没有
+# 任何非 ready 部位 ⇒ **只 WARN**；界面显示「该部位已识别（Z12），判定规则待标定」，
+# 结论固定为「未判定」，绝不 FATAL、绝不编造灯光规则。
+# ===========================================================================
+_RULE_CTX = {"loaded": False, "meta": {}, "alias": {}, "marker_pid": {}, "markers": {}}
+_RULE_WARNED: set = set()
+
+
+def _load_rule_ctx():
+    """懒加载 led_rules.json + markers_modules.json，建立 label→规则 id 映射。"""
+    if _RULE_CTX["loaded"]:
+        return _RULE_CTX
+    _RULE_CTX["loaded"] = True
+    try:
+        with open(os.path.join(HERE, "config", "led_rules.json"), encoding="utf-8") as f:
+            doc = json.load(f)
+        for p in (doc.get("parts") or []):
+            pid = str(p.get("id") or "")
+            if not pid:
+                continue
+            _RULE_CTX["meta"][pid] = p
+            _RULE_CTX["alias"][pid.upper()] = pid
+            for a in (p.get("aliases") or []):
+                _RULE_CTX["alias"][str(a).strip().upper()] = pid
+    except Exception as e:                                         # noqa: BLE001
+        print("[ui_kiosk][warn] 规则表读取失败（全部按无规则降级）: %s" % e, flush=True)
+    try:
+        with open(os.path.join(HERE, "markers_modules.json"), encoding="utf-8") as f:
+            _RULE_CTX["markers"] = (json.load(f).get("modules") or {})
+    except Exception as e:                                         # noqa: BLE001
+        print("[ui_kiosk][warn] 标记映射读取失败: %s" % e, flush=True)
+    try:
+        from soc_vision.marker_id import RULE_KEY_TO_PART as _RK
+    except Exception:                                              # noqa: BLE001
+        _RK = {}
+    for label, m in _RULE_CTX["markers"].items():
+        pid = ""
+        cands = _RK.get(str((m or {}).get("rule_key") or "")) or []
+        if cands:
+            pid = next((c for c in cands if c in _RULE_CTX["meta"]), cands[0])
+        if not pid:
+            pid = _resolve_rule_pid(label)
+        _RULE_CTX["marker_pid"][str(label).strip().upper()] = pid
+    return _RULE_CTX
+
+
+def _resolve_rule_pid(name) -> str:
+    """标记 label / 识别部位 id（大小写不敏感）→ 规则部件 id；找不到返回 ""。"""
+    ctx = _load_rule_ctx()
+    s = str(name or "").strip()
+    if not s:
+        return ""
+    up = s.upper()
+    if up in ctx["marker_pid"]:
+        return ctx["marker_pid"][up]
+    if up in ctx["alias"]:
+        return ctx["alias"][up]
+    for pid in ctx["meta"]:
+        if pid.upper() == up:
+            return pid
+    return ""
+
+
+def _rule_state(pid) -> str:
+    m = _load_rule_ctx()["meta"].get(pid) or {}
+    if not m:
+        return "missing"
+    if not (m.get("lamps") or []):
+        # ★ 读数器型（汉字状态屏 text_assert / 配电盘 numeric_range）没有"灯"，
+        #   但有 reader 判据 → 仍然算 ready（G5/G6 不能误报成"仅登记"）。
+        if (str(m.get("kind") or "") in ("text_assert", "numeric_range")
+                and m.get("reader")):
+            return "ready"
+        return "registered"
+    if "待确认" in str(m.get("status") or ""):
+        return "draft"
+    return "ready"
+
+
+def _rule_state_for_label(label) -> str:
+    return _rule_state(_resolve_rule_pid(label))
+
+
+def _coverage_report() -> list:
+    """启动自检（**只 WARN，不 FATAL**）：返回"暂无可用判定规则"的部位清单。"""
+    ctx = _load_rule_ctx()
+    if not ctx["markers"]:
+        print("[ui_kiosk][warn] 没有 markers_modules.json → 跳过规则覆盖自检", flush=True)
+        return []
+    groups = {"ready": [], "draft": [], "registered": [], "missing": []}
+    for label in ctx["markers"]:
+        st = _rule_state(ctx["marker_pid"].get(str(label).strip().upper()) or "")
+        groups.setdefault(st, []).append(str(label))
+    pend = groups["draft"] + groups["registered"] + groups["missing"]
+    print("[ui_kiosk] 规则覆盖自检：%d 个标记模块 → 有判定规则 %d、草案待确认 %d、仅登记 %d、未登记 %d"
+          % (len(ctx["markers"]), len(groups["ready"]), len(groups["draft"]),
+             len(groups["registered"]), len(groups["missing"])), flush=True)
+    if pend:
+        print("[ui_kiosk][WARN] 以下 %d 个部位暂无可用判定规则（**不 FATAL**；识别到 → "
+              "界面提示「该部位已识别，判定规则待标定」，结论=未判定）：%s"
+              % (len(pend), "、".join(pend)), flush=True)
+    return pend
+
+
+def _degrade_result(r: dict, label: str = "") -> dict:
+    """★ 结果页优雅降级：部位没有可用规则 ⇒ 结论=「未判定（判定规则待标定）」。
+
+    只在后台判定本来就给不出结论（state=unknown）时接管；engine 给出 ok/bad 时不动它。
+    """
+    if not isinstance(r, dict):
+        return r
+    part = r.get("part") or {}
+    lbl = str(label or part.get("part") or part.get("part_used") or "").strip()
+    pid = _resolve_rule_pid(lbl)
+    st = _rule_state(pid)
+    r["rule"] = {"part": pid, "state": st, "label": lbl}
+    if not lbl:
+        return r
+    up = lbl.upper()
+    disp = str(part.get("display") or part.get("part") or "")
+    if up.startswith("Z") and up not in disp.upper():
+        part["display"] = ("%s（%s）" % (disp, up)) if disp else up
+        r["part"] = part
+    concl = dict(r.get("conclusion") or {})
+    if st == "ready" or str(concl.get("state") or "unknown") != "unknown":
+        return r
+    detail = {"missing": "规则表无此部位",
+              "draft": "规则已登记但灯序/期望待确认（草案）",
+              "registered": "仅登记部位，尚无灯序规则"}.get(st, "规则未就绪")
+    short = {"missing": "无规则", "draft": "草案", "registered": "仅登记"}.get(st, "未就绪")
+    note = "该部位已识别（%s），判定规则待标定" % up
+    concl["state"] = "unknown"
+    concl["text"] = "未判定（判定规则待标定）"
+    concl["why"] = "%s（%s）" % (note, short)
+    r["conclusion"] = concl
+    r["rule_note"] = note
+    und = dict(r.get("undetermined") or {})
+    und["n"] = max(int(und.get("n") or 0), 1)
+    und["reasons"] = [note] + [x for x in (und.get("reasons") or []) if x != note]
+    r["undetermined"] = und
+    if up not in _RULE_WARNED:
+        _RULE_WARNED.add(up)
+        print("[result][WARN] %s → 结论=未判定（%s）" % (note, detail), flush=True)
+    return r
+
+
+def _effective_part(part, mi, marker_hit, calib, explicit_part=False):
+    """归属优先级：显式 --part > 标记 > 环境变量/默认 part > 未判定。
+
+    ★ `AFH03_PART` 环境变量只是**默认值**（systemd 里设的 PS_KONG），
+      现场贴了 v2 标记时应以标记为准；只有命令行真的写了 `--part` 才禁止标记改判。
+    """
+    if explicit_part and part:
+        return part, "命令行显式 --part=%s（标记不参与改判）" % part, 1.0
+    if mi is not None and marker_hit is not None:
+        try:
+            p, why, conf = mi.resolve_part(marker_hit,
+                                           list((calib.parts if calib else {}).keys()))
+            if p:
+                return p, why, conf
+        except Exception as e:                                         # noqa: BLE001
+            print("[marker] resolve 异常: %s" % e, flush=True)
+    if part:
+        return part, "无标记 → 用默认部件 %s（环境变量/步骤）" % part, 0.5
+    return "", "无标记、也无默认部件 → 未判定", 0.0
+
+
+def load_layout(path: str = "") -> dict:
+    p = path or LAYOUT_DEFAULT
+    with open(p, encoding="utf-8") as f:
+        return json.load(f)
+
+
+def page(layout: dict, pid: str) -> dict:
+    for pg in layout.get("pages", []):
+        if pg.get("id") == pid:
+            return pg
+    return (layout.get("pages") or [{}])[0]
+
+
+def _card(img, rect, color, alpha=1.0):
+    x0, y0, x1, y1 = [int(v) for v in rect]
+    x0, y0 = max(0, x0), max(0, y0)
+    x1, y1 = min(img.shape[1], x1), min(img.shape[0], y1)
+    if x1 <= x0 or y1 <= y0:
+        return
+    if alpha >= 1.0:
+        img[y0:y1, x0:x1] = color
+        return
+    roi = img[y0:y1, x0:x1].astype(np.float32)
+    img[y0:y1, x0:x1] = (roi * (1 - alpha) + np.array(color, np.float32) * alpha).astype(np.uint8)
+
+
+# ---------------------------------------------------------------- 美化绘元（**只画**：圆角/渐变/描边/投影）
+_MASK_CACHE: dict = {}
+
+
+def _rrect_mask(w, h, r):
+    """圆角矩形软蒙版（0..1 float，h×w）。按尺寸缓存 —— 每帧不重复算。"""
+    key = (int(w), int(h), int(r))
+    got = _MASK_CACHE.get(key)
+    if got is not None:
+        return got
+    w, h = max(1, int(w)), max(1, int(h))
+    r = int(max(0, min(int(r), min(w, h) // 2)))
+    m = np.zeros((h, w), np.uint8)
+    if r <= 1:
+        m[:] = 255
+    else:
+        m[r:h - r, :] = 255                                    # 中间竖条
+        m[:, r:w - r] = 255                                    # 中间横条（含圆角区）
+        for cx, cy in ((r, r), (w - r - 1, r), (r, h - r - 1), (w - r - 1, h - r - 1)):
+            cv2.circle(m, (cx, cy), r, 255, -1, lineType=cv2.LINE_AA)
+    f = m.astype(np.float32) / 255.0
+    _MASK_CACHE[key] = f
+    return f
+
+
+def _rrect_fill(img, rect, color, r=12):
+    """不透明圆角实心块（cv2 图元，快；角上是抗锯齿）。"""
+    x0, y0, x1, y1 = [int(round(v)) for v in rect]
+    x0, y0 = max(0, x0), max(0, y0)
+    x1, y1 = min(img.shape[1], x1), min(img.shape[0], y1)
+    if x1 <= x0 or y1 <= y0:
+        return
+    r = int(max(0, min(int(r), (x1 - x0) // 2, (y1 - y0) // 2)))
+    if r <= 1:
+        img[y0:y1, x0:x1] = color
+        return
+    cv2.rectangle(img, (x0 + r, y0), (x1 - r - 1, y1 - 1), color, -1)
+    cv2.rectangle(img, (x0, y0 + r), (x1 - 1, y1 - r - 1), color, -1)
+    for cx, cy in ((x0 + r, y0 + r), (x1 - r - 1, y0 + r),
+                   (x0 + r, y1 - r - 1), (x1 - r - 1, y1 - r - 1)):
+        cv2.circle(img, (cx, cy), r, color, -1, lineType=cv2.LINE_AA)
+
+
+def _rrect_panel(img, rect, fill, edge=None, r=12, shadow=0, shadow_color=(12, 9, 7)):
+    """圆角面板 = 可选下投影 + 1px 描边 + 实心填充（全部不透明，零混合开销）。"""
+    x0, y0, x1, y1 = [int(v) for v in rect]
+    if shadow:
+        _rrect_fill(img, (x0, y0 + shadow, x1, y1 + shadow), shadow_color, r)
+    if edge is not None:
+        _rrect_fill(img, (x0 - 1, y0 - 1, x1 + 1, y1 + 1), edge, r + 1)
+    _rrect_fill(img, (x0, y0, x1, y1), fill, r)
+
+
+def _grad_v(img, rect, c_top, c_bot):
+    """竖向渐变填充（只在底板渲染时用一次）。"""
+    x0, y0, x1, y1 = [int(v) for v in rect]
+    x0, y0 = max(0, x0), max(0, y0)
+    x1, y1 = min(img.shape[1], x1), min(img.shape[0], y1)
+    h = y1 - y0
+    if h <= 0 or x1 <= x0:
+        return
+    t = (np.arange(h, dtype=np.float32) / float(max(1, h - 1))).reshape(h, 1, 1)
+    a = np.array(c_top, np.float32).reshape(1, 1, 3)
+    b = np.array(c_bot, np.float32).reshape(1, 1, 3)
+    img[y0:y1, x0:x1] = np.clip(a * (1.0 - t) + b * t, 0, 255).astype(np.uint8)
+
+
+def _dot(img, cx, cy, r, color):
+    cv2.circle(img, (int(cx), int(cy)), int(r), color, -1, lineType=cv2.LINE_AA)
+
+
+def _text_center(img, text, rect, scale, color, th=1):
+    """在 rect 里**横竖都居中**画一行（比原来按 0.62 系数估基线更准）。"""
+    x0, y0, x1, y1 = [int(v) for v in rect]
+    try:
+        w, h = text_size(text, scale)
+    except Exception:                                                  # noqa: BLE001
+        w, h = int(len(str(text)) * scale * 15), int(scale * 30)
+    draw_text(img, text, (int(x0 + ((x1 - x0) - w) / 2), int(y0 + ((y1 - y0) + h) / 2)),
+              scale=scale, color=color, th=th)
+
+
+def _fit_text(text, maxw, scale, ellip="…"):
+    """按最大像素宽截断显示串（**只影响显示**，不动任何数据/逻辑）。"""
+    s = str(text or "")
+    try:
+        w, _h = text_size(s, scale)
+    except Exception:                                                  # noqa: BLE001
+        return s
+    if int(maxw) <= 0 or w <= maxw:
+        return s
+    while len(s) > 1:
+        s = s[:-1]
+        try:
+            w2, _h2 = text_size(s + ellip, scale)
+        except Exception:                                              # noqa: BLE001
+            break
+        if w2 <= maxw:
+            return s + ellip
+    return s
+
+
+def _wrap_cjk(text, maxw, scale):
+    """按**像素宽**折行（Pango 的 size 是 pt，别用"字数"估宽度）。"""
+    s = str(text or "")
+    out, cur = [], ""
+    for ch in s:
+        try:
+            w, _h = text_size(cur + ch, scale)
+        except Exception:                                              # noqa: BLE001
+            w = 0
+        if cur and w > maxw:
+            out.append(cur)
+            cur = ch
+        else:
+            cur += ch
+    if cur:
+        out.append(cur)
+    return out or [""]
+
+
+def _corner_marks(img, rect, color, inset=12, ln=22, t=2):
+    """预览四角装饰线（摄像机取景框感，轻量）。"""
+    x0, y0, x1, y1 = [int(v) for v in rect]
+    for px, py, dx, dy in ((x0 + inset, y0 + inset, 1, 1), (x1 - inset, y0 + inset, -1, 1),
+                           (x0 + inset, y1 - inset, 1, -1), (x1 - inset, y1 - inset, -1, -1)):
+        cv2.line(img, (px, py), (px + dx * ln, py), color, t, lineType=cv2.LINE_AA)
+        cv2.line(img, (px, py), (px, py + dy * ln), color, t, lineType=cv2.LINE_AA)
+
+
+def _round_corners(img, rect, r, color):
+    """每帧只碰 4 个 r×r 小方块，把预览的方角"盖"成圆角（外色=边框色）。"""
+    if color is None:
+        return
+    x0, y0, x1, y1 = [int(v) for v in rect]
+    x0, y0 = max(0, x0), max(0, y0)
+    x1, y1 = min(img.shape[1], x1), min(img.shape[0], y1)
+    w, h = x1 - x0, y1 - y0
+    r = int(max(0, min(int(r), w // 2, h // 2)))
+    if r < 2:
+        return
+    m = _rrect_mask(w, h, r)
+    col = np.array(color, np.float32).reshape(1, 1, 3)
+    for sx, sy, mx, my in ((x0, y0, 0, 0), (x1 - r, y0, w - r, 0),
+                           (x0, y1 - r, 0, h - r), (x1 - r, y1 - r, w - r, h - r)):
+        sub = m[my:my + r, mx:mx + r][:, :, None]
+        roi = img[sy:sy + r, sx:sx + r].astype(np.float32)
+        img[sy:sy + r, sx:sx + r] = np.clip(col * (1.0 - sub) + roi * sub, 0, 255).astype(np.uint8)
+
+
+def _center_text(img, text, cx, baseline, scale, color, th=1):
+    try:
+        from soc_vision.cjk_text import text_size
+        w, _h = text_size(text, scale)
+    except Exception:                                                  # noqa: BLE001
+        w = int(len(text) * scale * 14)
+    draw_text(img, text, (int(cx - w / 2), int(baseline)), scale=scale, color=color, th=th)
+
+
+def _fit(img, frame, rect, label="", bg=None):
+    x0, y0, x1, y1 = [int(v) for v in rect]
+    _card(img, rect, (14, 15, 18) if bg is None else bg, 1.0)
+    if frame is None:
+        _center_text(img, label or "（无画面）", (x0 + x1) / 2, (y0 + y1) / 2, 0.8, (200, 200, 200))
+        return
+    fh, fw = frame.shape[:2]
+    k = min((x1 - x0) / max(1, fw), (y1 - y0) / max(1, fh))
+    if k < 0.5:                      # ★ 大图先降采样再放大，缩放成本大降（省 CPU）
+        small = cv2.resize(frame, (max(1, int(fw * 0.5)), max(1, int(fh * 0.5))),
+                           interpolation=cv2.INTER_AREA)
+        frame = small
+        fh, fw = frame.shape[:2]
+        k = min((x1 - x0) / max(1, fw), (y1 - y0) / max(1, fh))
+    d = cv2.resize(frame, (max(1, int(fw * k)), max(1, int(fh * k))), interpolation=cv2.INTER_AREA)
+    ox = x0 + ((x1 - x0) - d.shape[1]) // 2
+    oy = y0 + ((y1 - y0) - d.shape[0]) // 2
+    img[oy:oy + d.shape[0], ox:ox + d.shape[1]] = d
+
+
+def annotate_frame(frame, rows, vobj, extra=""):
+    """在照片上画：顶部结论横幅 + 圈灯 + ON/OFF（**本地实现**，不依赖 tools/，避免 import 崩溃）。"""
+    img = frame.copy()
+    v = (vobj or {}).get("verdict", VERDICT_UNK)
+    col = (80, 200, 90) if v == VERDICT_OK else ((60, 60, 230) if v == VERDICT_BAD else (170, 170, 170))
+    icon = "OK" if v == VERDICT_OK else ("FAULT" if v == VERDICT_BAD else "UNKNOWN")
+    W = img.shape[1]
+    cv2.rectangle(img, (0, 0), (W, 78), (24, 24, 28), -1)
+    draw_text(img, "%s %s" % (icon, v), (14, 60), scale=2.2, color=col, th=2)
+    draw_text(img, str((vobj or {}).get("reason") or "")[:44], (14, 108), scale=0.72,
+              color=(240, 240, 240))
+    if extra:
+        draw_text(img, str(extra)[:60], (14, 136), scale=0.5, color=(190, 190, 190))
+    for r in (rows or []):
+        if r.get("x", -1) < 0:
+            continue
+        cc = (80, 200, 90) if r.get("on") else ((60, 60, 230) if r.get("on") is False else (170, 170, 170))
+        cv2.circle(img, (int(r["x"]), int(r["y"])), int(max(6, r.get("r", 10))), cc, 3)
+        draw_text(img, "%s %s" % (str(r.get("name"))[:8],
+                                  "ON" if r.get("on") else ("?" if r.get("on") is None else "OFF")),
+                  (int(r["x"]) - int(r.get("r", 10)), int(r["y"]) - int(r.get("r", 10)) - 6),
+                  scale=0.5, color=cc)
+    return img
+
+
+def _reader_kind(part_id):
+    """该部件是否为"读数器型"（不靠 ROI，故必须绕过"未标定"门槛）。"""
+    try:
+        import json as _json
+        _p = os.path.join(HERE, "config", "led_rules.json")
+        _d = _json.load(open(_p, encoding="utf-8"))
+        _raw = next((x for x in _d.get("parts", []) if x.get("id") == part_id), None)
+        if _raw and str(_raw.get("kind", "")) in ("text_assert", "numeric_range"):
+            return _raw
+    except Exception:                                                 # noqa: BLE001
+        pass
+    return None
+
+
+def reader_verdict(frame, part_id):
+    """★ 读数器型部件直接出结论/明确原因（**不经过"未标定 ⇒ 未判定"那道门**）。"""
+    raw = _reader_kind(part_id)
+    if raw is None:
+        return None
+    kind = str(raw.get("kind"))
+    why = "该部件的判定能力未就绪（%s 读数器未加载）" % (raw.get("reader") or kind)
+    if kind == "text_assert":                                          # G5 汉字状态屏
+        try:
+            from soc_vision.screen_read_v2 import ScreenReaderV2 as ScreenReader
+            rd = ScreenReader(os.path.join(HERE, "ref_cn"), verbose=False)   # v2 口径
+            _res = rd.read(frame)                     # ★ v2：read() 返回 dict
+            f = rd.fields(_res)
+            minc = float(raw.get("min_conf", 0.55))
+            txt, ok_all, lo = [], True, False
+            for asrt in (raw.get("asserts") or []):
+                nm = asrt.get("field", "")
+                got = f.get(nm) or {}
+                txt.append("%s=%s(%.2f)" % (nm, got.get("value", "?"), float(got.get("conf", 0.0))))
+                if got.get("value") != asrt.get("expect"):
+                    ok_all = False
+                if float(got.get("conf", 0.0)) < minc:
+                    lo = True
+            line = "、".join(txt) or "无读数"
+            print("[reader] 屏读数：%s（v2 口径）" % line, flush=True)
+            if lo or not f:
+                why = "屏读数器读数置信不足（%s）" % line
+            elif ok_all:
+                return "正常", "屏读数：%s ⇒ 正常" % line
+            else:
+                return "故障", "屏读数：%s ⇒ 与期望不符" % line
+        except Exception as e:                                         # noqa: BLE001
+            why = "屏读数器未就绪（%s: %s）" % (type(e).__name__, e)
+    else:                                                              # G6 配电盘
+        try:
+            from soc_vision import seg7
+            rgb = frame[:, :, ::-1] if frame.ndim == 3 else frame
+            disps = seg7.read_displays(rgb)
+            if not disps:
+                why = "7 段读数器未就绪/未检出数字"
+            else:
+                line = "、".join("%s(%.2f)" % (d0.text, d0.conf) for d0 in disps[:4] if d0.text.strip())
+                print("[reader] 7 段读数：%s" % line, flush=True)
+                why = "7 段读数：%s（容差校验待接入）" % (line or "空")
+        except Exception as e:                                         # noqa: BLE001
+            why = "7 段读数器未就绪（%s: %s）" % (type(e).__name__, e)
+    # 未就绪/低置信：**明确原因**（绝不出现"规则表里没有这个部件"）
+    return None, "该部件的判定能力未就绪（%s）→ 未判定" % why
+
+
+def run_capture(frame, part, book, calib, det, allow_auto, shots_dir, scope):
+    """**受保护的 capture 全链**：判定 -> 标注 -> 存盘。**绝不抛异常**。
+
+    返回 dict：{ok, verdict, reason, shot_dir, error, rows, vobj}
+    每个阶段都打点日志（`[capture] stage=...`），异常时打完整 traceback。
+    """
+    import traceback
+    out = {"ok": False, "verdict": VERDICT_UNK, "reason": "", "shot_dir": "", "error": "",
+           "rows": [], "vobj": None}
+    stage = "start"
+    try:
+        stage = "reader"
+        rv = reader_verdict(frame, part)          # ★ 读数器型部件先走（绕过"未标定"门）
+        if rv is not None:
+            verdict, reason = rv if isinstance(rv, tuple) else ("未判定", rv)
+            v = {"verdict": verdict or "未判定", "reason": reason}
+            info = {"rows": [], "path": "reader"}
+            print("[capture] stage=reader verdict=%s reason=%s" % (v["verdict"], v["reason"]), flush=True)
+        else:
+            stage = "judge"
+            v, info = judge(frame, part, book, calib, det, allow_auto=allow_auto)
+        rows = info.get("rows", []) or []
+        out["vobj"], out["rows"] = v, rows
+        out["verdict"] = v.get("verdict", VERDICT_UNK)
+        out["reason"] = v.get("reason", "")
+        print("[capture] stage=judge ok verdict=%s reason=%s" % (out["verdict"], out["reason"]),
+              flush=True)
+        stage = "annotate"
+        annot = annotate_frame(frame, rows, v, extra="部件=%s 路径=%s" % (part or "-", info.get("path")))
+        print("[capture] stage=annotate ok %s" % (annot.shape,), flush=True)
+        stage = "save"
+        d = save_shot(shots_dir, frame, annot, v, info, scope)
+        out["shot_dir"] = d
+        out["ok"] = True
+        print("[capture] stage=save ok -> %s" % d, flush=True)
+    except Exception as e:                                             # noqa: BLE001
+        out["error"] = "%s: %s" % (type(e).__name__, e)
+        print("[capture] stage=%s 失败: %s" % (stage, out["error"]), flush=True)
+        traceback.print_exc()
+        # 兜底：至少把原图存到 /tmp，绝不静默
+        try:
+            fb = "/tmp/afh03_shots_fallback"
+            os.makedirs(fb, exist_ok=True)
+            p = os.path.join(fb, time.strftime("fail_%Y%m%d_%H%M%S.jpg"))
+            cv2.imwrite(p, frame)
+            out["shot_dir"] = fb
+            print("[capture] 兜底已把原图存到 %s" % p, flush=True)
+        except Exception:                                              # noqa: BLE001
+            pass
+    return out
+
+
+def _draw_dbg(img, layout, dbg):
+    """★ 可见的点击反馈：taps 计数 + 最近一次 tap 的屏幕坐标 + 命中按钮 + 触摸设备名。"""
+    if not dbg:
+        return
+    W, H = layout["canvas"]["w"], layout["canvas"]["h"]
+    xy = dbg.get("xy")
+    txt = "taps=%d %s 命中=%s  %s" % (dbg.get("taps", 0),
+                                      ("(%d,%d)" % xy) if xy else "(未点过)",
+                                      dbg.get("hit") or "-", dbg.get("dev") or "")
+    x0 = int(W * 0.30)
+    _card(img, [x0, H - 24, W - 8, H - 4], (18, 20, 24), 1.0)
+    draw_text(img, txt[:64], (x0 + 6, H - 8), scale=0.45, color=(120, 220, 140))
+    if xy:
+        cx, cy = int(xy[0]), int(xy[1])
+        cv2.circle(img, (cx, cy), 18, (0, 255, 255), 2)
+        cv2.line(img, (cx - 26, cy), (cx + 26, cy), (0, 255, 255), 1)
+        cv2.line(img, (cx, cy - 26), (cx, cy + 26), (0, 255, 255), 1)
+
+
+# ★ 流程入口（SOP 步骤流）：**不改 config/ui_layout.json**（本步只允许改本文件）。
+#   在代码里把 page1 底部的【拍照】【波形检测】与新增【流程检测】重排成三列等宽，
+#   rect 同时用于绘制和触摸命中（_buttons() 返回的就是同一批 rect）。
+FLOW_BUTTON = {"id": "flow", "label": "流程检测", "action": "flow", "style": "alt"}
+
+
+def _page1_specs(layout):
+    """page1 按钮表：capture/wave/flow 等宽三列；其余按钮（退出）原样保留。"""
+    pg = page(layout, "page1")
+    specs = list(pg.get("buttons", []))
+    by_id = {b.get("id"): b for b in specs}
+    if "flow" in by_id or "capture" not in by_id or "wave" not in by_id:
+        return specs
+    cap, wav = by_id["capture"], by_id["wave"]
+    x0 = min(int(cap["rect"][0]), int(wav["rect"][0]))
+    x1 = max(int(cap["rect"][2]), int(wav["rect"][2]))
+    y0 = min(int(cap["rect"][1]), int(wav["rect"][1]))
+    y1 = max(int(cap["rect"][3]), int(wav["rect"][3]))
+    gap = 23
+    w = (x1 - x0 - 2 * gap) // 3
+    out = []
+    for i, b in enumerate((cap, wav, FLOW_BUTTON)):
+        nb = dict(b)
+        nb["rect"] = [x0 + i * (w + gap), y0, x0 + i * (w + gap) + w, y1]
+        out.append(nb)
+    out.extend(b for b in specs if b.get("id") not in ("capture", "wave"))
+    return out
+
+
+def _buttons(img, layout, pg, active_id=""):
+    """★ 画按钮：**几何仍严格取自 layout 的 rect**（返回值给触摸命中用，两边同一 rect）。
+
+    美化只改"怎么涂"：圆角 + 1px 描边 + 轻投影 + 主/次按钮明显区分 + 文字真正居中。
+    """
+    C = layout["colors"]
+    fs = layout.get("font_scale", {})
+    R = layout.get("radius", {})
+    rb = int(R.get("button", 12))
+    drawn = []
+    _specs = _page1_specs(layout) if pg.get("id") == "page1" else pg.get("buttons", [])
+    for b in _specs:
+        rect = b["rect"]
+        x0, y0, x1, y1 = [int(v) for v in rect]
+        primary = b.get("style") == "primary"
+        bg = C["button"] if primary else C["button_alt"]
+        fg = C["button_text"] if primary else C["button_alt_text"]
+        edge = C.get("button_edge_primary" if primary else "button_edge")
+        if b["id"] == active_id:
+            bg = tuple(min(255, int(c * 1.18)) for c in bg)
+        if C.get("shadow") is not None:
+            _rrect_fill(img, (x0, y0 + 4, x1, y1 + 4), C["shadow"], rb)
+        if edge is not None:
+            _rrect_fill(img, (x0 - 1, y0 - 1, x1 + 1, y1 + 1), edge, rb + 1)
+        _rrect_fill(img, (x0, y0, x1, y1), bg, rb)
+        sc = float(b.get("font_scale", fs.get("button", 1.0)))
+        _text_center(img, b.get("label", b["id"]), rect, sc, fg, th=2)
+        drawn.append((b, rect))
+    return drawn
+
+
+def draw_page1(layout, frame, toast="", warn="", dbg=None, err="", marker_txt=""):
+    """页面1「故障检测」= 深色卡片仪表风。
+
+    ★ 本函数**只负责画**：入参全沿用调用方给的现有数据（frame/marker_txt/toast/err），
+      不做任何检测、不改任何状态、不加任何新数据源（时间只是 strftime 读系统钟）。
+    """
+    C = layout["colors"]; fs = layout.get("font_scale", {})
+    pg = page(layout, "page1")
+    W, H = layout["canvas"]["w"], layout["canvas"]["h"]
+    R = layout.get("radius", {})
+    tb = layout.get("topbar") or {}
+    bar_h = int(tb.get("h", 92))
+    img = np.full((H, W, 3), C["bg"], np.uint8)
+    _grad_v(img, (0, 0, W, H), C["bg"], C.get("bg_bottom", C["bg"]))
+
+    # ---------------- 顶栏：品牌条 + 标题 + 标记状态 + 模式 + 时钟 ----------------
+    _grad_v(img, (0, 0, W, bar_h), C["title_bar"], C.get("title_bar2", C["title_bar"]))
+    cv2.line(img, (0, bar_h), (W - 1, bar_h), C.get("accent", C["dim"]), 2, lineType=cv2.LINE_AA)
+    _rrect_fill(img, (24, 32, 31, 84), C.get("accent", C["title_text"]), 3)
+    draw_text(img, pg.get("title", ""), (40, 78),
+              scale=fs.get("title_p1", fs.get("title", 1.9)), color=C["title_text"], th=2)
+    # 标记状态胶囊（数据=调用方已算好的 marker_txt，空串即"未识别"）
+    chip = (272, 30, 700, 82)
+    has_m = bool(marker_txt)
+    _rrect_fill(img, chip, C.get("chip_bg", C["card"]), int(R.get("pill", 26)))
+    _dot(img, chip[0] + 24, (chip[1] + chip[3]) // 2, 7, C["ok"] if has_m else C.get("unk", C["dim"]))
+    draw_text(img, _fit_text("标记  " + (marker_txt or "未识别（把标记牌对准摄像头）"),
+                             chip[2] - chip[0] - 52, fs.get("chip", 0.44)),
+              (chip[0] + 42, chip[1] + 34), scale=fs.get("chip", 0.44),
+              color=C["text"] if has_m else C.get("unk", C["dim"]), th=1)
+    # 模式胶囊（page1 恒为实时预览）
+    mode = (716, 32, 812, 80)
+    _rrect_fill(img, mode, C.get("chip_bg", C["card"]), int(R.get("pill", 24)))
+    _dot(img, mode[0] + 22, (mode[1] + mode[3]) // 2, 6, C["ok"])
+    draw_text(img, "实时", (mode[0] + 38, mode[1] + 31), scale=fs.get("chip", 0.44),
+              color=C["ok"], th=1)
+    clock = time.strftime("%H:%M")
+    try:
+        cw, _ch = text_size(clock, fs.get("clock", 0.62))
+    except Exception:                                                  # noqa: BLE001
+        cw = 60
+    draw_text(img, clock, (908 - int(cw), 74), scale=fs.get("clock", 0.62),
+              color=C["title_text"], th=1)
+
+    # ---------------- 预览区：细边框 + 轻微圆角 + 四角装饰线 ----------------
+    pv = [int(v) for v in pg["preview"]]
+    rpv = int(R.get("preview", 10))
+    _rrect_panel(img, pv, C.get("preview_bg", (14, 15, 18)), C.get("preview_frame", C["dim"]), rpv)
+    _fit(img, frame, pv, label=("正在取流…" if frame is None else ""), bg=C.get("preview_bg"))
+    _round_corners(img, pv, rpv, C.get("preview_frame", C["dim"]))
+    _corner_marks(img, pv, C.get("accent", C["dim"]), inset=12, ln=22, t=2)
+
+    # ---------------- 右侧说明卡：状态色语义 + 操作提示 ----------------
+    sb = pg.get("sidebar") or {}
+    if sb.get("rect"):
+        srect = [int(v) for v in sb["rect"]]
+        _rrect_panel(img, srect, C.get("card", (39, 30, 24)),
+                     C.get("card_edge", C["dim"]), int(R.get("card", 14)))
+        sx = srect[0] + 24
+        sy = srect[1] + 56
+        draw_text(img, sb.get("title", ""), (sx, sy), scale=fs.get("side", 0.5),
+                  color=C["text"], th=1)
+        cv2.line(img, (sx, sy + 14), (sx + 62, sy + 14), C.get("accent", C["dim"]), 2,
+                 lineType=cv2.LINE_AA)
+        sy += 52
+        for lab, ck in (sb.get("legend") or []):
+            _dot(img, sx + 7, sy - 7, 7, C.get(ck, C["dim"]))
+            draw_text(img, lab, (sx + 26, sy), scale=fs.get("side", 0.5), color=C["text"], th=1)
+            sy += 44
+        sy += 4
+        cv2.line(img, (sx - 12, sy), (srect[2] - 26, sy), C.get("card_edge", C["dim"]), 1)
+        sy += 34
+        draw_text(img, sb.get("hint_title", "操作提示"), (sx, sy),
+                  scale=fs.get("small", 0.42), color=C["dim"], th=1)
+        sy += 30
+        # 提示文案优先用版式里写好的断行（避免把【拍照】这种词拆开）
+        lines = sb.get("hint_lines") or _wrap_cjk(pg.get("hint", ""), srect[2] - sx - 20,
+                                                  fs.get("side", 0.5))
+        for ln in lines:
+            draw_text(img, ln, (sx, sy), scale=fs.get("side", 0.5), color=C["text"], th=1)
+            sy += 30
+        if sb.get("note"):
+            draw_text(img, sb["note"], (sx, srect[3] - 26), scale=fs.get("small", 0.42),
+                      color=C["dim"], th=1)
+
+    # ---------------- 按钮（几何=layout rect，与触摸命中同一 rect）----------------
+    _buttons(img, layout, pg)
+
+    # ---------------- 底部一行：只放 toast / warn / err（无调试残留）----------------
+    msg, mcol = "", None
+    if err:
+        msg, mcol = "！" + str(err), C["bad"]
+    elif toast:
+        msg, mcol = str(toast), C.get("unk", C["dim"])
+    elif warn:
+        msg, mcol = str(warn), C.get("unk", C["dim"])
+    if msg:
+        _text_center(img, _fit_text(msg, 940, 0.52), (24, 496, 1000, 526), 0.52, mcol, th=1)
+    return img
+
+
+def draw_page2(layout, still, vobj, toast="", dbg=None, err="", marker_txt=""):
+    C = layout["colors"]; fs = layout.get("font_scale", {})
+    pg = page(layout, "page2")
+    W, H = layout["canvas"]["w"], layout["canvas"]["h"]
+    img = np.full((H, W, 3), C["bg"], np.uint8)
+    _card(img, [0, 0, W, 76], C["title_bar"], 1.0)
+    _center_text(img, pg.get("title", ""), W / 2, 58, fs.get("title", 1.9), C["title_text"], th=2)
+    if marker_txt:
+        draw_text(img, marker_txt[:38], (12, 34), scale=0.52, color=(120, 220, 140))
+    _fit(img, still, pg["preview"], label="（没有静止图）")
+    v = (vobj or {}).get("verdict", VERDICT_UNK)
+    bg = C["ok"] if v == VERDICT_OK else (C["bad"] if v == VERDICT_BAD else C["unk"])
+    _card(img, pg["verdict"], bg, 1.0)
+    x0, y0, x1, y1 = [int(t) for t in pg["verdict"]]
+    # ★ 不再用 ✅/❌/⚠：WQY 里没有这些字形，屏幕上会画成"27 05"缺字方块（乱码观感）→ 纯文字+颜色表达
+    _center_text(img, v, (x0 + x1) / 2, y0 + int((y1 - y0) * 0.66),
+                 fs.get("verdict", 2.1), C["verdict_text"], th=3)
+    # 依据（哪颗灯不亮 / 哪项不满足 / 实际值 vs 允许范围）
+    _card(img, pg["reason"], C["card"] if "card" in C else (40, 43, 48), 1.0)
+    rx0, ry0, rx1, ry1 = [int(t) for t in pg["reason"]]
+    reason = (vobj or {}).get("reason") or "（无依据）"
+    rscale = float(fs.get("reason", 0.72))
+    rmaxw = max(80, (rx1 - 12) - (rx0 + 12))        # ★ 卡片内左右各留 12px（原来按 22/24 字硬切 -> 右侧出界）
+    ty = ry0 + 36
+    if v == VERDICT_UNK:
+        # ★ 标签放进卡片内（原来画在 ry1+24 = 卡片下沿外，越界）
+        draw_text(img, "未判定原因", (rx0 + 12, ry0 + 24), scale=0.58, color=C["unk"], th=1)
+        ty = ry0 + 48
+    lines = _wrap_cjk(reason, rmaxw, rscale)        # ★ 按**像素宽**折行
+    if len(lines) > 4:
+        lines = lines[:4]
+        lines[-1] = _fit_text(lines[-1] + "…", rmaxw, rscale)
+    step = 30 if v != VERDICT_UNK else 27
+    for i, ln in enumerate(lines):
+        draw_text(img, ln, (rx0 + 12, ty + i * step), scale=rscale, color=C["text"], th=1)
+    if pg.get("hint"):
+        # ★ 原来画在 preview 底边 +44（=540），正好压在【返回】按钮下面；改到预览区上方空档
+        _center_text(img, _fit_text(pg["hint"], W - 80, fs.get("body", 0.5)),
+                     W / 2, pg["preview"][1] - 22, fs.get("body", 0.5), C["dim"])
+    _buttons(img, layout, pg)
+    if toast:
+        _center_text(img, toast[:60], W / 2, H - 92, 0.55, C["text"])
+    _draw_dbg(img, layout, dbg)
+    if err:
+        _card(img, [8, H - 56, W - 8, H - 30], C["bad"], 1.0)
+        draw_text(img, ("⚠ " + err)[:70], (14, H - 34), scale=0.55, color=(255, 255, 255), th=1)
+    return img
+
+
+# ---------------- 问答确认页（纯渲染；不碰相机） ----------------
+def draw_qa(layout, cur, toast=""):
+    """cur = QAFlow.current()；返回 (img, btns)，btns 可直接给 _hit()。"""
+    C = layout["colors"]
+    W, H = layout["canvas"]["w"], layout["canvas"]["h"]
+    img = np.full((H, W, 3), C["bg"], np.uint8)
+    _grad_v(img, (0, 0, W, H), C["bg"], C.get("bg_bottom", C["bg"]))
+    _grad_v(img, (0, 0, W, 92), C["title_bar"], C.get("title_bar2", C["title_bar"]))
+    cv2.line(img, (0, 92), (W - 1, 92), C.get("accent", C["dim"]), 2, lineType=cv2.LINE_AA)
+    # 顶栏：返回 | 标题 | 进度 | 部件/路别 | 类别 | 跳过
+    draw_text(img, "问答确认", (150, 68), scale=0.90, color=C["title_text"], th=2)
+    draw_text(img, "进度 %s" % cur["ui"]["progress"], (306, 66), scale=0.52,
+              color=C["dim"], th=1)
+    chip = (430, 32, 600, 80)
+    _rrect_fill(img, chip, C.get("chip_bg", C["card"]), 24)
+    _center_text(img, ("%s %s" % (cur["ui"]["part_chip"], cur["ui"]["route_chip"])).strip(),
+                 (chip[0] + chip[2]) / 2, 66, 0.55, C["accent"], th=1)
+    cat = (616, 32, 840, 80)
+    _rrect_fill(img, cat, C.get("chip_bg", C["card"]), 24)
+    _center_text(img, cur["ui"].get("category_chip", ""), (cat[0] + cat[2]) / 2, 66,
+                 0.44, C["dim"], th=1)
+    # 题目卡
+    qr = [24, 104, 1000, 318]
+    _rrect_panel(img, qr, C.get("card", (39, 31, 24)), C.get("card_edge", C["dim"]), 14)
+    draw_text(img, _fit_text(cur["ui"]["flow"], 940, 0.46),
+              (qr[0] + 24, qr[1] + 34), scale=0.46, color=C["dim"], th=1)
+    lines = _wrap_cjk(cur["ui"]["question"], qr[2] - qr[0] - 48, 0.90)
+    if len(lines) > 3:
+        lines = lines[:3]
+        lines[-1] = _fit_text(lines[-1] + "…", qr[2] - qr[0] - 48, 0.90)
+    ty = qr[1] + 90
+    for ln in lines:
+        draw_text(img, ln, (qr[0] + 24, ty), scale=0.90, color=C["text"], th=2)
+        ty += 44
+    # 正常判据卡
+    nr = [24, 330, 1000, 432]
+    _rrect_fill(img, nr, C.get("chip_bg", C["card"]), 12)
+    nlines = _wrap_cjk(cur["ui"]["normal"], nr[2] - nr[0] - 40, 0.55)
+    for i, ln in enumerate(nlines[:2]):
+        draw_text(img, ln, (nr[0] + 20, nr[1] + 34 + i * 30), scale=0.55,
+                  color=C["ok"], th=1)
+    # 建议跳过条（上游异常时出现，不阻断作答）
+    if cur.get("skip_suggested"):
+        _rrect_fill(img, [24, 442, 1000, 478], C.get("chip_bg", C["card"]), 10)
+        draw_text(img, _fit_text("建议跳过：" + cur["skip_reason"], 940, 0.46),
+                  (36, 468), scale=0.46, color=C["unk"], th=1)
+    # 大按钮：正常=绿 / 异常=红 / 跳过=次要
+    btns = []
+    for b in cur["ui"]["buttons"]:
+        rect = [int(v) for v in b["rect"]]
+        bg = C["ok"] if b["tone"] == "ok" else (
+            C["bad"] if b["tone"] == "bad" else C["button_alt"])
+        fg = C["verdict_text"] if b["tone"] in ("ok", "bad") else C["button_alt_text"]
+        _rrect_fill(img, rect, bg, 14)
+        _text_center(img, b.get("label_plain", b["label"]), rect, 0.95, fg, th=2)
+        btns.append(({"id": b["id"], "label": b["label_plain"], "rect": rect,
+                      "action": b["action"]}, rect))
+    # 顶栏小按钮：跳过 / 返回
+    for b in (cur["ui"]["skip_button"], cur["ui"]["back_button"]):
+        rect = [int(v) for v in b["rect"]]
+        _rrect_fill(img, rect, C.get("button_alt", C["card"]), 12)
+        _text_center(img, b["label_plain"], rect, 0.55, C["button_alt_text"], th=1)
+        btns.append(({"id": b["id"], "label": b["label_plain"], "rect": rect,
+                      "action": b["action"]}, rect))
+    if toast:
+        _center_text(img, toast[:60], W / 2, 100, 0.44, C["text"])
+    return img, btns
+
+
+# ---------------- SOP 步骤流（flow）：一步 = 拍照 -> 本步问答 -> 下一步 ----------------
+#   数据：engine/steps.json（build_steps.py 生成；每一步含 vision/qa/scope/audio 项）
+#   证据：/userdata/afh03_shots/flow/flow_evidence_<时间>.json（每条问答/拍照后立即落盘）
+FLOW_EVIDENCE_DIR = "/userdata/afh03_shots/flow"
+FLOW_PREVIEW = [624, 192, 996, 360]
+
+
+def load_flow_steps(cli_path=""):
+    """读 steps.json；返回 (doc, path)。找不到就抛异常（调用方 toast 提示）。"""
+    here = os.path.dirname(os.path.abspath(__file__))
+    cands = [cli_path, os.environ.get("AFH03_STEPS", ""),
+             os.path.join(HERE, "engine", "steps.json"),
+             os.path.join(here, "qa", "steps.json"),
+             os.path.join(HERE, "soc_vision", "qa", "steps.json"),
+             os.path.join(HERE, "..", "雷达判据", "engine", "steps.json")]
+    for p in cands:
+        if p and os.path.isfile(p):
+            with open(p, encoding="utf-8") as f:
+                doc = json.load(f)
+            steps = doc.get("steps") or []
+            if not steps:
+                raise RuntimeError("steps.json 里没有 steps：%s" % p)
+            return doc, os.path.abspath(p)
+    raise RuntimeError("找不到 steps.json（试过：%s）" % "；".join(x for x in cands if x))
+
+
+def _flow_iso():
+    return datetime.now().astimezone().isoformat(timespec="seconds")
+
+
+def _flow_clean(s):
+    """判据库 check_item 里有换行（flow 5/6）；画之前压成单行，避免多行位图盖住上一行。"""
+    return re.sub(r"\s+", " ", str(s or "")).strip()
+
+
+def _new_flow(doc, steps_path):
+    ts = time.strftime("%Y%m%d_%H%M%S")
+    return {"doc": doc, "steps": doc["steps"], "steps_path": steps_path, "idx": 0,
+            "answers": {}, "shots": {}, "evidence": [], "started_at": _flow_iso(),
+            "path": os.path.join(FLOW_EVIDENCE_DIR, "flow_evidence_%s.json" % ts),
+            "still": None, "freeze_until": 0.0, "saved": 0}
+
+
+def _flow_step(flow):
+    return flow["steps"][flow["idx"]]
+
+
+def _flow_answers(flow, step):
+    return flow["answers"].setdefault(step["step_id"], {})
+
+
+def _flow_cur_qa(flow, step):
+    ans = _flow_answers(flow, step)
+    for q in step.get("qa_items") or []:
+        if q.get("qa_id") not in ans:
+            return q
+    return None
+
+
+def _flow_done(flow, step):
+    if step.get("qa_items"):
+        return len(_flow_answers(flow, step)) >= len(step["qa_items"])
+    if step.get("vision_items"):
+        return bool(flow["shots"].get(step["step_id"]))
+    return False
+
+
+def _flow_pending_vision(flow, step):
+    shots = flow["shots"].get(step["step_id"]) or []
+    i = len(shots)
+    if i < len(step.get("vision_items") or []):
+        return i, step["vision_items"][i]
+    return None, None
+
+
+def _flow_value(v):
+    """问答值 -> fusion 口径（done→normal；skipped 原样）。"""
+    return {"done": "normal"}.get(v, v)
+
+
+def _flow_save(flow):
+    """把已收集证据整包落盘（原子写）。失败只打日志，不抛。"""
+    try:
+        d = os.path.dirname(flow["path"])
+        os.makedirs(d, exist_ok=True)
+        done = [s["step_id"] for s in flow["steps"] if _flow_done(flow, s)]
+        doc = {
+            "schema": "flow_evidence/v1",
+            "producer": "ui_kiosk.flow",
+            "started_at": flow["started_at"],
+            "saved_at": _flow_iso(),
+            "source": {"steps": os.path.basename(flow["steps_path"]),
+                       "qa": "qa_items.json"},
+            "steps_total": len(flow["steps"]),
+            "current_step": flow["idx"] + 1,
+            "current_step_id": _flow_step(flow)["step_id"],
+            "counts": {
+                "evidence": len(flow["evidence"]),
+                "qa": sum(1 for e in flow["evidence"] if e.get("modality") == "qa"),
+                "vision": sum(1 for e in flow["evidence"] if e.get("modality") == "vision"),
+                "steps_answered": len(done),
+            },
+            "answered_steps": done,
+            "evidence": flow["evidence"],
+        }
+        tmp = flow["path"] + ".tmp"
+        with open(tmp, "w", encoding="utf-8") as f:
+            json.dump(doc, f, ensure_ascii=False, indent=1)
+        os.replace(tmp, flow["path"])
+        flow["saved"] = int(flow.get("saved", 0)) + 1
+        return True
+    except Exception as e:                                            # noqa: BLE001
+        print("[flow] 证据落盘失败: %s" % e, flush=True)
+        return False
+
+
+def _flow_add_evidence(flow, ev):
+    flow["evidence"].append(ev)
+    return _flow_save(flow)
+
+
+MAX_INFER_EV = 24          # 单次拍照最多写入多少条"逐个灯/屏"证据（防 JSON 膨胀）
+
+
+def _flow_merge_infer(flow, st, r, meta):
+    """把 board_infer 的结果合并进**本步证据**，一次落盘。
+
+    写入三类证据（全部带 ``part`` / ``route`` / ``step_id``）：
+
+    1. ``modality="part"``   —— 部位识别（部位 + 置信 + 候选）
+    2. ``modality="vision"`` —— 本步判定结论（field=``(vision_infer)_step_N``）
+    3. ``modality="vision"`` —— **逐个灯/屏** N 条（每条一个灯位/画面，带 rule/位次/应为）
+    """
+    r = r or {}
+    part = r.get("part") or {}
+    concl = r.get("conclusion") or {}
+    part_used = part.get("part_used") or part.get("part") or st.get("part") or ""
+    ts = _flow_iso()
+    base = {"ts": ts, "source": "ui_kiosk.flow", "part": part_used,
+            "route": st.get("route") or "",
+            "flow_no": st.get("flow_no"), "flow_name": st.get("flow_name"),
+            "step_id": st["step_id"], "step_name": st.get("step_name"),
+            "shot_dir": meta.get("shot_dir") or ""}
+    new = []
+
+    # ① 部位识别
+    if part.get("part"):
+        ev = dict(base)
+        ev.update({
+            "modality": "part",
+            "field": "(part)_step_%s" % st["step_id"],
+            "item_id": "camera:part:%s" % part.get("part"),
+            "value": part.get("part"),
+            "confidence": round(float(part.get("confidence") or 0.0), 3),
+            "note": "部位识别：%s（%s，置信 %.0f%%）"
+                    % (part.get("display") or part.get("part"),
+                       part.get("decision") or "-",
+                       float(part.get("confidence") or 0.0) * 100),
+            "evidence": "part_recognizer：%s；候选 %s"
+                        % (part.get("decision") or "-",
+                           "、".join("%s %.2f" % (c.get("part"), c.get("score") or 0)
+                                    for c in (part.get("candidates") or [])[:3])),
+            "need_confirm": bool(part.get("need_confirm")),
+            "part_source": part.get("part_source") or "",
+        })
+        new.append(ev)
+
+    # ② 本步判定结论
+    val = {"ok": "normal", "bad": "abnormal"}.get(concl.get("state") or "", "undetermined")
+    conf_map = {"ok": 0.85, "bad": 0.85}
+    ev = dict(base)
+    ev.update({
+        "modality": "vision",
+        "field": "(vision_infer)_step_%s" % st["step_id"],
+        "item_id": "camera:infer:%s" % st["step_id"],
+        "value": val,
+        "confidence": conf_map.get(concl.get("state") or "", 0.0),
+        "note": "拍照判定（%s）：%s" % (part_used or "-", concl.get("text") or "未判定"),
+        "evidence": "%s；%s" % (concl.get("text") or "未判定", concl.get("why") or ""),
+        "n_ok": concl.get("n_ok"), "n_bad": concl.get("n_bad"),
+        "undetermined": (r.get("undetermined") or {}).get("n"),
+    })
+    new.append(ev)
+
+    # ③ 逐个灯 / 屏
+    items = (r.get("evidence_items") or [])[:MAX_INFER_EV]
+    for it in items:
+        ev = dict(base)
+        ev.update({
+            "modality": "vision",
+            "field": it.get("field") or "(vision)_lamp",
+            "item_id": it.get("item_id") or "camera:lamp",
+            "value": it.get("value"),
+            "confidence": round(float(it.get("confidence") or 0.0), 3),
+            "note": it.get("note") or "",
+            "evidence": it.get("evidence") or "",
+            "check_item": it.get("check_item") or "",
+            "rule": it.get("rule") or "",
+            "position": it.get("position") or "",
+            "expect": it.get("expect") or "",
+            "match": it.get("match"),
+            "kind": it.get("kind") or "",
+        })
+        new.append(ev)
+
+    if not new:
+        return 0
+    flow["evidence"].extend(new)
+    ok = _flow_save(flow)
+    print("[flow] 合并判定证据 step=%s：部位 %d + 结论 1 + 逐条 %d = %d 条（落盘=%s）"
+          % (st["step_id"], 1 if part.get("part") else 0, len(items), len(new), ok), flush=True)
+    return len(new)
+
+
+def _result_ready(job, meta, flow=None):
+    """后台判定线程完成：取结果；若来自流程页则合并证据（只做一次）。"""
+    meta["merged"] = True
+    r = _degrade_result(getattr(job, "result", None) or {},
+                        meta.get("marker_label") or "")
+    if meta.get("mode") == "flow" and flow is not None:
+        try:
+            _flow_merge_infer(flow, _flow_step(flow), r, meta)
+        except Exception as e:                                         # noqa: BLE001
+            print("[flow] 合并判定证据失败: %s" % e, flush=True)
+            import traceback as _tb
+            _tb.print_exc()
+    return r
+
+
+def _flow_button(img, C, btns, bid, rect, label, action, primary=False, tone="", scale=0.72):
+    x0, y0, x1, y1 = [int(v) for v in rect]
+    bg = C["button"] if primary else C["button_alt"]
+    fg = C["button_text"] if primary else C["button_alt_text"]
+    if tone == "ok":
+        bg, fg = C["ok"], (255, 255, 255)
+    elif tone == "bad":
+        bg, fg = C["bad"], (255, 255, 255)
+    elif tone == "unk":
+        bg, fg = C["unk"], (255, 255, 255)
+    _rrect_fill(img, (x0, y0, x1, y1), bg, 10)
+    _text_center(img, label, (x0, y0, x1, y1), scale, fg, th=2)
+    btns.append(({"id": bid, "label": label, "rect": [x0, y0, x1, y1],
+                  "action": action}, [x0, y0, x1, y1]))
+
+
+def _flow_vcolor(C, verdict):
+    v = str(verdict or "")
+    return C["ok"] if v == "正常" else (C["bad"] if "故障" in v else C["unk"])
+
+
+def draw_flow(layout, flow, frame=None, toast="", err=""):
+    """流程页（1024×600）：顶栏进度 + 步骤卡 + 拍照/本步问答 + 实时预览 + 上一步/下一步。
+
+    纯渲染：不改任何状态（按钮 rect 与触摸命中共用同一批）。
+    """
+    C = layout["colors"]
+    W, H = layout["canvas"]["w"], layout["canvas"]["h"]
+    img = np.full((H, W, 3), C["bg"], np.uint8)
+    _grad_v(img, (0, 0, W, H), C["bg"], C.get("bg_bottom", C["bg"]))
+    btns = []
+    st = _flow_step(flow)
+    total, idx = len(flow["steps"]), flow["idx"]
+    ans = _flow_answers(flow, st)
+    done = _flow_done(flow, st)
+    shots = flow["shots"].get(st["step_id"]) or []
+    freeze = flow.get("still") is not None and time.time() < flow.get("freeze_until", 0.0)
+
+    # ---------------- 顶栏 ----------------
+    _grad_v(img, (0, 0, W, 72), C["title_bar"], C.get("title_bar2", C["title_bar"]))
+    cv2.line(img, (0, 72), (W - 1, 72), C.get("accent", C["dim"]), 2, lineType=cv2.LINE_AA)
+    _flow_button(img, C, btns, "back", [16, 14, 132, 58], "返回", "flow:back", scale=0.55)
+    draw_text(img, "流程检测", (146, 52), scale=0.82, color=C["title_text"], th=2)
+    _rrect_fill(img, (282, 16, 468, 64), C.get("chip_bg", C["card"]), 22)
+    _center_text(img, "第 %d / %d 步" % (idx + 1, total), 375, 50, 0.5, C["accent"], th=1)
+    _rrect_fill(img, (476, 16, 620, 64), C.get("chip_bg", C["card"]), 22)
+    _n_done = sum(1 for s in flow["steps"] if _flow_done(flow, s))
+    _center_text(img, "已答 %d 步" % _n_done, 548, 50, 0.44,
+                 C["ok"] if _n_done else C["dim"], th=1)
+    _rrect_fill(img, (624, 16, 1008, 64), C.get("chip_bg", C["card"]), 22)
+    draw_text(img, "部位 %s ｜ 路别 %s ｜ %s" %
+              (st.get("part") or "-", st.get("route") or "-", st.get("method_text") or "-"),
+              (640, 50), scale=0.42, color=C["text"], th=1)
+
+    # ---------------- 步骤卡 ----------------
+    _rrect_panel(img, (16, 76, 1008, 176), C.get("card", (39, 31, 24)),
+                 C.get("card_edge", C["dim"]), 14)
+    draw_text(img, _fit_text("%s｜%s" % (st.get("flow_no", ""),
+                                          _flow_clean(st.get("flow_name"))),
+                             640, 0.42), (32, 104), scale=0.42, color=C["dim"], th=1)
+    if toast:
+        draw_text(img, _fit_text(_flow_clean(toast), 230, 0.42), (700, 104), scale=0.42,
+                  color=C.get("accent", C["text"]), th=1)
+    if done:
+        draw_text(img, "已答", (944, 104), scale=0.42, color=C["ok"], th=1)
+    lines = _wrap_cjk(_flow_clean(st.get("step_name")), 940, 0.62)
+    if len(lines) > 2:
+        lines = lines[:2]
+        lines[-1] = _fit_text(lines[-1] + "…", 940, 0.62)
+    lines = lines or [""]
+    y0 = 148 if len(lines) == 1 else 138
+    for i, ln in enumerate(lines):
+        draw_text(img, ln, (32, y0 + i * 26), scale=0.62, color=C["text"], th=2)
+
+    # ---------------- 左卡：拍照 + 本步问答 ----------------
+    _rrect_panel(img, (16, 180, 600, 472), C.get("card", (39, 31, 24)),
+                 C.get("card_edge", C["dim"]), 14)
+    can_shot = bool(st.get("vision_items")) and len(shots) < len(st["vision_items"])
+    cap_lab = ("拍  照" if can_shot else
+               ("本步已拍完" if st.get("vision_items") else "本步无拍照项"))
+    _flow_button(img, C, btns, "capture", [28, 192, 588, 250], cap_lab, "flow:capture",
+                 primary=can_shot, scale=0.95)
+    _rrect_fill(img, (28, 258, 588, 304), C.get("chip_bg", C["card"]), 10)
+    if shots:
+        last = shots[-1]
+        col = _flow_vcolor(C, last.get("verdict"))
+        _dot(img, 46, 281, 7, col)
+        draw_text(img, _fit_text("判定：%s" % last.get("verdict"), 380, 0.55),
+                  (62, 290), scale=0.55, color=col, th=2)
+        draw_text(img, "拍摄 %d/%d" % (len(shots), len(st["vision_items"])),
+                  (470, 289), scale=0.44, color=C["dim"], th=1)
+    else:
+        draw_text(img, "判定：尚未拍照" if st.get("vision_items") else "判定：本步无拍摄项",
+                  (40, 289), scale=0.5, color=C["dim"], th=1)
+        if st.get("scope_items"):
+            draw_text(img, "波形 %d 项" % len(st["scope_items"]), (470, 289),
+                      scale=0.44, color=C["dim"], th=1)
+
+    qa = _flow_cur_qa(flow, st)
+    q_total = len(st.get("qa_items") or [])
+    if qa is not None:
+        q_pos = len(ans) + 1
+        draw_text(img, "本步问题 %d/%d" % (q_pos, q_total), (40, 326), scale=0.44,
+                  color=C["dim"], th=1)
+        qlines = _wrap_cjk(_flow_clean(qa.get("question") or qa.get("check_item")), 548, 0.56)
+        if len(qlines) > 2:
+            qlines = qlines[:2]
+            qlines[-1] = _fit_text(qlines[-1] + "…", 548, 0.56)
+        for i, ln in enumerate(qlines):
+            draw_text(img, ln, (40, 354 + i * 26), scale=0.56, color=C["text"], th=2)
+        draw_text(img, _fit_text("正常：" + (_flow_clean(qa.get("normal")) or "-"), 548, 0.42),
+                  (40, 402), scale=0.42, color=C["ok"], th=1)
+        opts = list(qa.get("options") or [])
+        nbtn = len(opts) + 1
+        gap, x0, x1, by0, by1 = 8, 28, 588, 410, 460
+        w = (x1 - x0 - gap * (nbtn - 1)) // nbtn
+        for i, o in enumerate(opts):
+            tone = o.get("tone") if o.get("tone") in ("ok", "bad") else ""
+            _flow_button(img, C, btns, "ans%d" % i,
+                         [x0 + i * (w + gap), by0, x0 + i * (w + gap) + w, by1],
+                         o.get("label_plain") or o.get("label") or o.get("value", ""),
+                         "flow:answer:%s" % o.get("value", ""), tone=tone, scale=0.62)
+        _flow_button(img, C, btns, "skip",
+                     [x0 + len(opts) * (w + gap), by0,
+                      x0 + len(opts) * (w + gap) + w, by1],
+                     "跳过", "flow:skip", scale=0.58)
+    elif q_total:
+        draw_text(img, "本步问答已完成（%d/%d）" % (len(ans), q_total), (40, 352),
+                  scale=0.58, color=C["ok"], th=2)
+        k = 0
+        for q in st["qa_items"]:
+            rec = ans.get(q.get("qa_id")) or {}
+            draw_text(img, _fit_text("%s → %s" % (_flow_clean(
+                (q.get("subject") or q.get("check_item") or ""))[:18],
+                                      rec.get("label") or rec.get("value") or "?"),
+                                     548, 0.44), (40, 382 + k * 24), scale=0.44,
+                      color=C["text"], th=1)
+            k += 1
+            if k >= 3:
+                break
+    else:
+        draw_text(img, "本步无问答项", (40, 352), scale=0.52, color=C["dim"], th=1)
+        info = []
+        if st.get("vision_items"):
+            info.append("拍照：对准后点上方【拍照】，判定结果在本页显示")
+        if st.get("scope_items"):
+            info.append("波形：%d 项（走主页【波形检测】页采集）" % len(st["scope_items"]))
+        if st.get("audio_items"):
+            info.append("声音：%d 项（当前未启用）" % len(st["audio_items"]))
+        if st.get("unclassified_items"):
+            info.append("待定：%d 项（判据库未写采集方式）" % len(st["unclassified_items"]))
+        for i, ln in enumerate(info[:3]):
+            draw_text(img, _fit_text(ln, 548, 0.44), (40, 384 + i * 26), scale=0.44,
+                      color=C["text"], th=1)
+
+    # ---------------- 右卡：实时预览 + 本步结果 ----------------
+    _rrect_panel(img, (612, 180, 1008, 472), C.get("card", (39, 31, 24)),
+                 C.get("card_edge", C["dim"]), 14)
+    _rrect_panel(img, FLOW_PREVIEW, C.get("preview_bg", (20, 14, 10)),
+                 C.get("preview_frame", C["dim"]), 10)
+    draw_text(img, ("刚拍的照片（3 秒后回实时）" if freeze else "实时画面") +
+              ("  ·  拍摄 %d/%d" % (len(shots), len(st["vision_items"])) if st.get("vision_items") else ""),
+              (624, 382), scale=0.42, color=C["dim"], th=1)
+    _rrect_fill(img, (624, 388, 996, 464), C.get("chip_bg", C["card"]), 10)
+    if shots:
+        last = shots[-1]
+        _center_text(img, str(last.get("verdict") or "未判定"), 810, 426, 0.95,
+                     _flow_vcolor(C, last.get("verdict")), th=2)
+        draw_text(img, _fit_text("依据：" + (_flow_clean(last.get("reason")) or "-"), 350, 0.4),
+                  (636, 452), scale=0.4, color=C["text"], th=1)
+    else:
+        _center_text(img, "尚未拍照", 810, 424, 0.7, C["dim"])
+        draw_text(img, "拍照后在这里显示判定结果", (660, 452), scale=0.4, color=C["dim"], th=1)
+
+    # ---------------- 底栏 ----------------
+    _flow_button(img, C, btns, "prev", [16, 486, 300, 580], "上一步", "flow:prev", scale=0.8)
+    _flow_button(img, C, btns, "next", [308, 486, 592, 580], "下一步", "flow:next",
+                 primary=True, scale=0.8)
+    _flow_button(img, C, btns, "save", [600, 486, 800, 580], "保存", "flow:save", scale=0.7)
+    draw_text(img, "证据 %d 条" % len(flow["evidence"]), (812, 512), scale=0.42,
+              color=C["text"], th=1)
+    draw_text(img, _fit_text("已存 %s" % os.path.basename(flow["path"]), 192, 0.34),
+              (812, 536), scale=0.34, color=C["dim"], th=1)
+    if err:
+        draw_text(img, _fit_text("！" + str(err), 192, 0.38), (812, 560), scale=0.38,
+                  color=C["bad"], th=1)
+    return img, btns
+
+
+# ---------------- 结果页：拍照 → 部位 + 逐条灯/屏 + 本步结论 ----------------
+#   数据来自 soc_vision.board_infer（后台线程）；本页**只渲染，不改状态**。
+#   版式与 process 页同一套配色/圆角；按钮 rect 同时用于绘制与触摸命中。
+RESULT_CONFIRM = [16, 76, 1008, 130]
+RESULT_CONCL = [16, 134, 1008, 186]
+RESULT_LEFT = [16, 190, 300, 468]
+RESULT_RIGHT = [308, 190, 1008, 468]
+RESULT_ROWS_MAX = 8
+
+
+def _res_tone(C, st):
+    return C["ok"] if st == "ok" else (C["bad"] if st == "bad" else C["unk"])
+
+
+def draw_result(layout, r, elapsed=0.0, pending=False, toast="", err="",
+                has_qa=False, qa_left=0):
+    """结果页（1024×600）：部位+置信 / 低置信确认（可点选）/ 逐条灯与屏 /
+    本步结论（✔正常 · ✗异常 · 未判定）/ 【重拍】【去问答 ▶】【返回】。
+
+    ``pending=True`` 时只画"判定中"骨架（板端单张 15~25s，绝不能冻住 UI）。
+    """
+    C = layout["colors"]
+    W, H = layout["canvas"]["w"], layout["canvas"]["h"]
+    img = np.full((H, W, 3), C["bg"], np.uint8)
+    _grad_v(img, (0, 0, W, H), C["bg"], C.get("bg_bottom", C["bg"]))
+    btns = []
+    r = r or {}
+    part = r.get("part") or {}
+    concl = r.get("conclusion") or {}
+    rows = r.get("rows") or []
+    und = r.get("undetermined") or {}
+    rule_note = r.get("rule_note") or ""
+    cf = float(part.get("confidence") or 0.0)
+
+    # ---------------- 顶栏 ----------------
+    _grad_v(img, (0, 0, W, 72), C["title_bar"], C.get("title_bar2", C["title_bar"]))
+    cv2.line(img, (0, 72), (W - 1, 72), C.get("accent", C["dim"]), 2, lineType=cv2.LINE_AA)
+    _flow_button(img, C, btns, "back", [16, 14, 132, 58], "返回", "result:back", scale=0.55)
+    draw_text(img, "拍照判定", (146, 52), scale=0.82, color=C["title_text"], th=2)
+    _rrect_fill(img, (276, 16, 600, 64), C.get("chip_bg", C["card"]), 22)
+    _pdisp = (part.get("display") or part.get("part")
+              or ((part.get("part_used") or "") + "（步骤指定）" if part.get("part_used")
+                  else "未识别"))
+    draw_text(img, _fit_text("部位 %s" % _pdisp, 304, 0.5),
+              (290, 50), scale=0.5,
+              color=(C["ok"] if part.get("part") else C["unk"]), th=2)
+    _rrect_fill(img, (612, 16, 806, 64), C.get("chip_bg", C["card"]), 22)
+    _center_text(img, ("置信 %.0f%%" % (cf * 100)) if part.get("part") else "置信 —",
+                 709, 50, 0.52, (C["ok"] if cf >= 0.60 else C["unk"]), th=1)
+    _rrect_fill(img, (818, 16, 1008, 64), C.get("chip_bg", C["card"]), 22)
+    _center_text(img, ("判定中 %.1fs" % elapsed) if pending else
+                 ("%.1fs ｜ 证据 %d 条" % ((r.get("elapsed_ms") or 0) / 1000.0,
+                                          len(r.get("evidence_items") or []))),
+                 913, 50, 0.42, (C["accent"] if pending else C["dim"]), th=1)
+
+    # ---------------- 确认条（低置信 / 与步骤部位冲突）----------------
+    need = bool(part.get("need_confirm")) and not pending
+    conflict = part.get("hint_conflict") or ""
+    _rrect_fill(img, RESULT_CONFIRM, C.get("chip_bg", C["card"]), 12)
+    if pending:
+        draw_text(img, "正在识别部位 + 逐条判灯/判屏（板端无 RapidOCR → 模板 NCC 兜底，约 15~25 秒）",
+                  (30, 110), scale=0.46, color=C["accent"], th=1)
+    elif need or conflict:
+        _q = part.get("question") or ("请确认：是不是 %s？" % (part.get("part") or "该部位"))
+        draw_text(img, _fit_text("! " + _flow_clean(_q), 520, 0.5), (30, 106),
+                  scale=0.5, color=C["unk"], th=2)
+        if conflict:
+            draw_text(img, _fit_text(conflict, 520, 0.4), (30, 126), scale=0.4,
+                      color=C["bad"], th=1)
+        cands = (part.get("candidates") or [])[:3]
+        if cands:
+            x0, y0, y1, gap = 566, 84, 122, 8
+            n = len(cands)
+            w = (1004 - x0 - gap * (n - 1)) // n
+            for i, c in enumerate(cands):
+                lab = "%s %s" % (c.get("part") or "?",
+                                 ("%.0f%%" % ((c.get("score") or 0) * 100)))
+                _flow_button(img, C, btns, "pick%d" % i,
+                             [x0 + i * (w + gap), y0, x0 + i * (w + gap) + w, y1],
+                             lab, "result:pick:%d" % i, scale=0.5)
+    else:
+        draw_text(img, "部位识别：%s（%s）" % (part.get("display") or part.get("part") or "-",
+                                            part.get("decision") or "-"),
+                  (30, 106 if rule_note else 114), scale=0.5, color=C["text"], th=1)
+        draw_text(img, _fit_text("来源：%s" % (part.get("part_source") or "-"), 300, 0.42),
+                  (700, 114), scale=0.42, color=C["dim"], th=1)
+    # ★ 优雅降级提示（所有分支都显示，不是 FATAL）：识别到了，但还没有可用判定规则。
+    #   放在确认条最下一行；若同时有"步骤部位冲突"则让位给冲突原因（结论卡里仍有本提示）。
+    if rule_note and not pending and not conflict:
+        _w = 520 if need else 940      # 有候选按钮时只占左半边，避免压住按钮
+        draw_text(img, _fit_text("！" + _flow_clean(rule_note), _w, 0.4), (30, 127),
+                  scale=0.4, color=C["unk"], th=2)
+
+    # ---------------- 本步结论 ----------------
+    _rrect_fill(img, RESULT_CONCL, C.get("card", (39, 31, 24)), 12)
+    st = concl.get("state") or "unknown"
+    tone = _res_tone(C, st)
+    mark = {"ok": "✔ 正常", "bad": "✗ 异常"}.get(st, "? 未判定")
+    _rrect_fill(img, (24, 140, 196, 180), tone, 10)
+    _center_text(img, mark, 110, 168, 0.6, (255, 255, 255), th=2)
+    draw_text(img, _fit_text(_flow_clean(concl.get("text") or "未判定"), 390, 0.6),
+              (212, 167), scale=0.6, color=tone, th=2)
+    why = _flow_clean(concl.get("why") or "")
+    if why:
+        draw_text(img, _fit_text(why, 368, 0.4), (628, 166), scale=0.4,
+                  color=C["text"], th=1)
+
+    # ---------------- 左卡：部位识别详情 + 候选故障 ----------------
+    _rrect_panel(img, RESULT_LEFT, C.get("card", (39, 31, 24)),
+                 C.get("card_edge", C["dim"]), 14)
+    draw_text(img, "部位识别", (32, 214), scale=0.44, color=C["dim"], th=1)
+    draw_text(img, _fit_text(part.get("display") or part.get("part") or "未识别", 250, 0.8),
+              (32, 250), scale=0.8,
+              color=(C["ok"] if part.get("part") else C["dim"]), th=2)
+    draw_text(img, ("置信 %.0f%%" % (cf * 100))
+              + ("（待确认）" if part.get("need_confirm") else ""),
+              (32, 280), scale=0.46,
+              color=(C["unk"] if part.get("need_confirm") else C["ok"]), th=1)
+    draw_text(img, _fit_text("决断：%s" % (part.get("decision") or "-"), 250, 0.4),
+              (32, 306), scale=0.4, color=C["text"], th=1)
+    draw_text(img, _fit_text("来源：%s" % (part.get("part_source") or "-"), 250, 0.4),
+              (32, 328), scale=0.4, color=C["dim"], th=1)
+    draw_text(img, "识别依据", (32, 356), scale=0.4, color=C["dim"], th=1)
+    for i, ln in enumerate((part.get("reasons") or [])[:2]):
+        draw_text(img, _fit_text("· " + _flow_clean(ln), 246, 0.36), (36, 376 + i * 19),
+                  scale=0.36, color=C["text"], th=1)
+    draw_text(img, "候选故障", (32, 420), scale=0.4, color=C["dim"], th=1)
+    _cd = r.get("candidates") or []
+    if _cd:
+        for i, c in enumerate(_cd[:2]):
+            draw_text(img, _fit_text("· " + str(c), 246, 0.34), (36, 440 + i * 17),
+                      scale=0.34, color=C["bad"], th=1)
+    else:
+        draw_text(img, "—（无）", (36, 440), scale=0.38, color=C["dim"], th=1)
+
+    # ---------------- 右卡：逐条判定（灯 / 屏）----------------
+    _rrect_panel(img, RESULT_RIGHT, C.get("card", (39, 31, 24)),
+                 C.get("card_edge", C["dim"]), 14)
+    draw_text(img, "逐条判定（灯 / 屏幕）", (324, 214), scale=0.44, color=C["dim"], th=1)
+    draw_text(img, "确定 %d 项 ｜ 未判定 %d 项" % (len(rows), und.get("n") or 0),
+              (690, 214), scale=0.42, color=C["dim"], th=1)
+    for _x, _t in ((324, "位次"), (426, "亮灭/状态"), (556, "含义（灯名 / 画面）"),
+                   (834, "应为"), (950, "符合")):
+        draw_text(img, _t, (_x, 240), scale=0.38, color=C["dim"], th=1)
+    cv2.line(img, (324, 247), (996, 247), C.get("card_edge", C["dim"]), 1,
+             lineType=cv2.LINE_AA)
+    if pending:
+        _center_text(img, "判定中…", 658, 336, 0.9, C["accent"], th=2)
+        draw_text(img, "部位识别（part_recognizer，模板 NCC 兜底）→ 逐条判定（vision_rules）",
+                  (344, 372), scale=0.4, color=C["dim"], th=1)
+        draw_text(img, "完成后本页自动刷新，并写入 /userdata/afh03_shots/flow/",
+                  (344, 396), scale=0.4, color=C["dim"], th=1)
+    elif rows:
+        _y = 272
+        for row in rows[:RESULT_ROWS_MAX]:
+            m = row.get("match")
+            _c = C["ok"] if m else (C["bad"] if m is False else C["unk"])
+            _dot(img, 332, _y - 5, 5, _c)
+            draw_text(img, _fit_text(row.get("pos") or "-", 92, 0.4), (344, _y),
+                      scale=0.4, color=C["text"], th=1)
+            draw_text(img, row.get("state_text") or "-", (426, _y), scale=0.5,
+                      color=_c, th=2)
+            draw_text(img, _fit_text(row.get("name") or "-", 258, 0.42), (556, _y),
+                      scale=0.42, color=C["text"], th=1)
+            draw_text(img, _fit_text(row.get("expect_text") or "-", 96, 0.38), (834, _y),
+                      scale=0.38, color=C["dim"], th=1)
+            draw_text(img, "✔" if m else ("✗" if m is False else "?"), (952, _y),
+                      scale=0.55, color=_c, th=2)
+            _y += 24
+        if len(rows) > RESULT_ROWS_MAX:
+            draw_text(img, "+%d 项（已全部写入证据）" % (len(rows) - RESULT_ROWS_MAX),
+                      (344, _y), scale=0.38, color=C["dim"], th=1)
+    else:
+        _center_text(img, "无逐条结论", 658, 318, 0.8, C["unk"], th=2)
+        draw_text(img, _fit_text("原因：" + _flow_clean((und.get("reasons") or ["—"])[0]),
+                                 630, 0.38), (344, 350), scale=0.38,
+                  color=C["text"], th=1)
+        draw_text(img, "（画面里没有成排指示灯 / 显示屏，或本部位无对应判据）",
+                  (344, 374), scale=0.36, color=C["dim"], th=1)
+    if not pending and (und.get("reasons") or []):
+        draw_text(img, _fit_text("未判定原因：%s" % _flow_clean(und["reasons"][0]),
+                                 660, 0.36), (324, 456), scale=0.36,
+                  color=C["dim"], th=1)
+
+    # ---------------- 底栏：重拍 / 去问答 / 返回 ----------------
+    _flow_button(img, C, btns, "retake", [16, 476, 300, 570], "重  拍",
+                 "result:retake", scale=0.8)
+    if has_qa:
+        _flow_button(img, C, btns, "qa", [308, 476, 600, 570],
+                     ("去问答 ▶（剩 %d 题）" % qa_left) if qa_left else "去问答 ▶",
+                     "result:qa", primary=True, scale=0.68)
+    else:
+        _rrect_fill(img, (308, 476, 600, 570), C.get("button_alt", C["card"]), 10)
+        _text_center(img, "本步无问答项", (308, 476, 600, 570), 0.6, C["dim"])
+    _flow_button(img, C, btns, "back2", [608, 476, 872, 570], "返  回",
+                 "result:back", scale=0.8)
+    draw_text(img, "证据 %d 条" % len(r.get("evidence_items") or []), (884, 508),
+              scale=0.42, color=C["text"], th=1)
+    if err:
+        draw_text(img, _fit_text("！" + str(err), 116, 0.34), (884, 532), scale=0.34,
+                  color=C["bad"], th=1)
+    if toast:
+        _center_text(img, _fit_text(toast, 900, 0.4), W / 2, 594, 0.4, C["text"])
+    return img, btns
+
+
+def _flow_qa_view(flow, step, q):
+    """把 steps.json 的 qa_item 包成 draw_qa() 要的形状。
+
+    ★ 复用**已有**的问答页渲染（draw_qa），页面上只显示**本步**这一题；
+    作答/跳过/返回的动作名换成 ``flowqa:*``，由流程那一套证据逻辑处理。
+    """
+    ans = _flow_answers(flow, step)
+    total = len(step.get("qa_items") or [])
+    pos = len(ans) + 1
+    opts = list(q.get("options") or [])
+    n = max(1, len(opts) + 1)
+    gap, x0, x1, y0, y1 = 14, 24, 1000, 452, 560
+    w = (x1 - x0 - gap * (n - 1)) // n
+    btns = []
+    for i, o in enumerate(opts):
+        tone = o.get("tone") if o.get("tone") in ("ok", "bad") else ""
+        btns.append({
+            "id": "ans%d" % i,
+            "label": o.get("label") or o.get("value") or "",
+            "label_plain": o.get("label_plain") or o.get("label") or o.get("value", ""),
+            "rect": [x0 + i * (w + gap), y0, x0 + i * (w + gap) + w, y1],
+            "tone": tone,
+            "action": "flow:answer:%s" % o.get("value", ""),
+        })
+    k = len(opts)
+    skip = {"id": "skip", "label": "跳过", "label_plain": "跳过",
+            "rect": [x0 + k * (w + gap), y0, x0 + k * (w + gap) + w, y1],
+            "tone": "", "action": "flow:skip"}
+    back = {"id": "flowqa_back", "label": "返回流程", "label_plain": "返回流程",
+            "rect": [852, 28, 1000, 78], "tone": "", "action": "flowqa:back"}
+    return {
+        "qa_id": q.get("qa_id"),
+        "skip_suggested": False,
+        "skip_reason": "",
+        "ui": {
+            "progress": "本步第 %d/%d 题" % (pos, total),
+            "part_chip": step.get("part") or "-",
+            "route_chip": step.get("route") or "",
+            "category_chip": q.get("category") or "",
+            "flow": "%s｜%s" % (step.get("flow_no") or "",
+                                _flow_clean(step.get("flow_name"))),
+            "question": _flow_clean(q.get("question") or q.get("check_item")),
+            "normal": _flow_clean(q.get("normal") or ""),
+            "buttons": btns, "skip_button": skip, "back_button": back,
+        },
+    }
+
+
+def wave_from_frame(frame, ns_per_div=100.0):
+    """从相机帧里识别示波器屏幕与波形，返回判定字典（纯 numpy，不依赖 SCPI/外部程序）
+    规则（用户要求）：20 MHz ±3% 正常；40 MHz ±3% 正常；其余不正常；不确定一律"未判定"。
+    ns_per_div：示波器时基（ns/格，默认 100），可在 ui_layout.json 的 wave.ns_per_div 改。
+    """
+    out = {"verdict": "未判定", "message": "未识别到示波器屏幕", "freq_mhz": None,
+           "box": None, "period_px": None, "peak": 0.0, "src": "曲线计算"}
+    if frame is None:
+        out["message"] = "无画面"
+        return out
+    a = frame.astype(np.float32)
+    g = a.mean(axis=2)
+    # 屏幕 = 明显比背景暗的大块；阈值取 (最暗值, 60 分位) 的中点 ⇒ 比纯分位数稳（合成/真图都适用）
+    thr = 0.5 * (float(g.min()) + float(np.percentile(g, 60)))
+    dark = g < thr
+    rows = np.where(dark.sum(axis=1) > a.shape[1] * 0.15)[0]
+    cols = np.where(dark.sum(axis=0) > a.shape[0] * 0.15)[0]
+    if len(rows) < 20 or len(cols) < 20:
+        # 兜底：整幅当作屏幕区域（后续的置信门会挡住"乱报"）
+        rows = np.array([0, a.shape[0] - 1]); cols = np.array([0, a.shape[1] - 1])
+        out["message"] = "未定位到屏幕（按整幅分析）"
+    y0, y1, x0, x1 = int(rows[0]), int(rows[-1]), int(cols[0]), int(cols[-1])
+    scr = a[y0:y1, x0:x1]
+    r = scr[:, :, 0].astype(np.float32); gg = scr[:, :, 1].astype(np.float32); b = scr[:, :, 2].astype(np.float32)
+    lum = (r + gg + b) / 3.0
+    warm = (r + gg) / 2.0 - b                      # 偏暖程度（Rigol CH1 黄线：R≈G 高、B 低）
+    # ★ 自适应取色：屏幕内"最亮且偏暖"的像素即波形（合成图与真图都适用）
+    t_lum = max(80.0, float(np.percentile(lum, 97)))
+    t_warm = max(20.0, float(np.percentile(warm, 95)))
+    yellow = (lum >= t_lum) & (warm >= t_warm)
+    out["box"] = [x0, y0, x1, y1]
+    ys, xs = [], []
+    for x in range(scr.shape[1]):
+        c = np.where(yellow[:, x])[0]
+        if len(c) >= 2:
+            ys.append(float(c.mean())); xs.append(x)
+    if len(xs) < 30:
+        out["message"] = "屏幕内未找到波形曲线（黄线像素不足）"
+        return out
+    xs = np.array(xs, float); ys = np.array(ys, float)
+    out["curve"] = (xs, ys)                               # 供页面画大波形图
+    v = ys - np.polyval(np.polyfit(xs, ys, 1), xs)
+    v = v - v.mean()
+    if float(np.abs(v).max()) < 2.0:                      # 平线：没有波形
+        out["message"] = "波形是平线（无有效信号：示波器 Freq 应为 *****）"
+        return out
+    ac = np.correlate(v, v, mode="full")[len(v) - 1:]
+    ac = ac / (ac[0] + 1e-9)
+    lo, hi = 4, max(6, len(v) // 2)
+    k = int(np.argmax(ac[lo:hi])) + lo
+    peak = float(ac[k])
+    out["period_px"], out["peak"] = k, peak
+    # 置信门：相关峰太低 ⇒ 不算有效周期 ⇒ 未判定（绝不硬报）
+    if peak < 0.30:
+        out["message"] = "波形不规则/噪声（相关峰 %.2f < 0.30）" % peak
+        return out
+    px_per_div = (x1 - x0) / 10.0                         # Rigol 风格：横向 10 格
+    f_hz = 1.0 / (k / px_per_div * (ns_per_div * 1e-9))
+    out["freq_mhz"] = f_hz / 1e6
+    for tgt in (20e6, 40e6):
+        if abs(f_hz - tgt) / tgt <= 0.03:
+            out.update(verdict="正常", message="%.0f MHz 正常（实测 %.2f MHz，误差 %.1f%%）"
+                       % (tgt / 1e6, f_hz / 1e6, abs(f_hz - tgt) / tgt * 100))
+            return out
+    out.update(verdict="不正常", message="不正常：实测 %.2f MHz（正常只有 20 / 40 MHz）" % (f_hz / 1e6))
+    return out
+
+
+# ---------------------------------------------------------------- 波形页（**只读结果 JSON**）
+SCOPE_RESULT_DEFAULT = os.environ.get("AFH03_SCOPE_RESULT", "/userdata/scope_result.json")
+# ---------------------------------------------------------------------------
+# ★★ 数据真实性校验（2026-10-18）：波形页只允许显示**真实、新鲜**的采集结果。
+#   事故：某次为验证三色版式写了一份 10M/30M/40M 的**测试假数据**，页面不校验来源/时效，
+#         用户一根线都没接却看到「实测 41.80 MHz」⇒ 误导。这里从读取端彻底堵死：
+#     1) source 只认 lan / usbtmc（大小写不敏感；其它值或缺失 ⇒ 无效）；
+#     2) ts / measured_at 必须在 SCOPE_FRESH_MIN 分钟（默认 10，可配置）内；
+#     3) 带 test / fake / simulated 或 source 含 test/fake/模拟 ⇒ 无效；
+#     4) 没有任何带数值的 items ⇒ 无效。
+#   无效时页面显示「⚠ 无实测数据」+ 原因，参数表**不显示任何数字**。
+# ---------------------------------------------------------------------------
+SCOPE_FRESH_MIN_DEFAULT = 10.0
+SCOPE_FRESH_ENV = "AFH03_SCOPE_FRESH_MIN"          # 环境变量覆盖新鲜度阈值（分钟）
+SCOPE_RELOAD_SEC = 20.0                            # 停留在波形页时重新校验的间隔（过期要能自己变"无数据"）
+SCOPE_SOURCES = ("lan", "usbtmc")
+_SCOPE_TEST_RE = re.compile(r"(test|fake|dummy|mock|simulat|模拟|测试|假)", re.I)
+
+
+def _scope_fresh_min() -> float:
+    """新鲜度阈值（分钟）：AFH03_SCOPE_FRESH_MIN，默认 10；非法值回退默认。"""
+    raw = os.environ.get(SCOPE_FRESH_ENV, "")
+    try:
+        v = float(raw)
+    except (TypeError, ValueError):
+        return SCOPE_FRESH_MIN_DEFAULT
+    if not np.isfinite(v) or v <= 0:
+        return SCOPE_FRESH_MIN_DEFAULT
+    return v
+
+
+def _scope_source_kind(src) -> str:
+    """source 归一：只接受 lan / usbtmc（大小写不敏感）；其它一律返回 ""。"""
+    s = str(src or "").strip().lower()
+    return s if s in SCOPE_SOURCES else ""
+
+
+def _scope_is_test(d, src_raw) -> bool:
+    """是否测试/模拟数据：test/fake/simulated 字段，或 source 含 test/fake/模拟。"""
+    if _SCOPE_TEST_RE.search(str(src_raw or "")):
+        return True
+    for key in ("test", "selftest", "fake", "simulated", "simulation"):
+        if key not in d:
+            continue
+        v = d.get(key)
+        if v is True:
+            return True
+        if isinstance(v, (int, float)) and not isinstance(v, bool) and v:
+            return True
+        if isinstance(v, str) and v.strip().lower() in ("1", "true", "yes", "on", "y", "是"):
+            return True
+    return False
+
+
+def _scope_ts(raw):
+    """解析 ts/measured_at → (epoch 秒, 显示串, 错误)。支持 epoch / ISO / 只有 HH:MM:SS。"""
+    if raw is None or (isinstance(raw, str) and not raw.strip()):
+        return None, "", "数据缺少测量时间（ts/measured_at）"
+    if isinstance(raw, (int, float)) and not isinstance(raw, bool):
+        t = float(raw)
+        if t > 1e12:                                   # 毫秒
+            t /= 1000.0
+        if t <= 0:
+            return None, "", "测量时间非法"
+        return t, time.strftime("%H:%M:%S", time.localtime(t)), ""
+    s = str(raw).strip()
+    if re.fullmatch(r"\d{9,14}(\.\d+)?", s):            # epoch 秒/毫秒
+        t = float(s)
+        if t > 1e12:
+            t /= 1000.0
+        return t, time.strftime("%H:%M:%S", time.localtime(t)), ""
+    m = re.fullmatch(r"(\d{1,2}):(\d{2})(?::(\d{2}))?", s)   # 只有时分秒（当天）
+    if m:
+        hh, mm, ss = int(m.group(1)), int(m.group(2)), int(m.group(3) or 0)
+        if hh > 23 or mm > 59 or ss > 59:
+            return None, "", "测量时间非法"
+        now = time.time()
+        lt = time.localtime(now)
+        t = time.mktime((lt.tm_year, lt.tm_mon, lt.tm_mday, hh, mm, ss, 0, 0, -1))
+        if t > now + 120:                              # 跨零点：按昨天算，避免误判"未来"
+            t -= 86400.0
+        return t, "%02d:%02d:%02d" % (hh, mm, ss), ""
+    # ISO / "YYYY-MM-DD HH:MM:SS[.fff][Z|+08:00]"
+    try:
+        dt = datetime.fromisoformat(s.replace("Z", "+00:00"))
+    except ValueError:
+        dt = None
+    if dt is None:
+        for fmt in ("%Y-%m-%d %H:%M:%S", "%Y-%m-%d %H:%M", "%Y-%m-%d"):
+            try:
+                dt = datetime.strptime(s.replace("/", "-"), fmt)
+                break
+            except ValueError:
+                continue
+    if dt is None or dt.year < 1970:
+        return None, "", "测量时间格式无法识别"
+    t = dt.timestamp() if dt.tzinfo is not None else time.mktime(dt.timetuple())
+    return t, time.strftime("%H:%M:%S", time.localtime(t)), ""
+
+
+def _scope_check(d, src_raw, items, fresh_min):
+    """真实性/时效校验；返回 (是否有效, 原因, 附加字段)。"""
+    extra = {"measured_at": "", "age_min": None, "bucket": "src"}
+    # 1) 测试/模拟数据（最高优先级：就算 source 写成 lan 也不许显示）
+    if _scope_is_test(d, src_raw):
+        extra["bucket"] = "test"
+        return False, "数据来源无效：测试/模拟数据（禁止当作实测显示）", extra
+    # 2) 来源必须是 lan / usbtmc
+    if not _scope_source_kind(src_raw):
+        extra["bucket"] = "src"
+        if str(src_raw or "").strip():
+            return False, "数据来源无效（source 必须是 lan / usbtmc）", extra
+        return False, "数据来源无效（缺少 source）", extra
+    # 3) 测量时间必须存在且足够新
+    raw_ts = d.get("ts") or d.get("measured_at") or d.get("time") or d.get("timestamp")
+    t, tdisp, terr = _scope_ts(raw_ts)
+    if terr:
+        extra["bucket"] = "ts"
+        return False, terr, extra
+    age = time.time() - t
+    extra.update(measured_at=tdisp, age_min=age / 60.0, bucket="time")
+    if age < -120:
+        extra["bucket"] = "future"
+        return False, "数据时间异常（测量时间在未来，检查板端时钟）", extra
+    if age > fresh_min * 60.0 + 0.5:
+        extra["bucket"] = "old"
+        if age >= 120 * 60.0:
+            return False, "数据已过期 %.1f 小时（阈值 %g 分钟）" % (age / 3600.0, fresh_min), extra
+        return False, "数据已过期 %.0f 分钟（阈值 %g 分钟）" % (age / 60.0, fresh_min), extra
+    # 4) 必须至少有一条真实测量值
+    if not items:
+        extra["bucket"] = "empty"
+        return False, "无实测数据（结果文件里没有测量值）", extra
+    return True, "", extra
+
+
+def _vnorm(v):
+    """判定词归一成三档：正常 / 不正常 / 未判定（兼容 level=ok/bad、中文长句）。"""
+    s = str(v or "").strip()
+    if not s:
+        return "未判定"
+    low = s.lower()
+    if ("不正常" in s) or ("异常" in s) or ("故障" in s) or (low in ("bad", "fail", "failed", "ng")):
+        return "不正常"
+    if ("正常" in s) or (low in ("ok", "pass", "passed", "good")):
+        return "正常"
+    return "未判定"
+
+
+def _vcolor(C, v):
+    v = _vnorm(v)
+    if v == "正常":
+        return C["ok"]
+    if v == "不正常":
+        return C["bad"]
+    return C["unk"]
+
+
+def _hz(v):
+    """转 Hz；空/非法/<=0 一律视为"无数据"。"""
+    if v is None or isinstance(v, bool):
+        return None
+    try:
+        f = float(v)
+    except (TypeError, ValueError):
+        return None
+    if not np.isfinite(f) or f <= 0:
+        return None
+    return f
+
+
+def _fmt_hz(v):
+    f = _hz(v)
+    if f is None:
+        return "—"
+    if f >= 1e9:
+        return "%.3f GHz" % (f / 1e9)
+    if f >= 1e6:
+        return "%.2f MHz" % (f / 1e6)
+    if f >= 1e3:
+        return "%.2f kHz" % (f / 1e3)
+    return "%.1f Hz" % f
+
+
+def _fmt_dev(v):
+    if v is None:
+        return "—"
+    try:
+        f = float(v)
+    except (TypeError, ValueError):
+        return "—"
+    if not np.isfinite(f):
+        return "—"
+    return "%+.2f" % f
+
+
+def load_scope_result(path: str = "") -> dict:
+    """读结果 JSON 并**校验真实性/时效**（只读文件，绝不做网络/仪器查询）。
+
+    只有同时满足下面 4 条，页面才允许显示数字（否则一律「⚠ 无实测数据」）：
+
+    1. `source` ∈ {`lan`, `usbtmc`}（大小写不敏感，其它值/缺失 ⇒ 无效）；
+    2. `ts` / `measured_at` 可解析，且在 `AFH03_SCOPE_FRESH_MIN` 分钟（默认 10）内；
+    3. 不带 `test:true` / `fake` / `simulated`，且 `source` 不含 test/fake/模拟；
+    4. 至少有一条带数值的 `items`。
+
+    约定格式（采集端写）::
+
+        {"items": [{"name","expect_hz","measured_hz","dev_pct","verdict"}],
+         "verdict": "正常|不正常|未判定", "reason": "...", "instrument": "DS2102A",
+         "source": "lan" | "usbtmc", "ts": "2026-10-18 15:20:31"}
+
+    兼容旧格式：`level` / `freq_median_hz` / `freq_hz` / `idn` / `detail` / `time`
+    （**旧格式没有 source/ts 时同样判无效**，不能再被当成实测显示）。
+    返回字典额外带 `valid/invalid_reason/measured_at/source_kind/age_min/fresh_min`；
+    `stamp` 参与页面缓存键，文件或有效性一变就重画。
+    """
+    p = path or SCOPE_RESULT_DEFAULT
+    out = {"ok": False, "valid": False, "path": p, "items": [], "verdict": "无实测数据",
+           "reason": "", "invalid_reason": "", "instrument": "", "source": "",
+           "source_kind": "", "ts": "", "measured_at": "", "age_min": None,
+           "fresh_min": _scope_fresh_min(), "error": "", "stamp": "",
+           "read_at": time.strftime("%H:%M:%S"), "n_items": 0, "raw_n_items": 0}
+    try:
+        st = os.stat(p)
+        with open(p, encoding="utf-8") as f:
+            d = json.load(f)
+        if not isinstance(d, dict):
+            raise ValueError("JSON 顶层不是对象")
+    except Exception as e:                                             # noqa: BLE001
+        out["error"] = "%s: %s" % (type(e).__name__, e)
+        out["invalid_reason"] = "未连接示波器（还没有采集结果或文件不可读）"
+        out["reason"] = out["invalid_reason"]
+        out["stamp"] = "missing"
+        return out
+
+    def _item(raw):
+        if not isinstance(raw, dict):
+            return None
+        exp = _hz(raw.get("expect_hz", raw.get("expected_hz")))
+        meas = _hz(raw.get("measured_hz", raw.get("freq_hz", raw.get("measured"))))
+        dev = raw.get("dev_pct", raw.get("deviation_pct"))
+        if dev is not None and str(dev).strip() in ("", "—", "-"):
+            dev = None
+        try:
+            dev = None if dev is None else float(dev)
+        except (TypeError, ValueError):
+            dev = None
+        if dev is None and exp and meas is not None:
+            dev = (meas - exp) / exp * 100.0
+        raw_v = raw.get("verdict", raw.get("level"))
+        rv = str(raw_v or "").strip()
+        if rv in ("无数据", "N/A", "NA", "na", "none", "None", "—", "-"):
+            vd = "无数据"
+        elif rv:
+            vd = _vnorm(rv)
+        else:
+            vd = "未判定" if meas is not None else "无数据"
+        return {"name": str(raw.get("name") or "—"), "expect_hz": exp, "measured_hz": meas,
+                "dev_pct": dev, "verdict": vd, "source": raw.get("source", ""),
+                "ts": raw.get("ts", "")}
+
+    raw_items = d.get("items")
+    items = []
+    if isinstance(raw_items, list):
+        for raw in raw_items:
+            it = _item(raw)
+            if it is not None:
+                items.append(it)
+    # 兼容旧格式（只有一条频率）：**仅用于展示结构，仍要过下面的 source/ts 校验**
+    if not items:
+        f = _hz(d.get("freq_median_hz")) or _hz(d.get("freq_hz"))
+        if f is not None:
+            items.append({"name": "CH1 频率", "expect_hz": None, "measured_hz": f,
+                          "dev_pct": None, "verdict": _vnorm(d.get("level") or d.get("verdict")),
+                          "source": "", "ts": ""})
+
+    raw_overall = d.get("verdict") or d.get("level")
+    if raw_overall:
+        verdict = _vnorm(raw_overall)
+    else:
+        vs = [it["verdict"] for it in items]
+        if vs and all(x == "正常" for x in vs):
+            verdict = "正常"
+        elif any(x == "不正常" for x in vs):
+            verdict = "不正常"
+        else:
+            verdict = "未判定"
+
+    reason = str(d.get("reason") or d.get("detail") or "")
+    if not reason:
+        if verdict == "正常":
+            reason = "全部 %d 项参数在允许范围内" % len(items)
+        elif verdict == "不正常":
+            bad = next((it for it in items if it["verdict"] == "不正常"), None)
+            if bad is not None:
+                reason = "%s：实测 %s" % (bad["name"], _fmt_hz(bad["measured_hz"]))
+                if bad["dev_pct"] is not None:
+                    reason += "，偏差 %s%%" % _fmt_dev(bad["dev_pct"])
+            else:
+                reason = "存在不合格参数"
+        else:
+            miss = [it["name"] for it in items if it["verdict"] in ("无数据", "未判定")]
+            reason = ("缺少 %d 项数据，暂不能判定" % len(miss)) if miss else "暂无判定结论"
+
+    inst = d.get("instrument")
+    if not inst and isinstance(d.get("idn"), str):
+        ps = [x.strip() for x in d["idn"].split(",")]
+        inst = ps[1] if len(ps) > 1 else ps[0]
+    src = d.get("source") or d.get("transport") or ""
+    if isinstance(src, (dict, list)):
+        src = json.dumps(src, ensure_ascii=False)
+    src = str(src or "").strip()
+    ts = d.get("ts") or d.get("measured_at") or d.get("time") or ""
+
+    base = "%d_%d" % (int(getattr(st, "st_mtime_ns", int(st.st_mtime * 1e9))),
+                      int(st.st_size))
+    fresh = out["fresh_min"]
+    okv, why, extra = _scope_check(d, src, items, fresh)
+    out.update(instrument=str(inst or ""), source=src, source_kind=_scope_source_kind(src),
+               raw_n_items=len(items), error="")
+    if not okv:
+        # ★ 无效：清空 items（参数表一个数字都不许画），只保留判定/原因供页面显示
+        out.update(ok=False, valid=False, items=[], n_items=0, verdict="无实测数据",
+                   reason=why, invalid_reason=why,
+                   measured_at=extra.get("measured_at", ""), ts=str(ts or ""),
+                   age_min=extra.get("age_min"),
+                   stamp="%s_bad_%s" % (base, extra.get("bucket", "")))
+        return out
+
+    out.update(ok=True, valid=True, items=items, verdict=verdict, reason=reason,
+               n_items=len(items), measured_at=extra.get("measured_at", ""),
+               age_min=extra.get("age_min"), ts=str(ts or ""),
+               stamp="%s_ok" % base)
+    return out
+
+
+def _wave_page(layout):
+    """波形页按钮（**绘制与触摸命中共用这一份 rect**）。"""
+    return {"buttons": [
+        {"id": "retest", "label": "重   测", "rect": [16, 530, 504, 588],
+         "action": "retest", "style": "primary", "font_scale": 1.0},
+        {"id": "back", "label": "返   回", "rect": [520, 530, 1008, 588],
+         "action": "back", "style": "alt", "font_scale": 1.0},
+    ]}
+
+
+def draw_wave(layout, scope=None, back_page=True):
+    """波形检测页：**只显示校验通过的真实测量结果，绝不画任何摄像头帧**。
+
+    真实性规则见 `load_scope_result`：source=lan/usbtmc、ts 在 10 分钟内、非测试数据。
+    **无效时**：判定卡「⚠ 无实测数据」+ 原因；参数表清空（一个数字都不画）。
+
+    版式（1024x600）::
+
+        顶栏 26..102 : 波 形 检 测 + 实测于 hh:mm:ss / 来源 / 仪器（无效时只写"无实测数据"）
+        判定卡 [16,106,616,268] : 大字结论 + 一句话原因
+        右窄栏 [628,106,1008,268] : 说明 / 数据来源文件与有效期（自检小字）
+        参数表 [16,278,1008,522] : 信号名称|期望|实测|偏差%|结果（≥6 行）
+        按钮   [16,530,504,588]【重测】  [520,530,1008,588]【返回】
+    """
+    C = layout["colors"]; fs = layout.get("font_scale", {})
+    R = layout.get("radius", {})
+    W, H = layout["canvas"]["w"], layout["canvas"]["h"]
+    res = scope if isinstance(scope, dict) else {}
+    valid = bool(res.get("valid"))
+    # ★ 只有校验通过才允许把 items 带进渲染：无效时连"看起来像数据"的行都不画
+    items = list(res.get("items") or []) if valid else []
+    fresh_txt = "%g" % float(res.get("fresh_min") or SCOPE_FRESH_MIN_DEFAULT)
+    img = np.full((H, W, 3), C["bg"], np.uint8)
+    _grad_v(img, (0, 0, W, H), C["bg"], C.get("bg_bottom", C["bg"]))
+
+    # ---------------- 顶栏（y>=26，避开 XFCE 面板遮挡区）----------------
+    bar_y1 = 102
+    _grad_v(img, (0, 26, W, bar_y1), C["title_bar"], C.get("title_bar2", C["title_bar"]))
+    cv2.line(img, (0, bar_y1), (W - 1, bar_y1), C.get("accent", C["dim"]), 2, lineType=cv2.LINE_AA)
+    draw_text(img, "波 形 检 测", (40, 74), scale=1.0, color=C["title_text"], th=2)
+    note = "只读参数 · 无摄像头画面"
+    try:
+        nw, _nh = text_size(note, 0.46)
+    except Exception:                                                  # noqa: BLE001
+        nw = len(note) * 7
+    draw_text(img, note, (W - 24 - int(nw), 74), scale=0.46, color=C["dim"], th=1)
+    if valid:
+        sub = "实测于 %s  ｜  来源 %s  ｜  仪器 %s" % (
+            res.get("measured_at") or res.get("ts") or "—",
+            (res.get("source_kind") or res.get("source") or "—").upper(),
+            res.get("instrument") or "—")
+        sub_col = C["dim"]
+    else:
+        sub = "无实测数据  ｜  仅显示真实采集结果（source=lan / usbtmc，%s 分钟内有效）" % fresh_txt
+        sub_col = C["unk"]
+    draw_text(img, _fit_text(sub, W - 60, 0.42), (40, 100), scale=0.42, color=sub_col, th=1)
+
+    # ---------------- 判定卡（左/中，约 600x160）----------------
+    VX0, VY0, VX1, VY1 = 16, 106, 616, 268
+    _rrect_panel(img, [VX0, VY0, VX1, VY1], C["card"], C.get("card_edge", C["dim"]),
+                 int(R.get("card", 14)))
+    v = _vnorm(res.get("verdict")) if valid else "无实测数据"
+    vcol = _vcolor(C, v) if valid else C["unk"]           # 无数据 = 琥珀色（不是红/绿）
+    _rrect_fill(img, [VX0, VY0, VX0 + 8, VY1], vcol, 4)
+    draw_text(img, "判 定 结 果", (VX0 + 28, VY0 + 28), scale=0.45, color=C["dim"], th=1)
+    if valid:
+        draw_text(img, v, (VX0 + 28, VY0 + 90), scale=1.15, color=vcol, th=2)
+    else:
+        draw_text(img, "⚠ 无实测数据", (VX0 + 28, VY0 + 94), scale=1.0, color=vcol, th=2)
+    if valid:
+        reason = str(res.get("reason") or "") or "（无依据）"
+    else:
+        reason = str(res.get("invalid_reason") or res.get("reason") or "")
+    rscale = 0.56
+    rmaxw = VX1 - VX0 - 56
+    rlines = _wrap_cjk(reason, rmaxw, rscale)
+    if len(rlines) > 2:
+        rlines = rlines[:2]
+        rlines[-1] = _fit_text(rlines[-1] + "…", rmaxw, rscale)
+    if len(rlines) == 1:
+        draw_text(img, rlines[0], (VX0 + 28, VY1 - 16), scale=rscale, color=C["text"], th=1)
+    else:
+        for i, ln in enumerate(rlines):
+            draw_text(img, ln, (VX0 + 28, VY1 - 36 + i * 32), scale=rscale,
+                      color=C["text"], th=1)
+
+    # ---------------- 右窄栏（说明/操作提示，约 380 宽）----------------
+    RX0, RY0, RX1, RY1 = 628, 106, 1008, 268
+    _rrect_panel(img, [RX0, RY0, RX1, RY1], C["card"], C.get("card_edge", C["dim"]),
+                 int(R.get("card", 14)))
+    draw_text(img, "说明 / 操作提示", (RX0 + 20, RY0 + 28), scale=0.5,
+              color=C["text"], th=1)
+    cv2.line(img, (RX0 + 20, RY0 + 40), (RX0 + 100, RY0 + 40),
+             C.get("accent", C["dim"]), 2, lineType=cv2.LINE_AA)
+    no_data = not valid
+    hints = [
+        ("本页只显示结果，不做采集", C["text"]),
+        ("无数据 → 查示波器网线/USB", C["unk"] if no_data else C["dim"]),
+        ("读取：%s" % (res.get("read_at") or "—"), C["dim"]),
+    ]
+    hy = RY0 + 64
+    for txt, col in hints:
+        draw_text(img, _fit_text(txt, RX1 - RX0 - 40, 0.48), (RX0 + 20, hy),
+                  scale=0.48, color=col, th=1)
+        hy += 24
+    # ★ 自检小字（透明）：数据从哪来、多久内有效
+    src_path = res.get("path") or SCOPE_RESULT_DEFAULT
+    draw_text(img, _fit_text("数据来源：%s" % src_path, RX1 - RX0 - 40, 0.38),
+              (RX0 + 20, 244), scale=0.38, color=C["dim"], th=1)
+    draw_text(img, _fit_text("（%s 分钟内有效，超时自动判无效）" % fresh_txt,
+                             RX1 - RX0 - 40, 0.38),
+              (RX0 + 20, 260), scale=0.38, color=C["dim"], th=1)
+
+    # ---------------- 参数表（下方大块，≥6 行可见）----------------
+    TX0, TY0, TX1, TY1 = 16, 278, 1008, 522
+    rc = int(R.get("card", 14))
+    _rrect_panel(img, [TX0, TY0, TX1, TY1], C["card"], C.get("card_edge", C["dim"]), rc)
+    HH = 40
+    hdr = C.get("chip_bg", C["card"])
+    _rrect_fill(img, [TX0, TY0, TX1, TY0 + HH], hdr, rc)
+    cv2.rectangle(img, (TX0, TY0 + rc), (TX1, TY0 + HH), hdr, -1)
+    COLS = [(34, "信号名称"), (300, "期望"), (470, "实测"), (650, "偏差%"), (782, "结果")]
+    for x, label in COLS:
+        draw_text(img, label, (x, TY0 + 32), scale=0.56, color=C["dim"], th=1)
+    if valid and len(items) > 6:
+        more = "共 %d 项（显示前 6）" % len(items)
+        try:
+            mw, _mh = text_size(more, 0.5)
+        except Exception:                                              # noqa: BLE001
+            mw = len(more) * 7
+        draw_text(img, more, (TX1 - 16 - int(mw), TY0 + 28), scale=0.5,
+                  color=C["dim"], th=1)
+
+    if valid and items:
+        rows_y0, row_h = TY0 + HH + 2, 33
+        for i in range(6):
+            ry = rows_y0 + i * row_h
+            base = ry + 32
+            if i:
+                cv2.line(img, (TX0 + 12, ry), (TX1 - 12, ry),
+                         C.get("card_edge", C["dim"]), 1)
+            if i < len(items):
+                it = items[i]
+                draw_text(img, _fit_text(it.get("name") or "—", 250, 0.56),
+                          (COLS[0][0], base), scale=0.56, color=C["text"], th=1)
+                draw_text(img, _fmt_hz(it.get("expect_hz")), (COLS[1][0], base),
+                          scale=0.56, color=C["text"], th=1)
+                draw_text(img, _fmt_hz(it.get("measured_hz")), (COLS[2][0], base),
+                          scale=0.56, color=C["text"], th=1)
+                draw_text(img, _fmt_dev(it.get("dev_pct")), (COLS[3][0], base),
+                          scale=0.56, color=C["text"], th=1)
+                iv = str(it.get("verdict") or "未判定")
+                icol = _vcolor(C, iv)
+                _dot(img, COLS[4][0] + 10, base - 7, 6, icol)
+                draw_text(img, iv, (COLS[4][0] + 24, base), scale=0.56,
+                          color=icol, th=1)
+            else:
+                for x, _lab in COLS:
+                    draw_text(img, "—", (x, base), scale=0.56, color=C["dim"], th=1)
+    else:
+        # ★ 无效数据：参数表**一个数字都不画**（连"实测 41.80 MHz"这种字样都不存在）
+        _center_text(img, "无实测数据 · 参数表已清空",
+                     (TX0 + TX1) / 2, TY0 + HH + 92, 0.95, C["unk"], th=2)
+        _center_text(img, "连接示波器完成真实采集后，点【重测】",
+                     (TX0 + TX1) / 2, TY0 + HH + 132, 0.55, C["dim"], th=1)
+
+    # ---------------- 底部按钮（绘制与命中同一 rect）----------------
+    _buttons(img, layout, _wave_page(layout))
+    return img
+
+
+# ------------------------------------------------------------------ 底板缓存
+_BASE_CACHE: dict = {}
+
+
+def render_cached(layout, state, frame, vobj, info, scope, dbg, err, toast, marker_txt,
+                  cache_note=""):
+    """★ 底板缓存：静态文字只在"键"变化时画一次；每帧只 `copy + 预览矩形更新`。
+
+    键 = (state, marker_txt, err, toast, 结论+依据, scope 结论, dbg 文本, 版式文件)
+    → 大多数帧键不变，于是**不再每帧渲染中文**（这是 CPU 的大头）。
+    """
+    v = (vobj or {}).get("verdict", VERDICT_UNK)
+    reason = (vobj or {}).get("reason", "")
+    key = (state, marker_txt or "", err or "", toast or "", v, reason,
+           (scope or {}).get("verdict", ""), (scope or {}).get("message", ""),
+           (scope or {}).get("stamp", ""), (scope or {}).get("read_at", ""),
+           # ★ 波形页有效性/无效原因：无效↔有效切换必须重画（不能吃旧底板）
+           (scope or {}).get("valid"), (scope or {}).get("invalid_reason", ""),
+           (dbg or {}).get("taps"), (dbg or {}).get("hit"), os.path.getmtime(LAYOUT_DEFAULT)
+           if os.path.isfile(LAYOUT_DEFAULT) else 0,
+           time.strftime("%H:%M"))          # ★ 顶栏时钟：**只在跨分钟时**重画一次底板（不逐帧）
+    base = _BASE_CACHE.get(key)
+    if base is None:
+        # 用 frame=None 画一次 → 预览区留下占位提示；随后每帧被 _fit 覆盖
+        if state == "page1":
+            base = draw_page1(layout, None, toast=toast, warn="", dbg=dbg, err=err,
+                              marker_txt=marker_txt)
+        elif state == "page2":
+            base = draw_page2(layout, None, vobj, toast=toast, dbg=dbg, err=err,
+                              marker_txt=marker_txt)
+        else:
+            base = draw_wave(layout, scope)
+        _BASE_CACHE.clear()                      # 只留最新一版，避免内存涨
+        _BASE_CACHE[key] = base
+    canvas = base.copy()
+    if state == "page1":
+        # 每帧只做两件"轻"事：贴预览帧 + 重新盖圆角/四角装饰（四个 10×10 小块 + 8 根细线）
+        pv = page(layout, "page1")["preview"]
+        C = layout["colors"]
+        _fit(canvas, frame, pv, label=("正在取流…" if frame is None else ""),
+             bg=C.get("preview_bg"))
+        _round_corners(canvas, pv, int(layout.get("radius", {}).get("preview", 10)),
+                       C.get("preview_frame", C["dim"]))
+        _corner_marks(canvas, pv, C.get("accent", C["dim"]), inset=12, ln=22, t=2)
+    elif state == "page2":
+        _fit(canvas, frame, page(layout, "page2")["preview"], label="（没有静止图）")
+    # ★ 波形页：**不再贴任何摄像头帧**（只显示结果 JSON）；底板画完即最终画面，零 _fit
+    return canvas
+
+
+# ------------------------------------------------------------------ 实时
+class MarkerWorker:
+    """★ 标记检测放进**独立线程**：渲染循环不再被全分辨率检测阻塞。
+
+    * 检测频次**低频**（默认 0.8s 一次；标记不会瞬移）；
+    * `min_side_px/max_side_px` **自适应**（不写死 60/147）：按帧短边比例给范围；
+    * 结果放 `self.hit/self.hits`（加锁），主循环只读，永不等待。
+    """
+
+    def __init__(self, mi, interval: float = 0.8, verbose: bool = True):
+        self.mi, self.interval, self.verbose = mi, float(interval), verbose
+        self.frame = None
+        self.lock = None
+        self.hit = None
+        self.hits = []
+        self.n = 0
+        self.t_last = 0.0
+        self._stop = False
+        self._th = None
+        try:
+            import threading
+            self.lock = threading.Lock()
+        except Exception:                                            # noqa: BLE001
+            self.lock = None
+
+    def set_frame(self, frame):
+        if self.lock is not None:
+            with self.lock:
+                self.frame = frame
+        else:
+            self.frame = frame
+
+    def start(self):
+        try:
+            import threading
+            self._th = threading.Thread(target=self._loop, name="marker", daemon=True)
+            self._th.start()
+            print("[ui] 标记检测线程已启动（每 %.1fs 一次；预览不受阻塞）" % self.interval, flush=True)
+        except Exception as e:                                       # noqa: BLE001
+            print("[ui][warn] 线程启动失败，退回主循环检测: %s" % e, flush=True)
+
+    def stop(self):
+        self._stop = True
+
+    def _loop(self):
+        import time as _t
+        while not self._stop:
+            _t.sleep(self.interval)
+            if self.lock is not None:
+                with self.lock:
+                    f = None if self.frame is None else self.frame.copy()
+            else:
+                f = self.frame
+            if f is None or self.mi is None:
+                continue
+            h, w = f.shape[:2]
+            if self.n % 10 == 0:
+                print("[marker] frame=%dx%d preview=%dx%d（检测必须全分辨率；预览可降采样）"
+                      % (w, h, int(getattr(self, "prev_w", 0)), int(getattr(self, "prev_h", 0))),
+                      flush=True)
+            lo = max(16, int(0.015 * min(h, w)))          # ★ 自适应（放大/远距都能覆盖）
+            hi = int(0.98 * min(h, w))                    # 交给 MarkerId 的尺寸门做上限判定
+            try:
+                hit, hits = self.mi.detect(f, min_side_px=lo, max_side_px=hi)
+                # ★ 多标记（用户常一次露出整张 A4）→ 选"最大边长；同长取最高分"；冲突则提示只露一个
+                if hits and len(hits) > 1:
+                    hits = sorted(hits, key=lambda z: (-z.side_px, -z.score))
+                    print("[marker] 多标记 %d 个：%s → 取 %s（最大/最靠中心）"
+                          % (len(hits), ",".join("%s(%.0fpx,%.2f)" % (z.label, z.side_px, z.score)
+                                                 for z in hits[:4]), hits[0].label), flush=True)
+                    if len(hits) >= 2 and abs(hits[0].side_px - hits[1].side_px) < 0.1 * max(1.0, hits[0].side_px) \
+                       and hits[1].score >= 0.8 * hits[0].score:
+                        print("[marker][warn] 多个标记尺寸/分数接近 → **请只露一个标记**", flush=True)
+                        self.conflict = "请只露一个标记"
+                    else:
+                        self.conflict = ""
+                    hit = hits[0]
+                elif hits:
+                    self.conflict = ""
+                self.hit, self.hits = hit, hits
+                self.n += 1
+                if self.verbose and hits:
+                    print("[marker] 候选 %d 个：%s（min_side=%d max_side=%d）"
+                          % (len(hits), ",".join("%s(%.2f,%.0fpx)" % (z.label, z.score, z.side_px)
+                                                 for z in hits[:3]), lo, hi), flush=True)
+                if self.verbose and self.n % 20 == 0:
+                    print("[ui] marker=每 %.1fs 次（已检 %d 轮）" % (self.interval, self.n), flush=True)
+            except Exception as e:                                   # noqa: BLE001
+                print("[marker] 线程内异常: %s" % e, flush=True)
+
+
+class LiveView:
+    """OpenCV 取流 + **失败自动重开**；仍失败就明确报"取流失败"（不静默）。"""
+
+    def __init__(self, dev: str, w: int = 1280, h: int = 720, reopen_after: int = 12):
+        self.dev, self.w, self.h = dev, w, h
+        self.fails = 0
+        self.reopen_after = reopen_after
+        self.cap = None
+        self.last_ok = 0.0
+        self.warn = ""
+        self._open()
+
+    def _open(self):
+        try:
+            self.cap = cv2.VideoCapture(self.dev, cv2.CAP_V4L2)
+            if self.cap.isOpened():
+                try:
+                    self.cap.set(cv2.CAP_PROP_BUFFERSIZE, 1)      # ★ 只留 1 帧，少拷贝/低延迟
+                except Exception:                                        # noqa: BLE001
+                    pass
+                self.cap.set(cv2.CAP_PROP_FOURCC, cv2.VideoWriter_fourcc(*"YUYV"))
+                self.cap.set(cv2.CAP_PROP_FRAME_WIDTH, self.w)
+                self.cap.set(cv2.CAP_PROP_FRAME_HEIGHT, self.h)
+                self.warn = ""
+                print("[live] 打开 %s" % self.dev, flush=True)
+            else:
+                self.cap = None
+                self.warn = "取流失败：打不开 %s（被别的服务占用？tools/afh03_video22_lock.sh status）" % self.dev
+                print("[live][warn] %s" % self.warn, flush=True)
+        except Exception as e:                                         # noqa: BLE001
+            self.cap = None
+            self.warn = "取流失败：%s" % e
+            print("[live][warn] %s" % self.warn, flush=True)
+
+    def read(self):
+        if self.cap is None:
+            return None
+        try:
+            ok, f = self.cap.read()
+        except Exception:                                              # noqa: BLE001
+            ok, f = False, None
+        if ok and f is not None:
+            self.fails = 0
+            self.last_ok = time.time()
+            return f
+        self.fails += 1
+        if self.fails % self.reopen_after == 0:
+            print("[live] 连续 %d 次取帧失败，重开设备" % self.fails, flush=True)
+            try:
+                self.cap.release()
+            except Exception:                                          # noqa: BLE001
+                pass
+            time.sleep(0.5)
+            self._open()
+            if self.cap is None:
+                self.warn = "取流失败：重开设备仍失败（建议先用自 poll 工具验证：python3 tools/v4l2_poll_snap.py -d %s --report）" % self.dev
+        if self.fails >= self.reopen_after:
+            self.warn = self.warn or "取流失败：%d 次没拿到帧" % self.fails
+        return None
+
+    def release(self):
+        try:
+            if self.cap is not None:
+                self.cap.release()
+        except Exception:                                              # noqa: BLE001
+            pass
+
+
+def _hit(buttons_rects, click):
+    if click is None:
+        return None
+    x, y = click
+    for b, rect in buttons_rects:
+        x0, y0, x1, y1 = [int(v) for v in rect]
+        if x0 <= x <= x1 and y0 <= y <= y1:
+            return b["action"]
+    return None
+
+
+def main(argv=None) -> int:
+    ap = _ui_parser()
+    ap.add_argument("--layout", default=LAYOUT_DEFAULT, help="版式配置（config/ui_layout.json）")
+    ap.add_argument("--fps", type=float, default=8.0,
+                    help="预览刷新上限（waitKey 阻塞；实测 12fps 会把 CPU 拉到 ~106%%，8fps 更平衡）")
+    ap.add_argument("--max-side-frac", type=float, default=0.50,
+                    help="★ 标记总边长上限 = 该比例 × 画面短边（0.50：50cm 手持 25mm 标记实测 372~667px 才不会被拒）")
+    ap.add_argument("--marker-interval", type=float, default=0.8,
+                    help="标记检测间隔秒数（独立线程；低频即可）")
+    ap.add_argument("--half-canvas", type=int, default=0,
+                    help="★ 默认 0=按 1024x600 原尺寸 1:1 直接 imshow（文字锐利）。"
+                         "设 1 会把画布降到 512x300 再让 X 放大回 1024x600（双线性插值 → 中文小字发虚），"
+                         "仅应急省 CPU 时用")
+    ap.add_argument("--cap-w", type=int, default=1920,
+                    help="★ 采集宽（**必须全分辨率**：标记检测依赖黑框/暗带/熵，降采样会把标记像素砍半 → 回归）")
+    ap.add_argument("--cap-h", type=int, default=1080, help="采集高（同上）")
+    ap.add_argument("--render", choices=["page1", "page2", "wave", "flow", "result"],
+                    default="",
+                    help="离屏渲染某一页到 --out（不需要相机）")
+    ap.add_argument("--steps", default="", help="★ 流程页数据 steps.json（默认自动找 engine/ 或 qa/ 下）")
+    ap.add_argument("--flow-step", type=int, default=1, help="--render flow 时渲染第几步（1 起）")
+    ap.add_argument("--scope-result", default=SCOPE_RESULT_DEFAULT,
+                    help="波形页只读的结果 JSON（默认 /userdata/scope_result.json；页面只显示 "
+                         "source=lan/usbtmc 且 ts 在 10 分钟内的真实结果；"
+                         "AFH03_SCOPE_FRESH_MIN 可改阈值分钟数）")
+    ap.add_argument("--frame", default="", help="--render 用的画面照片（page1 的'实时画面'就用它）")
+    ap.add_argument("--selftest-capture", default="",
+                    help="用这张照片把 capture 全链跑一遍（判定->标注->存盘），验证不抛错")
+    a, _unknown = ap.parse_known_args(argv)
+    # ★ 只有命令行**真的**写了 --part 才算"显式指定"；AFH03_PART 环境变量只是默认值，
+    #   现场标记应能覆盖它（否则 v2 部位永远被判成 PS_KONG）。
+    _args = list(argv) if argv is not None else list(sys.argv[1:])
+    _explicit_part = any(x == "--part" or str(x).startswith("--part=") for x in _args)
+    layout = load_layout(a.layout)
+    install_cv2_puttext_patch()
+    book = RuleBook.load(a.rules or None)
+    from soc_vision.led_panel import Calib, PanelDetector
+    calib = Calib.load(a.calib) if a.calib and os.path.isfile(a.calib) else None
+    det = PanelDetector(calib)
+    part = a.part or (next(iter(calib.parts), "") if calib else "")
+    # ★ 完整性自检（**优雅降级版**，2026-10-18）：
+    #   旧实现调 `led_rules.check_catalog_coverage()`，它只认 G1..G6 的 rule_key；
+    #   v2 的 18 个模块 rule_key=None ⇒ 启动时被误报成「FATAL 规则表缺口」（其实 UI 仍在跑）。
+    #   现在按「标记 label → 规则 id」统计：缺规则只 WARN，运行时结论降为「未判定」。
+    try:
+        _coverage_report()
+    except Exception as _e:                                                # noqa: BLE001
+        print("[ui_kiosk][warn] 规则覆盖自检异常（按降级处理，不 FATAL）: %s" % _e, flush=True)
+    # ★ 不可破坏的约束：检测帧必须全分辨率（短边 ≥1080）
+    #   教训：曾把采集降到 720p（本意省 CPU），顺带把**检测帧**也降了 →
+    #   标记黑框/暗带/熵全不达标 → [marker][reject] 无黑框/对比度不足 → 用户"认不出标记"。
+    #   ★★ 该检查**故意放在 no_camera 分支之外**：对"配置的采集尺寸"独立生效，
+    #      这样负向测试（--cap-w 1280）**一定能走到被保护的分支**（否则用例会被静默绕过）。
+    _short = min(int(getattr(a, "cap_w", 1920)), int(getattr(a, "cap_h", 1080)))
+    if _short < 1080 and os.environ.get("AFH03_I_KNOW_DETECT_LOWRES") != "1":
+        print("[ui_kiosk][FATAL] 检测帧短边=%d < 1080：标记检测会失效（黑框/熵/对比度均不达标）。"
+              "只允许降**预览**，绝不能降**检测帧**。"
+              "如确要实验：AFH03_I_KNOW_DETECT_LOWRES=1" % _short, flush=True)
+        return 2
+    print("[ui_kiosk] 检测帧约束通过：采集=%dx%d（预览可独立降采样）"
+          % (int(getattr(a, "cap_w", 1920)), int(getattr(a, "cap_h", 1080))), flush=True)
+    print("[ui_kiosk] 启动: 版式=%s 部件=%s 标定=%s 中文=%s 自动=%s"
+          % (os.path.basename(a.layout), part or "<未指定>",
+             a.calib if calib else "<无>", cjk_backend(), bool(a.auto)), flush=True)
+
+    # ---------------- 自检：capture 全链（不抛错即通过）----------------
+    if a.selftest_capture:
+        frame = cv2.imread(a.selftest_capture, cv2.IMREAD_COLOR)
+        if frame is None:
+            print("读不到 %s" % a.selftest_capture)
+            return 1
+        # ★ 离屏自检也走"标记 → 模块身份 → 安全自动判定"同一条链（便于离线验证）
+        allow0, part0, why0 = bool(a.auto), part, ""
+        _mi = None
+        if a.part:
+            print("[marker] 显式指定 --part=%s → **不以标记改判**（标记仅作参考）" % a.part, flush=True)
+            _mi = None if True else None
+        if MarkerId is not None and not a.part:
+            try:
+                _mi = MarkerId(os.path.join(HERE, "markers_modules.json"), confirm_n=1, verbose=False)
+            except Exception as _e:                                      # noqa: BLE001
+                print("[marker] 离屏 MarkerId 初始化失败: %s" % _e, flush=True)
+        if _mi is not None:
+            try:
+                h0, _hs = _mi.detect(frame)
+                if h0 is not None:
+                    part0, why0, _cf = _mi.resolve_part(h0, list((calib.parts if calib else {}).keys()))
+                    allow0 = True
+                    print("[marker] 离屏识别到 %s（%s）边长 %.0fpx → 模块=%s"
+                          % (h0.label, (h0.module or {}).get("name", ""), h0.side_px, part0), flush=True)
+                else:
+                    print("[marker] 离屏未检出标记（候选 %d）" % len(_hs), flush=True)
+            except Exception as e:                                       # noqa: BLE001
+                print("[marker] 离屏检测异常: %s" % e, flush=True)
+        frame_j = frame
+        try:
+            _h = None
+            if _mi is not None:
+                _h, _ = _mi.detect(frame)
+            if _h is not None:
+                frame_j = frame.copy()
+                _cx, _cy = int(_h.cx), int(_h.cy)
+                _hh, _ww = frame_j.shape[:2]
+                _sp = float(getattr(_h, "side_px", 0) or 0)
+                _rr = max(int(max(0.08 * min(_hh, _ww), _sp * 4)), 24)
+                frame_j[max(0, _cy - _rr):_cy + _rr, max(0, _cx - _rr):_cx + _rr] = 0
+                print("[marker] 判灯前涂黑 中心=(%d,%d) 半径=%dpx（side_px=%.0f）" % (_cx, _cy, _rr, _sp),
+                      flush=True)
+                try:
+                    _raw = getattr(_mi, "_raw_hit", None)
+                    print("[marker][diag] hit dict=%s" % (_h.to_dict(),), flush=True)
+                except Exception:                                        # noqa: BLE001
+                    pass
+        except Exception as _e:                                          # noqa: BLE001
+            print("[marker] 自检涂黑失败: %s" % _e, flush=True)
+        res = run_capture(frame_j, part0, book, calib, det, allow0, a.shots_dir, {"verdict": "ERROR"})
+        if res.get("ok") and not calib and not a.auto:
+            tag = "（自动判定·未标定）"
+            v0 = dict(res["vobj"] or {})
+            v0["reason"] = "%s%s" % (v0.get("reason", ""), tag)
+            res["vobj"] = v0
+            res["reason"] = "%s%s" % (res.get("reason", ""), tag)
+        print("自检结果: ok=%s verdict=%s reason=%s shot_dir=%s error=%s"
+              % (res["ok"], res["verdict"], res["reason"], res["shot_dir"], res["error"]))
+        if res["ok"]:
+            v = res["vobj"]
+            annot = annotate_frame(frame, res["rows"], v)
+            cv2.imwrite(a.out, annot)
+            print("标注图 -> %s" % a.out)
+        return 0 if res["ok"] else 3
+
+    # ---------------- 离屏渲染（验收用）----------------
+    if a.render:
+        frame = cv2.imread(a.frame, cv2.IMREAD_COLOR) if a.frame else None
+        if a.render == "page1":
+            # 渲染时带一个"点击反馈"示例（真机上 taps 会随用户点击增长）
+            img = draw_page1(layout, frame, toast="", warn="",
+                             dbg={"taps": 3, "xy": (300, 545), "hit": "capture",
+                                  "dev": "goodix-ts (示例)"})
+        elif a.render == "wave":
+            # ★ 波形页只读结果 JSON（不再查仪器/不吃摄像头帧）
+            img = draw_wave(layout, load_scope_result(getattr(a, "scope_result", "") or ""))
+        elif a.render == "result":
+            # ★ 结果页离屏渲染（验收用）：真图跑**同一条** 部位识别 + 逐条判定链，再画结果页
+            if frame is None:
+                print("渲染结果页需要 --frame <真图>")
+                return 1
+            if BI is None:
+                print("board_infer 不可用（结果页无法渲染）")
+                return 1
+            _r = BI.infer(frame, part_hint=(part or ""))
+            _r = _degrade_result(_r, "")
+            img, _btns = draw_result(layout, _r,
+                                     elapsed=(_r.get("elapsed_ms") or 0) / 1000.0,
+                                     has_qa=False)
+            print("  部位=%s 置信=%.2f 逐条=%d 结论=%s"
+                  % ((_r.get("part") or {}).get("part") or "-",
+                     float((_r.get("part") or {}).get("confidence") or 0.0),
+                     len(_r.get("rows") or []),
+                     (_r.get("conclusion") or {}).get("text")))
+        elif a.render == "flow":
+            # ★ 流程页离屏渲染（不需要相机；用来验收版式/本步问答是否出现）
+            _doc, _p = load_flow_steps(getattr(a, "steps", "") or "")
+            fl = _new_flow(_doc, _p)
+            fl["idx"] = max(0, min(int(getattr(a, "flow_step", 1)) - 1, len(fl["steps"]) - 1))
+            img, _btns = draw_flow(layout, fl, frame)
+            _fit(img, frame, FLOW_PREVIEW, bg=layout["colors"].get("preview_bg"))
+            _st = _flow_step(fl)
+            print("  步骤=%s 部位=%s 路别=%s 类型=%s 问题=%d"
+                  % (_st["step_id"], _st.get("part") or "-", _st.get("route") or "-",
+                     _st.get("method_text"), len(_st.get("qa_items") or [])))
+        else:
+            v, info = judge(frame, part, book, calib, det, allow_auto=a.auto) if frame is not None \
+                else ({"verdict": VERDICT_UNK, "reason": "没有照片"}, {"rows": []})
+            img = draw_page2(layout, frame, v)
+            print("  结论=%s 依据=%s" % (v.get("verdict"), v.get("reason")))
+        cv2.imwrite(a.out, img)
+        print("已写出 %s" % a.out)
+        return 0
+
+    # ---------------- 实时两页 ----------------
+    live = None if a.no_camera else LiveView(a.device, w=int(getattr(a, "cap_w", 1920)),
+                                              h=int(getattr(a, "cap_h", 1080)))
+    touch = None
+    if not a.no_touch:
+        try:
+            t = TouchScreen(a.touch, a.win_w, a.win_h, verbose=True)
+            touch = t if t.fd >= 0 else None
+        except Exception as e:                                          # noqa: BLE001
+            print("[touch] 初始化失败: %s" % e, flush=True)
+            touch = None
+    if touch is None and not a.no_touch:
+        print("[touch][warn] 触摸不可用 -> 键盘兜底：空格/c=拍照  w=波形  b=返回  q/Esc=退出", flush=True)
+    win = a.window + "-kiosk"
+    cv2.namedWindow(win, cv2.WINDOW_NORMAL)
+    # ★ 顺序很重要：**先 resizeWindow 定尺寸，再请求全屏**。
+    #   反过来（先全屏后 resize）时 resize 会覆盖全屏状态 → 重启后偶尔带标题栏/页面被裁切。
+    try:
+        cv2.resizeWindow(win, a.win_w, a.win_h)
+        cv2.waitKey(1)                     # 让 WM 先把 resize 应用完，再切全屏（消除竞态）
+    except Exception:                                                  # noqa: BLE001
+        pass
+    # ★ 强制全屏（否则被 WM 当普通窗口 → 页面被裁切：标题/右栏文字/按钮只露一半）
+    try:
+        cv2.setWindowProperty(win, cv2.WND_PROP_FULLSCREEN, cv2.WINDOW_FULLSCREEN)
+        print("[ui_kiosk] 已请求全屏显示（resize 之后）", flush=True)
+    except Exception as _e:  # noqa: BLE001
+        print("[ui_kiosk][warn] 全屏设置失败：%r" % (_e,), flush=True)
+    # ★ 显示路径（排"屏幕小字糊"必看这一行）：
+    #   half_canvas=0 → 画布 1024x600 原尺寸 1:1 交给 X，像素不插值 → 文字锐利（默认）
+    #   half_canvas=1 → 先 cv2.resize 到 512x300，再由 X/OpenCV 双线性放大回 1024x600 → 所有字被糊
+    _half = int(getattr(a, "half_canvas", 0))
+    print("[ui_kiosk] 显示路径：%s（canvas=%dx%d → imshow %s）"
+          % ("★原尺寸 1:1（不缩放）" if not _half else "★1/2 降采样后由 X 放大（会糊，仅应急）",
+             int(a.win_w), int(a.win_h),
+             "%dx%d" % (int(a.win_w), int(a.win_h)) if not _half
+             else "%dx%d" % (max(1, int(a.win_w) // 2), max(1, int(a.win_h) // 2))),
+          flush=True)
+    # ★ 标记检测：**永远走全分辨率帧**（与显示降采样完全解耦；预览降采样会把标记像素数砍半）
+    mi = None
+    if MarkerId is not None:
+        try:
+            mi = MarkerId(os.path.join(HERE, "markers_modules.json"), confirm_n=3,
+                          max_side_frac=float(getattr(a, "max_side_frac", 0.50)), verbose=True)
+            print("[marker] 生效参数: max_side_frac=%.2f min_side=24 confirm_n=%d min_score=%.2f"
+                  % (float(getattr(mi, "max_side_frac", -1)), int(getattr(mi, "confirm_n", -1)),
+                     float(getattr(mi, "min_score", -1))), flush=True)
+        except Exception as e:                                          # noqa: BLE001
+            print("[marker] 初始化失败: %s" % e, flush=True)
+    marker_hit, marker_txt = None, ""
+    last_marker_t = 0.0
+    mworker = None
+    if mi is not None:
+        mworker = MarkerWorker(mi, interval=float(getattr(a, "marker_interval", 0.8)), verbose=True)
+        mworker.prev_w = int(a.win_w // 2) if int(getattr(a, "half_canvas", 1)) else int(a.win_w)
+        mworker.prev_h = int(a.win_h // 2) if int(getattr(a, "half_canvas", 1)) else int(a.win_h)
+        mworker.start()
+    state, still, vobj = "page1", None, None
+    qa, qa_cache = None, {}      # ★ 问答：流程对象 + 静态底板缓存（不取流/不轮询时用）
+    flow, flow_cache = None, {}  # ★ SOP 步骤流：steps.json + 证据/作答 + 静态底板缓存
+    resv, res_job, res_meta = None, None, {}  # ★ 结果页：判定数据 / 后台任务 / 上下文
+    res_cache = {}                            # ★ 结果页静态底板缓存
+    qa_view = None                            # ★ 本步问答页（独立页，只显示本步问题）
+    info = {"rows": []}          # ★ 主循环渲染用（底板缓存要读它；原来只在 capture 分支里才定义 -> UnboundLocalError）
+    toast, toast_until, err = "", 0.0, ""
+    scope, last_scope = {"verdict": "ERROR", "message": "未查询"}, 0.0
+    wave_res = None              # ★ 波形页数据：进入页面 / 点【重测】/ 每 20s 重新读+校验
+    wave_at = 0.0                # ★ 上次读文件的时间（过期数据要能自动变回「无实测数据」）
+    n = 0
+    t0 = time.time()
+    last_judge = 0.0
+    fps = max(1.0, float(a.fps))
+    period = 1.0 / fps
+    _n_iter = 0
+    _t_mark = time.time()
+    while True:
+        _loop_t0 = time.time()
+        dbg = {"taps": getattr(touch, "taps", 0), "xy": getattr(touch, "last_tap_xy", None),
+               "hit": getattr(touch, "last_hit", ""), "dev": (touch.name if touch else "触摸不可用")}
+        frame = live.read() if (live and state != "qa") else None   # 问答页不取流（省 CPU/带宽）
+        if frame is None and still is not None and state == "page2":
+            frame = still
+        n += 1
+        now = time.time()
+        if mworker is not None:
+            mworker.set_frame(frame)                     # ★ 只把手头帧交给线程，主循环不等
+            if mworker.hit is not None:
+                h2 = mworker.hit
+                marker_hit = h2
+                _rs = _rule_state_for_label(h2.label)
+                _nm = (h2.module or {}).get("name", "")
+                if _rs == "ready":
+                    marker_txt = "模块=%s %s（标记 %.2f, 边长 %.0fpx）" % (
+                        h2.label, _nm, h2.score, h2.side_px)
+                else:
+                    # ★ 优雅降级：识别到了但规则没就绪 → 界面上明确写「规则待标定」
+                    marker_txt = "模块=%s %s（规则待标定）" % (h2.label, _nm)
+                    if h2.label not in _RULE_WARNED:
+                        _RULE_WARNED.add(h2.label)
+                        print("[ui_kiosk][WARN] 标记 %s（%s）已识别，但%s → 结论=未判定"
+                              "（判定规则待标定）"
+                              % (h2.label, _nm,
+                                 "规则表无此部位" if _rs == "missing" else "规则待标定"),
+                              flush=True)
+        # ★ 波形页只读结果 JSON；停留在波形页时**不做仪器/网络查询**（采集由外部模块负责）
+        if state not in ("wave", "qa") and now - last_scope > 5:
+            scope = scpi_verdict(a)
+            last_scope = now
+        _toast_now = toast if now < toast_until else ""
+        # ★ 结果页轮询：判定线程完成即取结果 + 合并证据（**不受当前页面限制**，
+        #   用户提前返回也不会丢证据）。合并只做一次（meta["merged"]）。
+        if res_job is not None and res_job.done and not res_meta.get("merged"):
+            resv = _result_ready(res_job, res_meta, flow)
+            # ★ 不释放 res_meta["frame"]：结果页的【改选部位】要用同一帧重跑判定。
+            #   每张新照片会覆盖它（同一时刻只留一帧，约 6MB）。
+            _c = (resv.get("conclusion") or {}).get("text") or "未判定"
+            toast, toast_until = ("判定完成：%s" % _c)[:56], now + 4.0
+            _toast_now = toast
+            print("[result] 判定完成 %s｜%s（%.1fs）"
+                  % (_c, (resv.get("conclusion") or {}).get("why", "")[:60],
+                     res_job.elapsed()), flush=True)
+        if state == "wave":
+            # ★ 停留波形页时每 SCOPE_RELOAD_SEC 秒重新读+校验一次：
+            #   真实数据一旦超过 N 分钟，页面必须自己回到「⚠ 无实测数据」（不能一直显示旧数字）
+            if wave_res is None or (now - wave_at) >= SCOPE_RELOAD_SEC:
+                _old = wave_res
+                wave_res = load_scope_result(getattr(a, "scope_result", "") or "")
+                wave_at = now
+                if (_old is None or _old.get("valid") != wave_res.get("valid")
+                        or _old.get("invalid_reason") != wave_res.get("invalid_reason")
+                        or _old.get("verdict") != wave_res.get("verdict")):
+                    print("[wave] 校验：valid=%s verdict=%s 测量时间=%s 原因=%s"
+                          % (wave_res.get("valid"), wave_res.get("verdict"),
+                             wave_res.get("measured_at") or "-",
+                             wave_res.get("invalid_reason") or "-"), flush=True)
+            canvas = render_cached(layout, "wave", frame, vobj, info, wave_res, dbg, err, "",
+                                   marker_txt)
+            btns = _buttons(canvas, layout, _wave_page(layout))
+        elif state == "qa":
+            _cur = qa.current() if qa else None
+            if _cur is None:
+                state = "page1"
+                canvas = render_cached(layout, "page1", frame, vobj, info, scope,
+                                       dbg, err, _toast_now, marker_txt)
+                btns = _buttons(canvas, layout, page(layout, "page1"))
+            else:
+                _key = (_cur["qa_id"], _cur["answered"], _toast_now)
+                if qa_cache.get("key") != _key:      # 静态底板只画一次，省 CPU
+                    _img, _btns = draw_qa(layout, _cur, _toast_now)
+                    qa_cache.clear()
+                    qa_cache.update(key=_key, img=_img, btns=_btns)
+                canvas, btns = qa_cache["img"].copy(), qa_cache["btns"]
+        elif state == "result":
+            # ★ 结果页：判定中显示骨架；完成即显示 部位 + 逐条灯/屏 + 本步结论
+            _pend = not (res_job is not None and res_job.done)
+            _el = res_job.elapsed() if res_job is not None else 0.0
+            _stq = _flow_step(flow) if (flow is not None and res_meta.get("mode") == "flow") else None
+            _hasqa = bool(_stq and _stq.get("qa_items"))
+            _qleft = len(_stq["qa_items"]) - len(_flow_answers(flow, _stq)) if _hasqa else 0
+            _rkey = (id(resv), _pend, int(_el * 2) if _pend else -1, _toast_now, err,
+                     _hasqa, _qleft)
+            if res_cache.get("key") != _rkey:      # 判定中每 0.5s 只刷新"已 N.Ns"
+                _img, _btns = draw_result(layout, resv, elapsed=_el, pending=_pend,
+                                          toast=_toast_now, err=err,
+                                          has_qa=_hasqa, qa_left=max(0, _qleft))
+                res_cache.clear()
+                res_cache.update(key=_rkey, img=_img, btns=_btns)
+            canvas, btns = res_cache["img"].copy(), res_cache["btns"]
+        elif state in ("flow", "flowqa"):
+            _st = _flow_step(flow)
+            _qview = None
+            if state == "flowqa":
+                _qq = _flow_cur_qa(flow, _st)
+                if _qq is not None:
+                    _qview = _flow_qa_view(flow, _st, _qq)
+            if _qview is not None:
+                # ★ 独立问答页：只显示**本步**这一题（复用旧问答页渲染）
+                _qkey = (_qview["qa_id"], len(_flow_answers(flow, _st)), _toast_now)
+                if qa_cache.get("key") != _qkey:
+                    _img, _btns = draw_qa(layout, _qview, _toast_now)
+                    qa_cache.clear()
+                    qa_cache.update(key=_qkey, img=_img, btns=_btns)
+                canvas, btns = qa_cache["img"].copy(), qa_cache["btns"]
+            else:
+                # 本步问答已答完 → 落回流程页（同一帧内完成，不闪屏）
+                state = "flow"
+                # ★ 流程页：静态底板缓存（键变才重画中文）+ 每帧只贴预览
+                _freeze = flow.get("still") is not None and now < flow.get("freeze_until", 0.0)
+                _fkey = (flow["idx"], len(_flow_answers(flow, _st)),
+                         len(flow["shots"].get(_st["step_id"]) or []), _toast_now,
+                         _freeze, flow.get("saved"))
+                if flow_cache.get("key") != _fkey:
+                    _img, _btns = draw_flow(layout, flow, None, _toast_now, err)
+                    flow_cache.clear()
+                    flow_cache.update(key=_fkey, img=_img, btns=_btns)
+                canvas, btns = flow_cache["img"].copy(), flow_cache["btns"]
+                _pimg = flow["still"] if _freeze else frame
+                _fit(canvas, _pimg, FLOW_PREVIEW, label="正在取流…",
+                     bg=layout["colors"].get("preview_bg"))
+                cv2.rectangle(canvas, (FLOW_PREVIEW[0], FLOW_PREVIEW[1]),
+                              (FLOW_PREVIEW[2], FLOW_PREVIEW[3]),
+                              layout["colors"].get("preview_frame", layout["colors"]["dim"]), 1)
+        elif state == "page1":
+            canvas = render_cached(layout, "page1", frame, vobj, info, scope, dbg, err,
+                                   _toast_now, marker_txt)
+            btns = _buttons(canvas, layout, page(layout, "page1"))
+        else:
+            canvas = render_cached(layout, "page2", still, vobj, info, scope, dbg, err,
+                                   _toast_now, marker_txt)
+            btns = _buttons(canvas, layout, page(layout, "page2"))
+        if int(getattr(a, "half_canvas", 0)):
+            # ★ 应急小画布（--half-canvas 1）：只在 imshow 前降采样，
+            #   **所有布局/命中坐标仍按 1024x600**（触摸不受影响）；
+            #   ⚠ 代价：512x300 被 X 放回 1024x600 → 双线性插值，中文小字必糊（默认已关）
+            _h2 = cv2.resize(canvas, (max(1, a.win_w // 2), max(1, a.win_h // 2)),
+                             interpolation=cv2.INTER_AREA)
+            cv2.imshow(win, _h2)
+        else:
+            # ★ 原尺寸 1:1 直接显示（默认路径）：imshow 的图 = 画布 = 1024x600，X 不缩放 → 文字不插值
+            # ★ 每帧重申全屏：防止窗口管理器把全屏状态抢掉（一旦变普通窗口，页面就会被裁切）
+            try:
+                cv2.setWindowProperty(win, cv2.WND_PROP_FULLSCREEN, cv2.WINDOW_FULLSCREEN)
+            except Exception:  # noqa: BLE001
+                pass
+            cv2.imshow(win, canvas)
+        key = cv2.waitKey(max(1, int(1000.0 / fps))) & 0xFF
+        click = touch.poll() if touch else None
+        act = _hit(btns, click)
+        if click is not None:
+            print("[kiosk] click 屏幕=(%d,%d) 命中=%s taps=%d 原始=(%s,%s)"
+                  % (click[0], click[1], act or "无", getattr(touch, "taps", 0),
+                     getattr(touch, "raw_x", -1), getattr(touch, "raw_y", -1)), flush=True)
+            if touch is not None:
+                touch.last_hit = act or "无"
+        if key == 27:
+            if flow is not None:
+                _flow_save(flow)          # 退出前兜底落盘（绝不丢已答证据）
+            break
+        if key in (ord("c"), ord(" ")):
+            act = act or "capture"
+            print("[kiosk] 键盘触发 capture", flush=True)
+        if key == ord("w") and state not in ("flow", "flowqa", "result"):
+            act = "wave"
+        if key == ord("b"):
+            act = "back"
+        if key == ord("q"):
+            act = "quit"
+        # ★ 流程页键盘兜底（板端无 xdotool；实测用 XTest 发键）：
+        #   f/a=进入流程 / c=拍照 / 1..4=本步作答 / s=跳过 / n=下一步 / p=上一步 / b=返回
+        if key in (ord("f"), ord("a")) and state not in ("qa", "flow", "flowqa", "result"):
+            act = act or "flow"
+        if state == "flow":
+            if key == ord("c") or key == ord(" "):
+                act = "flow:capture"
+            elif key == ord("n"):
+                act = "flow:next"
+            elif key == ord("p"):
+                act = "flow:prev"
+            elif key == ord("s"):
+                act = "flow:skip"
+            elif key == ord("b"):
+                act = "flow:back"
+            elif key in (ord("1"), ord("2"), ord("3"), ord("4")):
+                _q = _flow_cur_qa(flow, _flow_step(flow)) if flow else None
+                _i = key - ord("1")
+                if _q is not None and _i < len(_q.get("options") or []):
+                    act = "flow:answer:%s" % _q["options"][_i].get("value")
+        # ★ 结果页键盘兜底： c=重拍  v=去问答  b=返回  1..4=改选候选部位
+        if state == "result":
+            if key in (ord("c"), ord(" ")):
+                act = "result:retake"
+            elif key == ord("v"):
+                act = "result:qa"
+            elif key == ord("b"):
+                act = "result:back"
+            elif key in (ord("1"), ord("2"), ord("3"), ord("4")):
+                act = "result:pick:%d" % (key - ord("1"))
+        # ★ 本步问答页键盘兜底： 1..4=作答  s=跳过  b=回流程页（作答走同一套 flow:* 逻辑）
+        elif state == "flowqa":
+            if key == ord("b"):
+                act = "flowqa:back"
+            elif key == ord("s"):
+                act = "flow:skip"
+            elif key in (ord("1"), ord("2"), ord("3"), ord("4")):
+                _q = _flow_cur_qa(flow, _flow_step(flow)) if flow else None
+                _i = key - ord("1")
+                if _q is not None and _i < len(_q.get("options") or []):
+                    act = "flow:answer:%s" % _q["options"][_i].get("value")
+                else:
+                    act = ""
+            elif key in (ord("c"), ord(" "), ord("n"), ord("p")):
+                act = ""                     # 该页不接受拍照/翻步
+        # ★ 旧问答页键盘映射保留（该页已不再从主页进入，仅兼容）
+        if state == "qa" and key == ord("b"):
+            act = "qa:back"
+        if state == "qa" and key in (ord("1"), ord("2"), ord("3"), ord("4")):
+            _cur = qa.current() if qa else None
+            _i = key - ord("1")
+            if _cur is not None and _i < len(_cur["options"]):
+                act = "qa:" + _cur["options"][_i]["value"]
+        if act == "quit":
+            if flow is not None:
+                _flow_save(flow)
+            break
+        # ---------- SOP 步骤流（flow）：一步 = 拍照 -> 本步问答 -> 下一步 ----------
+        if act == "flow" and state != "flow":
+            try:
+                if flow is None:
+                    _doc, _p = load_flow_steps(getattr(a, "steps", "") or "")
+                    flow = _new_flow(_doc, _p)
+                    print("[flow] 载入 %s：%d 步" % (_p, len(flow["steps"])), flush=True)
+                # 续接：直接落到第一个未完成的步
+                flow["idx"] = next((i for i, s in enumerate(flow["steps"])
+                                    if not _flow_done(flow, s)), 0)
+                flow["still"], flow["freeze_until"] = None, 0.0
+                if not os.path.isfile(flow["path"]):
+                    _flow_save(flow)          # 进页即建空证据文件，证明落盘路径可用
+                state = "flow"
+                err = ""
+                toast = "流程共 %d 步 → 第 %d 步" % (len(flow["steps"]), flow["idx"] + 1)
+                toast_until = now + 3.0
+                print("[flow] 进入：%d 步，当前 step=%s 部位=%s"
+                      % (len(flow["steps"]), _flow_step(flow)["step_id"],
+                         _flow_step(flow).get("part") or "-"), flush=True)
+            except Exception as _e:                                        # noqa: BLE001
+                toast, toast_until = ("流程数据不可用：%s" % str(_e))[:60], now + 6.0
+                print("[flow] 启动失败: %s" % _e, flush=True)
+        elif isinstance(act, str) and act.startswith("flow:") and state in ("flow", "flowqa"):
+            _cmd = act.split(":", 1)[1]
+            _st = _flow_step(flow)
+            if _cmd == "back":
+                _ok = _flow_save(flow)
+                state = "page1"
+                toast = "流程已保存：证据 %d 条%s" % (len(flow["evidence"]),
+                                                    "" if _ok else "（落盘失败！）")
+                toast_until = now + 5.0
+                print("[flow] 返回主页：%s（ok=%s）" % (flow["path"], _ok), flush=True)
+            elif _cmd == "next":
+                if flow["idx"] < len(flow["steps"]) - 1:
+                    flow["idx"] += 1
+                    flow["still"], flow["freeze_until"] = None, 0.0
+                    toast = "第 %d / %d 步" % (flow["idx"] + 1, len(flow["steps"]))
+                    toast_until = now + 2.0
+                else:
+                    toast, toast_until = "已是最后一步（可【保存】或【返回】）", now + 4.0
+            elif _cmd == "prev":
+                if flow["idx"] > 0:
+                    flow["idx"] -= 1
+                    flow["still"], flow["freeze_until"] = None, 0.0
+                    toast = "第 %d / %d 步" % (flow["idx"] + 1, len(flow["steps"]))
+                    toast_until = now + 2.0
+                else:
+                    toast, toast_until = "已是第一步", now + 2.0
+            elif _cmd == "save":
+                _ok = _flow_save(flow)
+                toast = "已保存证据 %d 条 → %s" % (len(flow["evidence"]),
+                                                  os.path.basename(flow["path"]))
+                toast_until = now + 4.0
+                print("[flow] 手动保存 ok=%s -> %s" % (_ok, flow["path"]), flush=True)
+            elif _cmd == "capture":
+                _vi_idx, _vi = _flow_pending_vision(flow, _st)
+                if not _st.get("vision_items"):
+                    toast, toast_until = "本步无拍照项（问答/波形步）", now + 3.0
+                elif _vi is None:
+                    # ★ 本步拍摄项已拍满：仍允许重拍（判定证据追加，不覆盖既有）
+                    _vi = (_st.get("vision_items") or [{}])[-1]
+                elif frame is None:
+                    toast, toast_until = "取流失败，无法拍照", now + 3.0
+                else:
+                    # 归属：命令行 --part 优先，其次标记；判定链与主页【拍照】同一套
+                    _part_use, _part_why, _part_conf = part, "", 0.0
+                    if part:
+                        _part_why = "命令行显式 --part=%s" % part
+                    elif mi is not None:
+                        try:
+                            _part_use, _part_why, _part_conf = mi.resolve_part(
+                                marker_hit, list((calib.parts if calib else {}).keys()))
+                        except Exception as _e:                            # noqa: BLE001
+                            print("[flow] resolve 异常: %s" % _e, flush=True)
+                    _allow = bool(a.auto) or (marker_hit is not None and bool(_part_use))
+                    _frame_j = frame
+                    if marker_hit is not None:
+                        try:
+                            _frame_j = frame.copy()
+                            _cx, _cy = int(marker_hit.cx), int(marker_hit.cy)
+                            _hh, _ww = _frame_j.shape[:2]
+                            _sp = float(getattr(marker_hit, "side_px", 0) or 0)
+                            _rr = max(int(max(0.08 * min(_hh, _ww), _sp * 4)), 24)
+                            _frame_j[max(0, _cy - _rr):_cy + _rr,
+                                     max(0, _cx - _rr):_cx + _rr] = 0
+                        except Exception as _e:                            # noqa: BLE001
+                            print("[flow] 涂黑标记区失败: %s" % _e, flush=True)
+                    _res = run_capture(_frame_j, _part_use, book, calib, det, _allow,
+                                       a.shots_dir, scope)
+                    if _res.get("ok"):
+                        _v = _res.get("vobj") or {}
+                        _verdict = _v.get("verdict") or "未判定"
+                        _val = ("normal" if _verdict == "正常"
+                                else ("abnormal" if "故障" in _verdict else "undetermined"))
+                        _conf = (float(_v.get("confidence", 0.9))
+                                 if _val != "undetermined" else 0.5)
+                        _ev = {
+                            "part": _st.get("part") or _part_use,
+                            "route": _st.get("route") or "",
+                            "modality": "vision",
+                            "field": (_vi.get("evidence_field")
+                                      or ("(vision)_step_%s" % _st["step_id"])),
+                            "value": _val,
+                            "confidence": round(_conf, 3),
+                            "note": "拍照判定（%s）：%s" % (_part_use or "-",
+                                                         _v.get("reason") or ""),
+                            "evidence": "拍照判定：%s；%s" % (_verdict,
+                                                        _v.get("reason") or ""),
+                            "ts": _flow_iso(),
+                            "source": "ui_kiosk.flow",
+                            "item_id": "camera:%s" % _st["step_id"],
+                            "flow_no": _st.get("flow_no"),
+                            "flow_name": _st.get("flow_name"),
+                            "step_id": _st["step_id"],
+                            "step_name": _st.get("step_name"),
+                            "check_item": _vi.get("check_item"),
+                            "part_used": _part_use,
+                            "shot_dir": _res.get("shot_dir"),
+                        }
+                        flow["shots"].setdefault(_st["step_id"], []).append({
+                            "item": _vi.get("check_item"), "verdict": _verdict,
+                            "reason": _v.get("reason") or "",
+                            "shot_dir": _res.get("shot_dir"), "ts": _ev["ts"],
+                            "part_used": _part_use})
+                        _flow_add_evidence(flow, _ev)
+                        try:
+                            flow["still"] = cv2.resize(frame, (640, 360))
+                        except Exception:                                  # noqa: BLE001
+                            flow["still"] = frame
+                        flow["freeze_until"] = now + 3.0
+                        toast, toast_until = ("已拍照：%s" % _verdict), now + 3.5
+                        print("[flow] 拍照 step=%s item=%s -> %s (%s)"
+                              % (_st["step_id"], _vi.get("check_item"), _verdict,
+                                 _res.get("shot_dir")), flush=True)
+                        # ★★ 接线点：拍照完成后起**后台判定**（part_recognizer + vision_rules）
+                        #    → 结果页显示"部位 + 逐条灯/屏 + 结论"；完成时把证据合并进本步。
+                        if BI is None:
+                            toast, toast_until = "判定适配层不可用（board_infer.py）", now + 5.0
+                        else:
+                            resv, res_cache = None, {}
+                            res_meta.clear()
+                            res_meta.update({
+                                "mode": "flow", "merged": False,
+                                "step_id": _st["step_id"],
+                                "field": (_vi.get("evidence_field")
+                                          or ("(vision)_step_%s" % _st["step_id"])),
+                                "shot_dir": _res.get("shot_dir"),
+                                "part_use": _part_use or "",
+                                "marker_label": (marker_hit.label
+                                                 if marker_hit is not None else "")})
+                            try:
+                                res_meta["frame"] = frame.copy()   # 供"改选部位"重跑
+                            except Exception:                      # noqa: BLE001
+                                pass
+                            res_job = BI.start_job(
+                                frame, part_hint=(_st.get("part") or _part_use),
+                                flow_no=_st.get("flow_no"), route=_st.get("route"))
+                            state = "result"
+                            toast, toast_until = ("判定中…（部位 %s）"
+                                                  % (_st.get("part") or "-")), now + 3.0
+                            print("[result] 进入结果页：后台判定已启动 step=%s part_hint=%s"
+                                  % (_st["step_id"], _st.get("part") or "-"), flush=True)
+                    else:
+                        toast, toast_until = ("拍照失败：%s"
+                                              % (_res.get("error") or "未知"))[:52], now + 6.0
+                        print("[flow] 拍照失败: %s" % _res.get("error"), flush=True)
+            else:
+                _qa = _flow_cur_qa(flow, _st)
+                if _qa is None:
+                    toast, toast_until = "本步问答已完成", now + 3.0
+                else:
+                    if _cmd == "skip":
+                        _opt = {"value": "skipped", "label": "跳过", "tone": "neutral"}
+                    else:
+                        _want = _cmd.split("answer:", 1)[1]
+                        _opt = next((o for o in _qa.get("options") or []
+                                     if str(o.get("value")) == _want), None)
+                    if _opt is None:
+                        toast, toast_until = ("无效选项：%s" % _cmd)[:48], now + 3.0
+                    else:
+                        _val = _flow_value(_opt.get("value"))
+                        # ★ 跳过语义：老 QA 用 value=skipped；弱灯库用 §5.1 核心枚举 undetermined
+                        #   ⇒ 两者都算「跳过（未验证）」；undetermined 按弱灯库 confidence_policy=0.30
+                        _skipped = (_val in ("skipped", "undetermined"))
+                        _subj = _qa.get("subject") or _qa.get("check_item") or ""
+                        _label = _opt.get("label_plain") or _opt.get("label") or _opt.get("value")
+                        _ev = {
+                            "part": _st.get("part") or _qa.get("part"),
+                            "route": _st.get("route") or _qa.get("route") or "",
+                            "modality": "qa",
+                            "field": (_qa.get("evidence_field")
+                                      or ("(manual_action)_step_%s" % _st["step_id"])),
+                            "value": _val,
+                            "confidence": ((0.30 if _val == "undetermined" else 0.0)
+                                           if _skipped else 1.0),
+                            "note": "操作员跳过（未验证）" if _skipped else "操作员确认",
+                            "evidence": ("跳过（未验证）：%s" % _subj if _skipped
+                                         else "操作员确认：%s %s" % (_subj, _label)),
+                            "ts": _flow_iso(),
+                            "source": "ui_kiosk.flow",
+                            "item_id": _qa.get("qa_id"),
+                            "qa_id": _qa.get("qa_id"),
+                            "qa_value": _opt.get("value"),
+                            "flow_no": _st.get("flow_no"),
+                            "flow_name": _st.get("flow_name"),
+                            "step_id": _st["step_id"],
+                            "step_name": _st.get("step_name"),
+                            "check_item": _qa.get("check_item"),
+                        }
+                        if _opt.get("feature_id") and not _skipped:
+                            _ev["feature_id"] = _opt["feature_id"]
+                        _flow_answers(flow, _st)[_qa.get("qa_id")] = {
+                            "value": _opt.get("value"), "label": _label,
+                            "skipped": _skipped, "ts": _ev["ts"]}
+                        _flow_add_evidence(flow, _ev)
+                        _rest = _flow_cur_qa(flow, _st)
+                        toast = ("已记录：%s" % _label) + ("" if _rest else "（本步问答完成）")
+                        toast_until = now + 3.0
+                        print("[flow] 问答 step=%s %s=%s -> %s"
+                              % (_st["step_id"], _qa.get("qa_id"),
+                                 _opt.get("value"), flow["path"]), flush=True)
+                        # ★ 独立问答页：答完本步最后一题 → 自动回流程页
+                        if state == "flowqa" and _rest is None:
+                            state = "flow"
+                            toast = "本步问答完成 → 回流程页"
+                            print("[flowqa] 本步问答完成 step=%s -> 回流程页"
+                                  % _st["step_id"], flush=True)
+        # ---------- 结果页（拍照判定）动作：返回 / 重拍 / 去问答 / 改选部位 ----------
+        if isinstance(act, str) and act.startswith("result:") and state == "result":
+            _cmd = act.split(":", 1)[1]
+            _mode = res_meta.get("mode") or "page1"
+            if _cmd == "back":
+                state = "flow" if _mode == "flow" else "page1"
+                res_cache.clear()
+                toast, toast_until = "", 0.0
+                print("[result] 返回 %s" % state, flush=True)
+            elif _cmd == "qa":
+                _stq = _flow_step(flow) if (flow is not None and _mode == "flow") else None
+                if _stq and _flow_cur_qa(flow, _stq) is not None:
+                    state = "flowqa"
+                    qa_cache.clear()
+                    toast, toast_until = "", 0.0
+                    print("[flowqa] 进入本步问答 step=%s（剩 %d 题）"
+                          % (_stq["step_id"],
+                             len(_stq.get("qa_items") or [])
+                             - len(_flow_answers(flow, _stq))), flush=True)
+                else:
+                    toast, toast_until = "本步没有待答的问题", now + 3.0
+            elif _cmd == "retake":
+                if BI is None:
+                    toast, toast_until = "判定适配层不可用（board_infer）", now + 5.0
+                elif frame is None:
+                    toast, toast_until = "取流失败，无法重拍", now + 3.0
+                elif res_job is not None and not res_job.done:
+                    toast, toast_until = "上一张还在判定中，请稍候…", now + 3.0
+                else:
+                    resv, res_cache = None, {}
+                    res_meta["merged"] = False
+                    res_meta.pop("frame", None)
+                    try:
+                        res_meta["frame"] = frame.copy()
+                    except Exception:                                  # noqa: BLE001
+                        pass
+                    res_job = BI.start_job(frame,
+                                           part_hint=(res_meta.get("part_use") or part or ""),
+                                           flow_no=None, route="")
+                    toast, toast_until = "重拍中…", now + 2.0
+                    print("[result] 重拍（新任务）", flush=True)
+            elif _cmd.startswith("pick:"):
+                # 低置信时人工改选候选部位 → 用同一帧、指定部位重跑判定（不再重跑识别）
+                _i = int(_cmd.split(":", 1)[1])
+                _cands = ((resv or {}).get("part") or {}).get("candidates") or []
+                if res_job is not None and not res_job.done:
+                    toast, toast_until = "上一张还在判定中，请稍候…", now + 3.0
+                elif _i >= len(_cands):
+                    toast, toast_until = "该候选已失效", now + 3.0
+                elif res_meta.get("frame") is None:
+                    toast, toast_until = "原帧已释放，请用【重拍】", now + 4.0
+                elif BI is None:
+                    toast, toast_until = "判定适配层不可用（board_infer）", now + 5.0
+                else:
+                    _p = _cands[_i].get("part") or ""
+                    resv, res_cache = None, {}
+                    res_meta["merged"] = False
+                    res_meta["picked"] = _p
+                    res_meta["part_use"] = _p
+                    res_meta["marker_label"] = ""      # 人工改选部位优先于标记
+                    res_job = BI.start_job(res_meta["frame"], part_hint=_p,
+                                           flow_no=None, route="")
+                    toast, toast_until = ("改判部位=%s，判定中…" % _p), now + 2.0
+                    print("[result] 人工改选部位 %s → 重跑判定" % _p, flush=True)
+        # ---------- 本步问答页：只处理"返回流程" ----------
+        #   作答/跳过统一走上面的 `flow:answer:*` / `flow:skip`（已放宽到 flowqa 状态），
+        #   避免两套证据逻辑；答完最后一题由上面自动 `state="flow"`。
+        if act == "flowqa:back" and state == "flowqa":
+            state = "flow"
+            qa_cache.clear()
+            toast, toast_until = "已返回流程页", now + 2.0
+            print("[flowqa] 返回流程页", flush=True)
+
+        if act == "qa" and state != "qa":
+            try:
+                from soc_vision.qa.qa_flow import QAFlow   # 懒加载：文件缺失不拖垮原 UI
+                if qa is None:
+                    # ★ 路径用**本文件所在目录**（HERE 是工程根，qa 包在 soc_vision/ 下）
+                    _qa_items = os.path.join(os.path.dirname(os.path.abspath(__file__)),
+                                             "qa", "qa_items.json")
+                    qa = QAFlow(_qa_items,
+                                schema_values=True)          # 对接 fusion 的严格枚举
+                qa.start()
+                qa_cache.clear()
+                state = "qa"
+                print("[qa] 开始：%d 题" % qa.total, flush=True)
+            except Exception as _e:  # noqa: BLE001
+                toast, toast_until = ("问答模块不可用：%s" % str(_e))[:48], now + 5.0
+                print("[qa] 启动失败: %s" % _e, flush=True)
+        elif isinstance(act, str) and act.startswith("qa:"):
+            _cmd = act.split(":", 1)[1]
+            try:
+                if qa is None:
+                    raise RuntimeError("问答未启动")
+                if _cmd == "back":
+                    qa.abort()
+                    state = "page1"
+                    _nev = len(qa.evidence())
+                    toast = ("已退出问答（已答 %d 条）" % _nev) if _nev else "已退出问答"
+                    toast_until = now + 3.0
+                elif _cmd == "skip":
+                    qa.skip()
+                else:
+                    qa.answer(_cmd)
+                    qa.next()
+                if _cmd != "back" and qa.current() is None:
+                    _sum = qa.summary()
+                    _dir = "/userdata/afh03_shots/qa"
+                    os.makedirs(_dir, exist_ok=True)
+                    _p = os.path.join(_dir, "qa_evidence_%s.json"
+                                      % time.strftime("%Y%m%d_%H%M%S"))
+                    with open(_p, "w", encoding="utf-8") as _f:
+                        json.dump(qa.evidence_batch(), _f, ensure_ascii=False, indent=1)
+                    print("[qa] 完成：证据 %d 条 / 跳过 %d 条 -> %s"
+                          % (len(_sum["evidence"]), _sum["skipped"], _p), flush=True)
+                    toast = "问答完成（证据 %d 条）" % len(_sum["evidence"])
+                    toast_until = now + 5.0
+                    state = "page1"
+            except Exception as _e:  # noqa: BLE001
+                print("[qa] 作答失败: %s" % _e, flush=True)
+            qa_cache.clear()
+        if act == "back":
+            state = "page1"
+            toast, toast_until = "", 0.0
+        elif act == "wave":
+            state = "wave"
+            wave_res = load_scope_result(getattr(a, "scope_result", "") or "")
+            wave_at = now
+            print("[wave] 进入波形页：读 %s -> valid=%s items=%d verdict=%s 原因=%s"
+                  % (wave_res.get("path"), wave_res.get("valid"), wave_res.get("n_items", 0),
+                     wave_res.get("verdict"),
+                     wave_res.get("invalid_reason") or wave_res.get("error") or "-"),
+                  flush=True)
+        elif act == "retest":
+            if state == "wave":
+                wave_res = load_scope_result(getattr(a, "scope_result", "") or "")
+                wave_at = now
+                print("[wave] 重测：重新读 %s -> valid=%s items=%d verdict=%s 原因=%s"
+                      % (wave_res.get("path"), wave_res.get("valid"), wave_res.get("n_items", 0),
+                         wave_res.get("verdict"),
+                         wave_res.get("invalid_reason") or wave_res.get("error") or "-"),
+                      flush=True)
+        elif act == "capture":
+            if frame is None:
+                toast, toast_until = "取流失败，无法拍照", now + 3.0
+                print("[kiosk] capture 失败：没有帧", flush=True)
+            else:
+                # ★ 归属优先级链：标记 > 已标定 ROI > 未判定
+                part_use, part_why, part_conf = _effective_part(
+                    part, mi, marker_hit, calib, explicit_part=_explicit_part)
+                print("[marker] 归属: part=%s conf=%.2f (%s)" % (part_use or "-", part_conf, part_why),
+                      flush=True)
+                # ★ 安全自动判定中间档：读到标记（模块确定）→ 允许"自动判定（未标定）"
+                #   安全边界不变：几何门不过/灯数不符/低置信 → 仍由 analyze 返回"未判定"
+                allow = bool(a.auto) or (marker_hit is not None and bool(part_use))
+                # ★ 标记区域涂黑后再判灯：标记的白模块会被误当成"亮点"（实测 3 灯版变 4 亮点）
+                frame_j = frame
+                if marker_hit is not None:
+                    try:
+                        frame_j = frame.copy()
+                        cx, cy = int(marker_hit.cx), int(marker_hit.cy)
+                        hh, ww = frame_j.shape[:2]
+                        sp = float(getattr(marker_hit, "side_px", 0) or 0)
+                        # ★ 半径不依赖语义不明的 side_px：取"6%~8% 短边"与"4×side_px"的较大者
+                        rr = int(max(0.08 * min(hh, ww), sp * 4))
+                        rr = max(rr, 24)
+                        frame_j[max(0, cy - rr):cy + rr, max(0, cx - rr):cx + rr] = 0
+                        print("[marker] 涂黑标记区 中心=(%d,%d) 半径=%dpx（side_px=%.0f；帧 %dx%d）"
+                              % (cx, cy, rr, sp, ww, hh), flush=True)
+                    except Exception as _e:                              # noqa: BLE001
+                        print("[marker] 涂黑标记区失败: %s" % _e, flush=True)
+                res = run_capture(frame_j, part_use, book, calib, det, allow, a.shots_dir, scope)
+                still = frame
+                if res["ok"]:
+                    vobj = dict(res["vobj"])
+                    tag = ""
+                    if not calib:
+                        tag = "（自动判定·未标定）"
+                    extra = ("%s ｜ %s" % (vobj.get("reason", ""), part_why)) if part_why else vobj.get("reason", "")
+                    vobj["reason"] = "%s%s" % (extra, tag)
+                    err = ""
+                    print("[kiosk] 拍照成功 -> %s 结论=%s" % (res["shot_dir"], res["verdict"]),
+                          flush=True)
+                    # ★★ 接线点（主页【拍照】）：与流程页**同一套**判定链 →
+                    #    part_recognizer（部位） + vision_rules（逐条灯/屏） → 结果页
+                    if BI is None:
+                        state = "page2"
+                        toast, toast_until = "已保存（判定适配层不可用）", now + 4.0
+                    else:
+                        resv, res_cache = None, {}
+                        res_meta.clear()
+                        res_meta.update({"mode": "page1", "merged": False,
+                                         "field": "(vision)_page1",
+                                         "shot_dir": res.get("shot_dir"),
+                                         "part_use": part_use or "",
+                                         "marker_label": (marker_hit.label
+                                                          if marker_hit is not None else "")})
+                        try:
+                            res_meta["frame"] = frame.copy()
+                        except Exception:                          # noqa: BLE001
+                            pass
+                        res_job = BI.start_job(frame, part_hint=(part_use or ""),
+                                               flow_no=None, route="")
+                        state = "result"
+                        toast, toast_until = "已保存 → 判定中…", now + 4.0
+                        print("[result] 主页拍照 → 结果页：后台判定已启动", flush=True)
+                else:
+                    # ★ 绝不退出：把错误显示在页面上，仍切到页面2（错误态）让用户看到原因
+                    vobj = {"verdict": VERDICT_UNK,
+                            "reason": "拍照失败：%s" % (res["error"] or "未知错误")}
+                    state = "page2"
+                    err = "拍照失败：%s" % (res["error"] or "未知错误")
+                    toast, toast_until = err[:52], now + 8.0
+                    print("[kiosk] 拍照失败但**进程保留**: %s" % res["error"], flush=True)
+        # ★ 限速交给上面的 waitKey(1000/fps) 阻塞；这里只统计迭代率（每 200 轮打点一次）
+        _n_iter += 1
+        if _n_iter % 200 == 0:
+            _dt = time.time() - _t_mark
+            cpu = -1.0
+            try:
+                with open("/proc/self/stat") as _f:
+                    _p = _f.read().split()
+                cpu = float(_p[13] + _p[14])        # 只打点用；累计 tick
+            except Exception:                                        # noqa: BLE001
+                pass
+            print("[ui] preview fps=%.1f（目标 %.1f） cpu_ticks=%.0f marker=每 %.1fs"
+                  % (_n_iter / max(1e-6, _dt), fps, cpu, a.marker_interval), flush=True)
+            _n_iter, _t_mark = 0, time.time()
+        if a.duration > 0 and (now - t0) >= a.duration:
+            break
+    if live:
+        live.release()
+    cv2.destroyAllWindows()
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

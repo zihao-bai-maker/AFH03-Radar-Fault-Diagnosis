@@ -1,0 +1,3523 @@
+{
+ "schema": "screen_options/1.0",
+ "engine": "cause_explainer/1.0.0",
+ "generated_at": "2026-10-18T12:55:22+08:00",
+ "user_request": "「屏幕上的所有问题，比如有黄线、有底噪都要写出来；判出故障后按知识库显示可能原因」",
+ "source": {
+  "fault_csv": "D:\\xuexishengshou\\雷达判据\\判据库_故障.csv",
+  "fault_rows": 268,
+  "sop_csv": "D:\\xuexishengshou\\雷达判据\\判据库_SOP.csv",
+  "sop_rows": 166,
+  "overrides_json": "D:\\xuexishengshou\\雷达判据\\engine\\criteria_overrides.json",
+  "fault_columns": [
+   "cabinet",
+   "sub_unit",
+   "module",
+   "remark",
+   "step_name",
+   "phenomenon",
+   "field",
+   "abnormal_value",
+   "feature_id"
+  ]
+ },
+ "stats": {
+  "options_total": 31,
+  "in_kb_true": 17,
+  "in_kb_false": 14,
+  "user_dictated": 13,
+  "sop_only": 1,
+  "vision_supported": 8,
+  "with_kb_causes": 15
+ },
+ "options": [
+  {
+   "id": "normal",
+   "value": "normal",
+   "label": "正常（有扫描、有底噪、有回波）",
+   "label_plain": "正常",
+   "category": "正常",
+   "order": 1,
+   "in_kb": true,
+   "in_sop": true,
+   "kb_basis": "sop_check_item",
+   "user_dictated": false,
+   "author_confirm": false,
+   "abnormal_value": "",
+   "abnormal_value_in_kb": false,
+   "kb_rows": [],
+   "kb_row_count": 0,
+   "kb_row_count_by_abnormal_value": 0,
+   "kb_strength_max": 0.0,
+   "kb_strength_by": [],
+   "sop_refs": [
+    {
+     "flow_no": "15(10-I)",
+     "check_item": "(操显)-显示画面",
+     "subject": "（操显）显示画面",
+     "method": "摄像头拍摄",
+     "need_qa": "是",
+     "fault_refs": "F_(image)(operator_display)_display_screen_yellow_screen|F_(image)(operator_display)_display_screen_black_screen|F_(image)(operator_display)_display_screen_yellow_screen|F_(image)(operator_display)_display_screen_yellow_screen"
+    },
+    {
+     "flow_no": "16（10-II）",
+     "check_item": "(领显)-有显示画面",
+     "subject": "（领显）显示画面",
+     "method": "摄像头拍摄",
+     "need_qa": "是",
+     "fault_refs": ""
+    },
+    {
+     "flow_no": "19",
+     "check_item": "（操显）航向画面扫描正常",
+     "subject": "（操显）航向画面扫描",
+     "method": "摄像头拍摄",
+     "need_qa": "是",
+     "fault_refs": ""
+    },
+    {
+     "flow_no": "19",
+     "check_item": "（操显）下滑画面扫描正常",
+     "subject": "（操显）下滑画面扫描",
+     "method": "摄像头拍摄",
+     "need_qa": "是",
+     "fault_refs": ""
+    },
+    {
+     "flow_no": "19",
+     "check_item": "（操显）航向噪声有",
+     "subject": "（操显）航向噪声",
+     "method": "摄像头拍摄",
+     "need_qa": "是",
+     "fault_refs": ""
+    },
+    {
+     "flow_no": "19",
+     "check_item": "（操显）下滑噪声有",
+     "subject": "（操显）下滑噪声",
+     "method": "摄像头拍摄",
+     "need_qa": "是",
+     "fault_refs": ""
+    }
+   ],
+   "vision_hintable": true,
+   "vision_supported": true,
+   "vision_state": "ok",
+   "vision_note": "vision_rules.screen_state 输出 ok（有扫描线 + 绿色内容 + 有底噪）",
+   "possible_causes": [],
+   "possible_causes_total": 0,
+   "possible_causes_truncated": false,
+   "nearest_kb_hint": "",
+   "note": "正常态也必须作为选项：只报「没有异常证据」≠ 正常（见 schema_evidence.md §7） ⚠️ 标注 in_kb 但判据库 0 行命中（需复核）"
+  },
+  {
+   "id": "black_screen",
+   "value": "black_screen",
+   "label": "黑屏（整屏全黑，无光栅/无字符）",
+   "label_plain": "黑屏",
+   "category": "画面整体",
+   "order": 2,
+   "in_kb": true,
+   "in_sop": true,
+   "kb_basis": "abnormal_value",
+   "user_dictated": false,
+   "author_confirm": false,
+   "abnormal_value": "black_screen",
+   "abnormal_value_in_kb": true,
+   "kb_rows": [
+    77,
+    88,
+    89
+   ],
+   "kb_row_count": 3,
+   "kb_row_count_by_abnormal_value": 1,
+   "kb_strength_max": 1.0,
+   "kb_strength_by": [
+    "abnormal_value+field",
+    "phenomenon_contains",
+    "phenomenon_exact"
+   ],
+   "sop_refs": [
+    {
+     "flow_no": "15(10-I)",
+     "check_item": "(操显)-显示画面",
+     "subject": "（操显）显示画面",
+     "method": "摄像头拍摄",
+     "need_qa": "是",
+     "fault_refs": "F_(image)(operator_display)_display_screen_yellow_screen|F_(image)(operator_display)_display_screen_black_screen|F_(image)(operator_display)_display_screen_yellow_screen|F_(image)(operator_display)_display_screen_yellow_screen"
+    },
+    {
+     "flow_no": "16（10-II）",
+     "check_item": "(领显)-有显示画面",
+     "subject": "（领显）显示画面",
+     "method": "摄像头拍摄",
+     "need_qa": "是",
+     "fault_refs": ""
+    }
+   ],
+   "vision_hintable": true,
+   "vision_supported": true,
+   "vision_state": "black_screen",
+   "vision_note": "vision_rules.screen_state 输出 black_screen（实心屏 + 亮度低）",
+   "possible_causes": [
+    {
+     "rank": 1,
+     "cabinet": "Z6（操显机柜）",
+     "sub_unit": "Z15（显示电路分机）（I）",
+     "module": "显示保险丝",
+     "reason": "步骤：(操显)-显示画面",
+     "reason_source": "step_name",
+     "phenomenon": "黑屏",
+     "feature_id": "F_(image)(operator_display)_display_screen_black_screen",
+     "confidence": 0.703,
+     "in_part_scope": false,
+     "kb_rows": [
+      89
+     ],
+     "coverage": {
+      "matched": 1,
+      "total": 1,
+      "ratio": 1.0
+     }
+    },
+    {
+     "rank": 2,
+     "cabinet": "Z6（操显机柜）",
+     "sub_unit": "指示分机",
+     "module": "指示分机（保险丝）",
+     "reason": "",
+     "reason_source": "none",
+     "phenomenon": "黑屏",
+     "feature_id": "",
+     "confidence": 0.601,
+     "in_part_scope": false,
+     "kb_rows": [
+      77
+     ],
+     "coverage": {
+      "matched": 1,
+      "total": 1,
+      "ratio": 1.0
+     }
+    },
+    {
+     "rank": 3,
+     "cabinet": "Z6（操显机柜）",
+     "sub_unit": "Z15（显示电路分机）（I）",
+     "module": "电源模块无220V输入",
+     "reason": "",
+     "reason_source": "none",
+     "phenomenon": "黑屏，显示电源灯不亮，各板指示灯不亮",
+     "feature_id": "",
+     "confidence": 0.547,
+     "in_part_scope": false,
+     "kb_rows": [
+      88
+     ],
+     "coverage": {
+      "matched": 1,
+      "total": 1,
+      "ratio": 1.0
+     }
+    }
+   ],
+   "possible_causes_total": 3,
+   "possible_causes_truncated": false,
+   "nearest_kb_hint": "",
+   "note": "判据库有 3 行黑屏：指示分机保险丝、Z15 显示保险丝（唯一带 feature_id 的行）、Z15 电源模块无 220V"
+  },
+  {
+   "id": "yellow_screen",
+   "value": "yellow_screen",
+   "label": "黄屏（整屏发黄/土黄）",
+   "label_plain": "黄屏",
+   "category": "画面整体",
+   "order": 3,
+   "in_kb": true,
+   "in_sop": true,
+   "kb_basis": "abnormal_value",
+   "user_dictated": false,
+   "author_confirm": false,
+   "abnormal_value": "yellow_screen",
+   "abnormal_value_in_kb": true,
+   "kb_rows": [
+    14,
+    18,
+    68,
+    94,
+    103,
+    110,
+    119,
+    134,
+    140,
+    145
+   ],
+   "kb_row_count": 10,
+   "kb_row_count_by_abnormal_value": 5,
+   "kb_strength_max": 1.0,
+   "kb_strength_by": [
+    "abnormal_value+field",
+    "phenomenon_exact"
+   ],
+   "sop_refs": [
+    {
+     "flow_no": "15(10-I)",
+     "check_item": "(操显)-显示画面",
+     "subject": "（操显）显示画面",
+     "method": "摄像头拍摄",
+     "need_qa": "是",
+     "fault_refs": "F_(image)(operator_display)_display_screen_yellow_screen|F_(image)(operator_display)_display_screen_black_screen|F_(image)(operator_display)_display_screen_yellow_screen|F_(image)(operator_display)_display_screen_yellow_screen"
+    },
+    {
+     "flow_no": "16（10-II）",
+     "check_item": "(领显)-有显示画面",
+     "subject": "（领显）显示画面",
+     "method": "摄像头拍摄",
+     "need_qa": "是",
+     "fault_refs": ""
+    }
+   ],
+   "vision_hintable": true,
+   "vision_supported": true,
+   "vision_state": "yellow_screen",
+   "vision_note": "vision_rules.screen_state 输出 yellow_screen（实心屏 + 黄色占比高）",
+   "possible_causes": [
+    {
+     "rank": 1,
+     "cabinet": "Z5（收发机柜）",
+     "sub_unit": "Z11（收发分机） （I路）",
+     "module": "Z11-1频综",
+     "reason": "10M相参基准",
+     "reason_source": "module",
+     "phenomenon": "（下滑）（航向）黄屏",
+     "feature_id": "F_(image)(operator_display)_display_screen_yellow_screen",
+     "confidence": 0.655,
+     "in_part_scope": false,
+     "kb_rows": [
+      18
+     ],
+     "coverage": {
+      "matched": 1,
+      "total": 1,
+      "ratio": 1.0
+     }
+    },
+    {
+     "rank": 2,
+     "cabinet": "Z6（操显机柜）",
+     "sub_unit": "Z14（信号处理分机）(I)",
+     "module": "GL1电源模块-无（3路+5V，1路-5V）输出",
+     "reason": "注记：断电=拔板子",
+     "reason_source": "remark",
+     "phenomenon": "（下滑）（航向）黄屏",
+     "feature_id": "F_(image)(operator_display)_display_screen_yellow_screen",
+     "confidence": 0.655,
+     "in_part_scope": false,
+     "kb_rows": [
+      94
+     ],
+     "coverage": {
+      "matched": 1,
+      "total": 1,
+      "ratio": 1.0
+     }
+    },
+    {
+     "rank": 3,
+     "cabinet": "Z6（操显机柜）",
+     "sub_unit": "Z14（信号处理分机）(I)",
+     "module": "GL2电源模块",
+     "reason": "注记：（+5V，-5V）",
+     "reason_source": "remark",
+     "phenomenon": "（下滑）（航向）黄屏",
+     "feature_id": "F_(image)(operator_display)_display_screen_yellow_screen",
+     "confidence": 0.655,
+     "in_part_scope": false,
+     "kb_rows": [
+      103
+     ],
+     "coverage": {
+      "matched": 1,
+      "total": 1,
+      "ratio": 1.0
+     }
+    },
+    {
+     "rank": 4,
+     "cabinet": "Z6（操显机柜）",
+     "sub_unit": "Z14（信号处理分机）(I)",
+     "module": "信处保险丝",
+     "reason": "",
+     "reason_source": "none",
+     "phenomenon": "（下滑）（航向）黄屏",
+     "feature_id": "F_(image)(operator_display)_display_screen_yellow_screen",
+     "confidence": 0.655,
+     "in_part_scope": false,
+     "kb_rows": [
+      110
+     ],
+     "coverage": {
+      "matched": 1,
+      "total": 1,
+      "ratio": 1.0
+     }
+    },
+    {
+     "rank": 5,
+     "cabinet": "Z6（操显机柜）",
+     "sub_unit": "Z14（信号处理分机）(I)",
+     "module": "Z14-1（时钟插件板）",
+     "reason": "注记：断电=拔板子",
+     "reason_source": "remark",
+     "phenomenon": "（下滑）（航向）黄屏",
+     "feature_id": "F_(image)(operator_display)_display_screen_yellow_screen",
+     "confidence": 0.655,
+     "in_part_scope": false,
+     "kb_rows": [
+      119
+     ],
+     "coverage": {
+      "matched": 1,
+      "total": 1,
+      "ratio": 1.0
+     }
+    },
+    {
+     "rank": 6,
+     "cabinet": "Z5（收发机柜）",
+     "sub_unit": "Z11（收发分机） （I路）",
+     "module": "Z11-1频综",
+     "reason": "无供电",
+     "reason_source": "module",
+     "phenomenon": "（下滑）（航向）黄屏",
+     "feature_id": "",
+     "confidence": 0.559,
+     "in_part_scope": false,
+     "kb_rows": [
+      14
+     ],
+     "coverage": {
+      "matched": 1,
+      "total": 1,
+      "ratio": 1.0
+     }
+    },
+    {
+     "rank": 7,
+     "cabinet": "Z5（收发机柜）",
+     "sub_unit": "Z12（电源分机） （I路）",
+     "module": "4NIC-X55.5-（+12V、-12V、+5V、-5V）",
+     "reason": "步骤：(操显)-显示画面",
+     "reason_source": "step_name",
+     "phenomenon": "（下滑）（航向）黄屏",
+     "feature_id": "",
+     "confidence": 0.559,
+     "in_part_scope": false,
+     "kb_rows": [
+      68
+     ],
+     "coverage": {
+      "matched": 1,
+      "total": 1,
+      "ratio": 1.0
+     }
+    },
+    {
+     "rank": 8,
+     "cabinet": "Z6（操显机柜）",
+     "sub_unit": "Z14（信号处理分机）(I)",
+     "module": "Z14-2（MTD插件板）",
+     "reason": "注记：断电=拔板子",
+     "reason_source": "remark",
+     "phenomenon": "（下滑）（航向）黄屏",
+     "feature_id": "",
+     "confidence": 0.559,
+     "in_part_scope": false,
+     "kb_rows": [
+      134
+     ],
+     "coverage": {
+      "matched": 1,
+      "total": 1,
+      "ratio": 1.0
+     }
+    }
+   ],
+   "possible_causes_total": 10,
+   "possible_causes_truncated": true,
+   "nearest_kb_hint": "",
+   "note": "现象文本含「黄屏」共 10 行，但只有 5 行填了 abnormal_value ⇒ 另 5 行只能靠现象文本匹配（强度 0.80/0.88）"
+  },
+  {
+   "id": "garbled",
+   "value": "garbled",
+   "label": "花屏（画面撕裂/碎块/杂色）",
+   "label_plain": "花屏",
+   "category": "画面整体",
+   "order": 4,
+   "in_kb": true,
+   "in_sop": true,
+   "kb_basis": "phenomenon",
+   "user_dictated": false,
+   "author_confirm": false,
+   "abnormal_value": "",
+   "abnormal_value_in_kb": false,
+   "kb_rows": [
+    86,
+    87
+   ],
+   "kb_row_count": 2,
+   "kb_row_count_by_abnormal_value": 0,
+   "kb_strength_max": 0.88,
+   "kb_strength_by": [
+    "phenomenon_contains",
+    "phenomenon_exact"
+   ],
+   "sop_refs": [
+    {
+     "flow_no": "15(10-I)",
+     "check_item": "(操显)-显示画面",
+     "subject": "（操显）显示画面",
+     "method": "摄像头拍摄",
+     "need_qa": "是",
+     "fault_refs": "F_(image)(operator_display)_display_screen_yellow_screen|F_(image)(operator_display)_display_screen_black_screen|F_(image)(operator_display)_display_screen_yellow_screen|F_(image)(operator_display)_display_screen_yellow_screen"
+    },
+    {
+     "flow_no": "16（10-II）",
+     "check_item": "(领显)-有显示画面",
+     "subject": "（领显）显示画面",
+     "method": "摄像头拍摄",
+     "need_qa": "是",
+     "fault_refs": ""
+    }
+   ],
+   "vision_hintable": true,
+   "vision_supported": true,
+   "vision_state": "garbled",
+   "vision_note": "vision_rules.screen_state 输出 garbled（高频能量 + 边缘密度双阈值）",
+   "possible_causes": [
+    {
+     "rank": 1,
+     "cabinet": "Z6（操显机柜）",
+     "sub_unit": "Z15（显示电路分机）（I）",
+     "module": "CPU板（存储卡）",
+     "reason": "注记：没有卡扣，向上推出",
+     "reason_source": "remark",
+     "phenomenon": "花屏",
+     "feature_id": "",
+     "confidence": 0.631,
+     "in_part_scope": false,
+     "kb_rows": [
+      87
+     ],
+     "coverage": {
+      "matched": 1,
+      "total": 1,
+      "ratio": 1.0
+     }
+    },
+    {
+     "rank": 2,
+     "cabinet": "Z6（操显机柜）",
+     "sub_unit": "Z15（显示电路分机）（I）",
+     "module": "图形图像板",
+     "reason": "注记：可拔下，但需要找到故障板",
+     "reason_source": "remark",
+     "phenomenon": "花屏或显示画面死机",
+     "feature_id": "",
+     "confidence": 0.574,
+     "in_part_scope": false,
+     "kb_rows": [
+      86
+     ],
+     "coverage": {
+      "matched": 1,
+      "total": 1,
+      "ratio": 1.0
+     }
+    }
+   ],
+   "possible_causes_total": 2,
+   "possible_causes_truncated": false,
+   "nearest_kb_hint": "",
+   "note": "判据库**没有** garbled 这个 abnormal_value（只有现象文本「花屏」）；fusion.py 把 garbled 当扩展枚举接受 ⇒ 值为 garbled 也能判异常"
+  },
+  {
+   "id": "screen_freeze",
+   "value": "freeze",
+   "label": "画面死机/冻结（卡死、不刷新）",
+   "label_plain": "画面冻结",
+   "category": "画面整体",
+   "order": 5,
+   "in_kb": true,
+   "in_sop": true,
+   "kb_basis": "phenomenon",
+   "user_dictated": false,
+   "author_confirm": false,
+   "abnormal_value": "",
+   "abnormal_value_in_kb": false,
+   "kb_rows": [
+    86
+   ],
+   "kb_row_count": 1,
+   "kb_row_count_by_abnormal_value": 0,
+   "kb_strength_max": 0.88,
+   "kb_strength_by": [
+    "phenomenon_exact"
+   ],
+   "sop_refs": [
+    {
+     "flow_no": "15(10-I)",
+     "check_item": "(操显)-显示画面",
+     "subject": "（操显）显示画面",
+     "method": "摄像头拍摄",
+     "need_qa": "是",
+     "fault_refs": "F_(image)(operator_display)_display_screen_yellow_screen|F_(image)(operator_display)_display_screen_black_screen|F_(image)(operator_display)_display_screen_yellow_screen|F_(image)(operator_display)_display_screen_yellow_screen"
+    },
+    {
+     "flow_no": "16（10-II）",
+     "check_item": "(领显)-有显示画面",
+     "subject": "（领显）显示画面",
+     "method": "摄像头拍摄",
+     "need_qa": "是",
+     "fault_refs": ""
+    }
+   ],
+   "vision_hintable": true,
+   "vision_supported": false,
+   "vision_state": null,
+   "vision_note": "现有 vision_rules 是**单帧**判读，判不了「不刷新」；需连续 2~3 帧比对（本次不改 ✗）",
+   "possible_causes": [
+    {
+     "rank": 1,
+     "cabinet": "Z6（操显机柜）",
+     "sub_unit": "Z15（显示电路分机）（I）",
+     "module": "图形图像板",
+     "reason": "注记：可拔下，但需要找到故障板",
+     "reason_source": "remark",
+     "phenomenon": "花屏或显示画面死机",
+     "feature_id": "",
+     "confidence": 0.722,
+     "in_part_scope": false,
+     "kb_rows": [
+      86
+     ],
+     "coverage": {
+      "matched": 1,
+      "total": 1,
+      "ratio": 1.0
+     }
+    }
+   ],
+   "possible_causes_total": 1,
+   "possible_causes_truncated": false,
+   "nearest_kb_hint": "",
+   "note": "知识库把「死机」与「花屏」写在同一现象里（Z15 图形图像板），无法单独区分 ⇒ 与花屏共用候选"
+  },
+  {
+   "id": "no_echo",
+   "value": "no_echo",
+   "label": "无回波（有底噪但无目标回波）",
+   "label_plain": "无回波",
+   "category": "回波",
+   "order": 6,
+   "in_kb": true,
+   "in_sop": true,
+   "kb_basis": "abnormal_value",
+   "user_dictated": false,
+   "author_confirm": false,
+   "abnormal_value": "no",
+   "abnormal_value_in_kb": true,
+   "kb_rows": [
+    22,
+    23,
+    24,
+    25,
+    26,
+    27,
+    28,
+    29,
+    30,
+    31,
+    32,
+    33,
+    34,
+    35,
+    36,
+    37,
+    38,
+    39,
+    40,
+    41,
+    42,
+    43,
+    44,
+    45,
+    46,
+    47,
+    49,
+    51,
+    58,
+    59,
+    64,
+    65,
+    100,
+    101,
+    117,
+    118,
+    137,
+    138,
+    152,
+    153
+   ],
+   "kb_row_count": 40,
+   "kb_row_count_by_abnormal_value": 16,
+   "kb_strength_max": 1.0,
+   "kb_strength_by": [
+    "abnormal_value+field",
+    "phenomenon_contains"
+   ],
+   "sop_refs": [
+    {
+     "flow_no": "21",
+     "check_item": "航向回波正常",
+     "subject": "（操显）航向回波",
+     "method": "摄像头拍摄",
+     "need_qa": "是",
+     "fault_refs": ""
+    },
+    {
+     "flow_no": "21",
+     "check_item": "下滑回波正常",
+     "subject": "（操显）下滑回波",
+     "method": "摄像头拍摄",
+     "need_qa": "是",
+     "fault_refs": ""
+    },
+    {
+     "flow_no": "26",
+     "check_item": "航向回波正常",
+     "subject": "（领显）航向回波",
+     "method": "摄像头拍摄",
+     "need_qa": "是",
+     "fault_refs": ""
+    },
+    {
+     "flow_no": "26",
+     "check_item": "下滑回波正常",
+     "subject": "（领显）下滑回波",
+     "method": "摄像头拍摄",
+     "need_qa": "是",
+     "fault_refs": ""
+    }
+   ],
+   "vision_hintable": true,
+   "vision_supported": true,
+   "vision_state": "no_echo",
+   "vision_note": "vision_rules 输出 no_echo（亮像素 ≤0.12% 且有底噪）；**注意** fusion.py 的全局枚举里没有 no_echo（只有 no），集成时需把 no_echo 归一为 no",
+   "possible_causes": [
+    {
+     "rank": 1,
+     "cabinet": "Z5（收发机柜）",
+     "sub_unit": "Z11（收发分机） （I路）",
+     "module": "Z11-1频综",
+     "reason": "400M",
+     "reason_source": "module",
+     "phenomenon": "（I）路-Z11（收发）-[工作]-指示灯_不亮",
+     "feature_id": "F_(image)(operator_display)_course_echo_no",
+     "confidence": 0.649,
+     "in_part_scope": false,
+     "kb_rows": [
+      22,
+      23,
+      24,
+      25
+     ],
+     "coverage": {
+      "matched": 1,
+      "total": 1,
+      "ratio": 1.0
+     }
+    },
+    {
+     "rank": 2,
+     "cabinet": "Z5（收发机柜）",
+     "sub_unit": "Z11（收发分机） （I路）",
+     "module": "Z11-1频综",
+     "reason": "9000M",
+     "reason_source": "module",
+     "phenomenon": "（I）路-Z11（收发）-[工作]-指示灯_不亮",
+     "feature_id": "F_(image)(operator_display)_course_echo_no",
+     "confidence": 0.649,
+     "in_part_scope": false,
+     "kb_rows": [
+      26,
+      27,
+      28,
+      29
+     ],
+     "coverage": {
+      "matched": 1,
+      "total": 1,
+      "ratio": 1.0
+     }
+    },
+    {
+     "rank": 3,
+     "cabinet": "Z5（收发机柜）",
+     "sub_unit": "Z11（收发分机） （I路）",
+     "module": "Z11-1频综",
+     "reason": "9400M",
+     "reason_source": "module",
+     "phenomenon": "航向回波(无)",
+     "feature_id": "F_(image)(operator_display)_course_echo_no",
+     "confidence": 0.649,
+     "in_part_scope": false,
+     "kb_rows": [
+      30,
+      31
+     ],
+     "coverage": {
+      "matched": 1,
+      "total": 1,
+      "ratio": 1.0
+     }
+    },
+    {
+     "rank": 4,
+     "cabinet": "Z5（收发机柜）",
+     "sub_unit": "Z11（收发分机） （I路）",
+     "module": "Z11-4接收前端",
+     "reason": "无供电",
+     "reason_source": "module",
+     "phenomenon": "航向回波(无)",
+     "feature_id": "F_(image)(operator_display)_course_echo_no",
+     "confidence": 0.649,
+     "in_part_scope": false,
+     "kb_rows": [
+      32,
+      33
+     ],
+     "coverage": {
+      "matched": 1,
+      "total": 1,
+      "ratio": 1.0
+     }
+    },
+    {
+     "rank": 5,
+     "cabinet": "Z5（收发机柜）",
+     "sub_unit": "Z11（收发分机） （I路）",
+     "module": "Z11-3固态功放",
+     "reason": "无供电",
+     "reason_source": "module",
+     "phenomenon": "（I）路-Z11（收发）-[工作]-指示灯_不亮",
+     "feature_id": "F_(image)(operator_display)_course_echo_no",
+     "confidence": 0.649,
+     "in_part_scope": false,
+     "kb_rows": [
+      36,
+      37,
+      38,
+      39
+     ],
+     "coverage": {
+      "matched": 1,
+      "total": 1,
+      "ratio": 1.0
+     }
+    },
+    {
+     "rank": 6,
+     "cabinet": "Z5（收发机柜）",
+     "sub_unit": "Z11（收发分机） （I路）",
+     "module": "Z11-3固态功放",
+     "reason": "发射高频",
+     "reason_source": "module",
+     "phenomenon": "（I）路-Z11（收发）-[工作]-指示灯_不亮",
+     "feature_id": "F_(image)(operator_display)_course_echo_no",
+     "confidence": 0.649,
+     "in_part_scope": false,
+     "kb_rows": [
+      40,
+      41,
+      42,
+      43
+     ],
+     "coverage": {
+      "matched": 1,
+      "total": 1,
+      "ratio": 1.0
+     }
+    },
+    {
+     "rank": 7,
+     "cabinet": "Z5（收发机柜）",
+     "sub_unit": "Z11（收发分机） （I路）",
+     "module": "（发射中频）线断",
+     "reason": "注记：断开（背板-BNC）Z11-XS4",
+     "reason_source": "remark",
+     "phenomenon": "（I）路-Z11（收发）-[工作]-指示灯_不亮",
+     "feature_id": "F_(image)(operator_display)_course_echo_no",
+     "confidence": 0.649,
+     "in_part_scope": false,
+     "kb_rows": [
+      44,
+      45,
+      46,
+      47
+     ],
+     "coverage": {
+      "matched": 1,
+      "total": 1,
+      "ratio": 1.0
+     }
+    },
+    {
+     "rank": 8,
+     "cabinet": "Z5（收发机柜）",
+     "sub_unit": "Z11（收发分机） （I路）",
+     "module": "分机不到位",
+     "reason": "注记：Z20(控制台)->[发射机控制]->[发射控制]-…",
+     "reason_source": "remark",
+     "phenomenon": "（I）路-Z11（收发）-[故障]-指示灯_亮",
+     "feature_id": "F_(image)(operator_display)_course_echo_no",
+     "confidence": 0.649,
+     "in_part_scope": false,
+     "kb_rows": [
+      49,
+      51
+     ],
+     "coverage": {
+      "matched": 1,
+      "total": 1,
+      "ratio": 1.0
+     }
+    }
+   ],
+   "possible_causes_total": 15,
+   "possible_causes_truncated": true,
+   "nearest_kb_hint": "",
+   "note": "判据库的 abnormal_value 是 ``no``（16 行，航向/下滑回波各 8 行），不是 no_echo"
+  },
+  {
+   "id": "weak_echo",
+   "value": "weak",
+   "label": "回波弱（幅度明显偏小）",
+   "label_plain": "弱",
+   "category": "回波",
+   "order": 7,
+   "in_kb": true,
+   "in_sop": true,
+   "kb_basis": "abnormal_value",
+   "user_dictated": false,
+   "author_confirm": false,
+   "abnormal_value": "weak",
+   "abnormal_value_in_kb": true,
+   "kb_rows": [
+    34,
+    35
+   ],
+   "kb_row_count": 2,
+   "kb_row_count_by_abnormal_value": 2,
+   "kb_strength_max": 1.0,
+   "kb_strength_by": [
+    "abnormal_value+field"
+   ],
+   "sop_refs": [
+    {
+     "flow_no": "21",
+     "check_item": "航向回波正常",
+     "subject": "（操显）航向回波",
+     "method": "摄像头拍摄",
+     "need_qa": "是",
+     "fault_refs": ""
+    },
+    {
+     "flow_no": "21",
+     "check_item": "下滑回波正常",
+     "subject": "（操显）下滑回波",
+     "method": "摄像头拍摄",
+     "need_qa": "是",
+     "fault_refs": ""
+    },
+    {
+     "flow_no": "26",
+     "check_item": "航向回波正常",
+     "subject": "（领显）航向回波",
+     "method": "摄像头拍摄",
+     "need_qa": "是",
+     "fault_refs": ""
+    },
+    {
+     "flow_no": "26",
+     "check_item": "下滑回波正常",
+     "subject": "（领显）下滑回波",
+     "method": "摄像头拍摄",
+     "need_qa": "是",
+     "fault_refs": ""
+    }
+   ],
+   "vision_hintable": true,
+   "vision_supported": false,
+   "vision_state": null,
+   "vision_note": "vision_rules 只输出 no_echo，没有 weak 档；弱回波目前只能人工/问答确认",
+   "possible_causes": [
+    {
+     "rank": 1,
+     "cabinet": "Z5（收发机柜）",
+     "sub_unit": "Z11（收发分机） （I路）",
+     "module": "Z11-5近程增益控制",
+     "reason": "无供电",
+     "reason_source": "module",
+     "phenomenon": "航向回波(无)",
+     "feature_id": "F_(image)(operator_display)_course_echo_weak",
+     "confidence": 0.84,
+     "in_part_scope": false,
+     "kb_rows": [
+      34,
+      35
+     ],
+     "coverage": {
+      "matched": 1,
+      "total": 1,
+      "ratio": 1.0
+     }
+    }
+   ],
+   "possible_causes_total": 1,
+   "possible_causes_truncated": false,
+   "nearest_kb_hint": "",
+   "note": "判据库只有 2 行 weak，且都在 Z11-5 近程增益控制（无供电）"
+  },
+  {
+   "id": "no_scan",
+   "value": "no_scan",
+   "label": "不扫描（扫描线不动/画面静止）",
+   "label_plain": "不扫描",
+   "category": "扫描",
+   "order": 8,
+   "in_kb": true,
+   "in_sop": true,
+   "kb_basis": "phenomenon",
+   "user_dictated": false,
+   "author_confirm": false,
+   "abnormal_value": "",
+   "abnormal_value_in_kb": false,
+   "kb_rows": [
+    82,
+    83,
+    85,
+    148,
+    149
+   ],
+   "kb_row_count": 5,
+   "kb_row_count_by_abnormal_value": 0,
+   "kb_strength_max": 0.88,
+   "kb_strength_by": [
+    "phenomenon_exact"
+   ],
+   "sop_refs": [
+    {
+     "flow_no": "19",
+     "check_item": "（操显）航向画面扫描正常",
+     "subject": "（操显）航向画面扫描",
+     "method": "摄像头拍摄",
+     "need_qa": "是",
+     "fault_refs": ""
+    },
+    {
+     "flow_no": "19",
+     "check_item": "（操显）下滑画面扫描正常",
+     "subject": "（操显）下滑画面扫描",
+     "method": "摄像头拍摄",
+     "need_qa": "是",
+     "fault_refs": ""
+    },
+    {
+     "flow_no": "19",
+     "check_item": "（领显）航向画面扫描正常",
+     "subject": "（领显）航向画面扫描",
+     "method": "",
+     "need_qa": "",
+     "fault_refs": ""
+    },
+    {
+     "flow_no": "19",
+     "check_item": "（领显）下滑画面扫描正常",
+     "subject": "（领显）下滑画面扫描",
+     "method": "",
+     "need_qa": "",
+     "fault_refs": ""
+    }
+   ],
+   "vision_hintable": true,
+   "vision_supported": true,
+   "vision_state": "no_scan",
+   "vision_note": "vision_rules 输出 no_scan（扫描线不动/纹理与帧差异小）；**注意** fusion.py 的全局枚举里没有 no_scan ⇒ 会落 undetermined，集成时需补映射",
+   "possible_causes": [
+    {
+     "rank": 1,
+     "cabinet": "Z6（操显机柜）",
+     "sub_unit": "Z15（显示电路分机）（I）",
+     "module": "角码变换板-U1",
+     "reason": "步骤：(操显)-显示画面",
+     "reason_source": "step_name",
+     "phenomenon": "（航向）_不扫描",
+     "feature_id": "",
+     "confidence": 0.586,
+     "in_part_scope": false,
+     "kb_rows": [
+      82
+     ],
+     "coverage": {
+      "matched": 1,
+      "total": 1,
+      "ratio": 1.0
+     }
+    },
+    {
+     "rank": 2,
+     "cabinet": "Z6（操显机柜）",
+     "sub_unit": "Z15（显示电路分机）（I）",
+     "module": "角码变换板-U2",
+     "reason": "步骤：(操显)-显示画面",
+     "reason_source": "step_name",
+     "phenomenon": "（下滑）_不扫描",
+     "feature_id": "",
+     "confidence": 0.586,
+     "in_part_scope": false,
+     "kb_rows": [
+      83
+     ],
+     "coverage": {
+      "matched": 1,
+      "total": 1,
+      "ratio": 1.0
+     }
+    },
+    {
+     "rank": 3,
+     "cabinet": "Z6（操显机柜）",
+     "sub_unit": "Z15（显示电路分机）（I）",
+     "module": "扫描变换板",
+     "reason": "注记：可拔下，但需要找到故障板",
+     "reason_source": "remark",
+     "phenomenon": "自检30，显示画面不扫描",
+     "feature_id": "",
+     "confidence": 0.586,
+     "in_part_scope": false,
+     "kb_rows": [
+      85
+     ],
+     "coverage": {
+      "matched": 1,
+      "total": 1,
+      "ratio": 1.0
+     }
+    },
+    {
+     "rank": 4,
+     "cabinet": "Z6（操显机柜）",
+     "sub_unit": "转接分机",
+     "module": "Z19-FU1-2A保险丝",
+     "reason": "步骤：（操显）航向扫描",
+     "reason_source": "step_name",
+     "phenomenon": "（操显）航向无扫描",
+     "feature_id": "",
+     "confidence": 0.586,
+     "in_part_scope": false,
+     "kb_rows": [
+      148,
+      149
+     ],
+     "coverage": {
+      "matched": 1,
+      "total": 1,
+      "ratio": 1.0
+     }
+    }
+   ],
+   "possible_causes_total": 4,
+   "possible_causes_truncated": false,
+   "nearest_kb_hint": "",
+   "note": "判据库**没有** no_scan 这个 abnormal_value（只有现象文本），候选全部靠现象文本匹配"
+  },
+  {
+   "id": "no_noise",
+   "value": "no_noise",
+   "label": "无底噪/无噪声（画面异常干净）",
+   "label_plain": "无底噪",
+   "category": "底噪",
+   "order": 9,
+   "in_kb": true,
+   "in_sop": true,
+   "kb_basis": "abnormal_value",
+   "user_dictated": false,
+   "author_confirm": false,
+   "abnormal_value": "no_noise",
+   "abnormal_value_in_kb": true,
+   "kb_rows": [
+    98,
+    99,
+    115,
+    116,
+    135,
+    136,
+    150,
+    151
+   ],
+   "kb_row_count": 8,
+   "kb_row_count_by_abnormal_value": 6,
+   "kb_strength_max": 1.0,
+   "kb_strength_by": [
+    "abnormal_value+field",
+    "phenomenon_contains"
+   ],
+   "sop_refs": [
+    {
+     "flow_no": "19",
+     "check_item": "（操显）航向噪声有",
+     "subject": "（操显）航向噪声",
+     "method": "摄像头拍摄",
+     "need_qa": "是",
+     "fault_refs": ""
+    },
+    {
+     "flow_no": "19",
+     "check_item": "（操显）下滑噪声有",
+     "subject": "（操显）下滑噪声",
+     "method": "摄像头拍摄",
+     "need_qa": "是",
+     "fault_refs": ""
+    },
+    {
+     "flow_no": "19",
+     "check_item": "（领显）航向噪声有",
+     "subject": "（领显）航向噪声",
+     "method": "",
+     "need_qa": "",
+     "fault_refs": ""
+    },
+    {
+     "flow_no": "19",
+     "check_item": "（领显）下滑噪声有",
+     "subject": "（领显）下滑噪声",
+     "method": "",
+     "need_qa": "",
+     "fault_refs": ""
+    }
+   ],
+   "vision_hintable": true,
+   "vision_supported": true,
+   "vision_state": "no_noise",
+   "vision_note": "vision_rules 输出 no_noise（噪声场均匀度过高/亮像素极少）",
+   "possible_causes": [
+    {
+     "rank": 1,
+     "cabinet": "Z6（操显机柜）",
+     "sub_unit": "Z14（信号处理分机）(I)",
+     "module": "Z14-10（中频放大器）",
+     "reason": "注记：拔电源（排线）",
+     "reason_source": "remark",
+     "phenomenon": "（操显）航向_无噪声",
+     "feature_id": "F_(image)(operator_display)_course_noise_no_noise",
+     "confidence": 0.686,
+     "in_part_scope": false,
+     "kb_rows": [
+      115,
+      116
+     ],
+     "coverage": {
+      "matched": 1,
+      "total": 1,
+      "ratio": 1.0
+     }
+    },
+    {
+     "rank": 2,
+     "cabinet": "Z6（操显机柜）",
+     "sub_unit": "Z14（信号处理分机）(I)",
+     "module": "Z14-3（数字脉压板）",
+     "reason": "注记：断电=拔板子",
+     "reason_source": "remark",
+     "phenomenon": "（操显）航向_无噪声",
+     "feature_id": "F_(image)(operator_display)_course_noise_no_noise",
+     "confidence": 0.686,
+     "in_part_scope": false,
+     "kb_rows": [
+      135,
+      136
+     ],
+     "coverage": {
+      "matched": 1,
+      "total": 1,
+      "ratio": 1.0
+     }
+    },
+    {
+     "rank": 3,
+     "cabinet": "Z6（操显机柜）",
+     "sub_unit": "转接分机",
+     "module": "Z19-FU1-2A保险丝",
+     "reason": "步骤：（操显）航向噪声",
+     "reason_source": "step_name",
+     "phenomenon": "（操显）航向无噪声",
+     "feature_id": "F_(image)(operator_display)_course_noise_no_noise",
+     "confidence": 0.686,
+     "in_part_scope": false,
+     "kb_rows": [
+      150,
+      151
+     ],
+     "coverage": {
+      "matched": 1,
+      "total": 1,
+      "ratio": 1.0
+     }
+    },
+    {
+     "rank": 4,
+     "cabinet": "Z6（操显机柜）",
+     "sub_unit": "Z14（信号处理分机）(I)",
+     "module": "GL2电源模块",
+     "reason": "步骤：（操显）航向噪声",
+     "reason_source": "step_name",
+     "phenomenon": "（操显）航向_无噪声",
+     "feature_id": "",
+     "confidence": 0.533,
+     "in_part_scope": false,
+     "kb_rows": [
+      98,
+      99
+     ],
+     "coverage": {
+      "matched": 1,
+      "total": 1,
+      "ratio": 1.0
+     }
+    }
+   ],
+   "possible_causes_total": 4,
+   "possible_causes_truncated": false,
+   "nearest_kb_hint": "",
+   "note": "判据库 6 行 no_noise（Z14-10 中频放大器 / Z14-3 数字脉压板 / Z19-FU1 保险丝）"
+  },
+  {
+   "id": "noise_present",
+   "value": "noise_present",
+   "label": "有底噪（正常态）",
+   "label_plain": "有底噪",
+   "category": "底噪",
+   "order": 10,
+   "in_kb": true,
+   "in_sop": true,
+   "kb_basis": "sop_check_item",
+   "user_dictated": false,
+   "author_confirm": false,
+   "abnormal_value": "",
+   "abnormal_value_in_kb": false,
+   "kb_rows": [],
+   "kb_row_count": 0,
+   "kb_row_count_by_abnormal_value": 0,
+   "kb_strength_max": 0.0,
+   "kb_strength_by": [],
+   "sop_refs": [
+    {
+     "flow_no": "19",
+     "check_item": "（操显）航向噪声有",
+     "subject": "（操显）航向噪声",
+     "method": "摄像头拍摄",
+     "need_qa": "是",
+     "fault_refs": ""
+    },
+    {
+     "flow_no": "19",
+     "check_item": "（操显）下滑噪声有",
+     "subject": "（操显）下滑噪声",
+     "method": "摄像头拍摄",
+     "need_qa": "是",
+     "fault_refs": ""
+    },
+    {
+     "flow_no": "19",
+     "check_item": "（领显）航向噪声有",
+     "subject": "（领显）航向噪声",
+     "method": "",
+     "need_qa": "",
+     "fault_refs": ""
+    },
+    {
+     "flow_no": "19",
+     "check_item": "（领显）下滑噪声有",
+     "subject": "（领显）下滑噪声",
+     "method": "",
+     "need_qa": "",
+     "fault_refs": ""
+    }
+   ],
+   "vision_hintable": true,
+   "vision_supported": true,
+   "vision_state": "ok",
+   "vision_note": "vision_rules 的噪声项输出 ok 即「有底噪」",
+   "possible_causes": [],
+   "possible_causes_total": 0,
+   "possible_causes_truncated": false,
+   "nearest_kb_hint": "",
+   "note": "这是**正常**态（SOP flow 19「（操显）航向噪声有」）；单给「有底噪」不能判故障 ⚠️ 标注 in_kb 但判据库 0 行命中（需复核）"
+  },
+  {
+   "id": "selftest_30",
+   "value": "自检30",
+   "label": "屏上出现「自检30」字样",
+   "label_plain": "自检30",
+   "category": "自检码",
+   "order": 11,
+   "in_kb": true,
+   "in_sop": false,
+   "kb_basis": "phenomenon",
+   "user_dictated": false,
+   "author_confirm": false,
+   "abnormal_value": "",
+   "abnormal_value_in_kb": false,
+   "kb_rows": [
+    85
+   ],
+   "kb_row_count": 1,
+   "kb_row_count_by_abnormal_value": 0,
+   "kb_strength_max": 0.88,
+   "kb_strength_by": [
+    "phenomenon_exact"
+   ],
+   "sop_refs": [],
+   "vision_hintable": true,
+   "vision_supported": false,
+   "vision_state": null,
+   "vision_note": "需要 OCR 读屏上的数字；作者说现场没有样本 ⇒ 出现才报、不做强判",
+   "possible_causes": [
+    {
+     "rank": 1,
+     "cabinet": "Z6（操显机柜）",
+     "sub_unit": "Z15（显示电路分机）（I）",
+     "module": "扫描变换板",
+     "reason": "注记：可拔下，但需要找到故障板",
+     "reason_source": "remark",
+     "phenomenon": "自检30，显示画面不扫描",
+     "feature_id": "",
+     "confidence": 0.722,
+     "in_part_scope": false,
+     "kb_rows": [
+      85
+     ],
+     "coverage": {
+      "matched": 1,
+      "total": 1,
+      "ratio": 1.0
+     }
+    }
+   ],
+   "possible_causes_total": 1,
+   "possible_causes_truncated": false,
+   "nearest_kb_hint": "",
+   "note": "作者口径：无现场样本，**不做强判**；只在屏上出现时上报（→ Z15 扫描变换板）"
+  },
+  {
+   "id": "selftest_40",
+   "value": "自检40",
+   "label": "屏上出现「自检40」字样",
+   "label_plain": "自检40",
+   "category": "自检码",
+   "order": 12,
+   "in_kb": true,
+   "in_sop": false,
+   "kb_basis": "phenomenon",
+   "user_dictated": false,
+   "author_confirm": false,
+   "abnormal_value": "",
+   "abnormal_value_in_kb": false,
+   "kb_rows": [
+    84
+   ],
+   "kb_row_count": 1,
+   "kb_row_count_by_abnormal_value": 0,
+   "kb_strength_max": 0.88,
+   "kb_strength_by": [
+    "phenomenon_exact"
+   ],
+   "sop_refs": [],
+   "vision_hintable": true,
+   "vision_supported": false,
+   "vision_state": null,
+   "vision_note": "同上：需要 OCR，出现才报",
+   "possible_causes": [
+    {
+     "rank": 1,
+     "cabinet": "Z6（操显机柜）",
+     "sub_unit": "Z15（显示电路分机）（I）",
+     "module": "检测获取板",
+     "reason": "注记：可拔下，但需要找到故障板",
+     "reason_source": "remark",
+     "phenomenon": "自检40，自动录取与跟踪功能失效",
+     "feature_id": "",
+     "confidence": 0.722,
+     "in_part_scope": false,
+     "kb_rows": [
+      84
+     ],
+     "coverage": {
+      "matched": 1,
+      "total": 1,
+      "ratio": 1.0
+     }
+    }
+   ],
+   "possible_causes_total": 1,
+   "possible_causes_truncated": false,
+   "nearest_kb_hint": "",
+   "note": "作者口径同上（→ Z15 检测获取板）"
+  },
+  {
+   "id": "meter_zero",
+   "value": "abnormal",
+   "label": "表头/数值显示 0.00 或明显异常",
+   "label_plain": "数值异常",
+   "category": "表头",
+   "order": 13,
+   "in_kb": true,
+   "in_sop": false,
+   "kb_basis": "abnormal_value",
+   "user_dictated": false,
+   "author_confirm": false,
+   "abnormal_value": "abnormal",
+   "abnormal_value_in_kb": true,
+   "kb_rows": [
+    55,
+    61,
+    67,
+    71
+   ],
+   "kb_row_count": 4,
+   "kb_row_count_by_abnormal_value": 3,
+   "kb_strength_max": 1.0,
+   "kb_strength_by": [
+    "abnormal_value+field",
+    "phenomenon_contains"
+   ],
+   "sop_refs": [],
+   "vision_hintable": true,
+   "vision_supported": false,
+   "vision_state": null,
+   "vision_note": "微表区读数复用 soc_vision.screen_read_v2，缺参考模板 ⇒ 未判定（当前不可用）",
+   "possible_causes": [
+    {
+     "rank": 1,
+     "cabinet": "Z5（收发机柜）",
+     "sub_unit": "Z12（电源分机） （I路）",
+     "module": "4NIC-X220F-11V",
+     "reason": "注记：GL1（功放电源） 4NIC-X220F XT1",
+     "reason_source": "remark",
+     "phenomenon": "11V显示（0.00或8.1V） 当显示有数值，例如为8.1V或者9.5V时，开天线，开发射之后变为0.00",
+     "feature_id": "F_(image)z12_(1)_internal_supply_11v_abnormal",
+     "confidence": 0.703,
+     "in_part_scope": false,
+     "kb_rows": [
+      55
+     ],
+     "coverage": {
+      "matched": 1,
+      "total": 1,
+      "ratio": 1.0
+     }
+    },
+    {
+     "rank": 2,
+     "cabinet": "Z5（收发机柜）",
+     "sub_unit": "Z12（电源分机） （I路）",
+     "module": "4NIC-X82.5-（+15V、-15V）",
+     "reason": "注记：GL2（功放电源） 4NIC-X220F XT2",
+     "reason_source": "remark",
+     "phenomenon": "（+15V）显示（0.00） （-15V）显示（0.00）",
+     "feature_id": "F_(image)z12_(1)_internal_supply_(+15V)_and_(-15V)_abnormal",
+     "confidence": 0.703,
+     "in_part_scope": false,
+     "kb_rows": [
+      61
+     ],
+     "coverage": {
+      "matched": 1,
+      "total": 1,
+      "ratio": 1.0
+     }
+    },
+    {
+     "rank": 3,
+     "cabinet": "Z5（收发机柜）",
+     "sub_unit": "Z12（电源分机） （I路）",
+     "module": "4NIC-X55.5-（+12V、-12V、+5V、-5V）",
+     "reason": "注记：GL2（其他电源） 4NIC-X220F XT3 （…",
+     "reason_source": "remark",
+     "phenomenon": "（I路）（+12V、-12V）显示（0.00） （II路）（+12V、-12V）显示（0.00）",
+     "feature_id": "F_(image)z12_(1)_internal_supply_(+5V、-5V)_abnormal",
+     "confidence": 0.703,
+     "in_part_scope": false,
+     "kb_rows": [
+      67,
+      71
+     ],
+     "coverage": {
+      "matched": 1,
+      "total": 1,
+      "ratio": 1.0
+     }
+    }
+   ],
+   "possible_causes_total": 3,
+   "possible_causes_truncated": false,
+   "nearest_kb_hint": "",
+   "note": "判据库 3 行 abnormal 全是 Z12 内部电源（11V / ±15V / +5V-5V）显示 0.00"
+  },
+  {
+   "id": "meter_dark",
+   "value": "meter_dark",
+   "label": "数码面板表不亮（表头无显示）",
+   "label_plain": "表头不亮",
+   "category": "表头",
+   "order": 14,
+   "in_kb": true,
+   "in_sop": false,
+   "kb_basis": "phenomenon",
+   "user_dictated": false,
+   "author_confirm": false,
+   "abnormal_value": "",
+   "abnormal_value_in_kb": false,
+   "kb_rows": [
+    71
+   ],
+   "kb_row_count": 1,
+   "kb_row_count_by_abnormal_value": 0,
+   "kb_strength_max": 0.88,
+   "kb_strength_by": [
+    "phenomenon_exact"
+   ],
+   "sop_refs": [],
+   "vision_hintable": true,
+   "vision_supported": false,
+   "vision_state": null,
+   "vision_note": "同上：微表区需要模板读数，当前判不了「亮没亮」以外的东西",
+   "possible_causes": [
+    {
+     "rank": 1,
+     "cabinet": "Z5（收发机柜）",
+     "sub_unit": "Z12（电源分机） （I路）",
+     "module": "4NIC-X55.5-（+12V、-12V、+5V、-5V）",
+     "reason": "注记：（+5V、-5V）",
+     "reason_source": "remark",
+     "phenomenon": "数字面板表不亮",
+     "feature_id": "F_(image)z12_(1)_internal_supply_(+5V、-5V)_abnormal",
+     "confidence": 0.742,
+     "in_part_scope": false,
+     "kb_rows": [
+      71
+     ],
+     "coverage": {
+      "matched": 1,
+      "total": 1,
+      "ratio": 1.0
+     }
+    }
+   ],
+   "possible_causes_total": 1,
+   "possible_causes_truncated": false,
+   "nearest_kb_hint": "",
+   "note": "与「表头数值异常」同一行（Z12 +5V/-5V，abnormal_value=abnormal），两者可能同时命中"
+  },
+  {
+   "id": "meter_direction",
+   "value": "error",
+   "label": "天线方向显示错误（微表区数值/指针不对）",
+   "label_plain": "方向显示错误",
+   "category": "表头",
+   "order": 15,
+   "in_kb": true,
+   "in_sop": false,
+   "kb_basis": "abnormal_value",
+   "user_dictated": false,
+   "author_confirm": false,
+   "abnormal_value": "error",
+   "abnormal_value_in_kb": true,
+   "kb_rows": [
+    173,
+    197,
+    218
+   ],
+   "kb_row_count": 3,
+   "kb_row_count_by_abnormal_value": 1,
+   "kb_strength_max": 0.95,
+   "kb_strength_by": [
+    "abnormal_value",
+    "phenomenon_contains"
+   ],
+   "sop_refs": [],
+   "vision_hintable": true,
+   "vision_supported": false,
+   "vision_state": null,
+   "vision_note": "微表区读数复用 soc_vision.screen_read_v2，缺参考模板 ⇒ 当前未判定",
+   "possible_causes": [
+    {
+     "rank": 1,
+     "cabinet": "Z6（操显机柜）",
+     "sub_unit": "Z18（控制分机）",
+     "module": "纽子开关SA1",
+     "reason": "步骤：(操显)-天线方向",
+     "reason_source": "step_name",
+     "phenomenon": "天线方向：错误",
+     "feature_id": "F_(image)(operator_display)_meter_antenna_direction_error",
+     "confidence": 0.669,
+     "in_part_scope": false,
+     "kb_rows": [
+      197
+     ],
+     "coverage": {
+      "matched": 1,
+      "total": 1,
+      "ratio": 1.0
+     }
+    },
+    {
+     "rank": 2,
+     "cabinet": "Z6（操显机柜）",
+     "sub_unit": "Z18（控制分机）",
+     "module": "Z18-1（开关电源）-无（+27V）输出",
+     "reason": "",
+     "reason_source": "none",
+     "phenomenon": "天线方向：错误",
+     "feature_id": "",
+     "confidence": 0.547,
+     "in_part_scope": false,
+     "kb_rows": [
+      173
+     ],
+     "coverage": {
+      "matched": 1,
+      "total": 1,
+      "ratio": 1.0
+     }
+    },
+    {
+     "rank": 3,
+     "cabinet": "Z6（操显机柜）",
+     "sub_unit": "Z18（控制分机）",
+     "module": "（面板）保险丝FU10（5A）",
+     "reason": "注记：微表区",
+     "reason_source": "remark",
+     "phenomenon": "天线方向：错误",
+     "feature_id": "",
+     "confidence": 0.547,
+     "in_part_scope": false,
+     "kb_rows": [
+      218
+     ],
+     "coverage": {
+      "matched": 1,
+      "total": 1,
+      "ratio": 1.0
+     }
+    }
+   ],
+   "possible_causes_total": 3,
+   "possible_causes_truncated": false,
+   "nearest_kb_hint": "",
+   "note": "判据库 3 行「天线方向：错误」（Z18-1 电源 / 纽子开关SA1 / 面板保险丝FU10），只有 1 行带 field+feature_id"
+  },
+  {
+   "id": "guidance_stuck",
+   "value": "guidance_stuck",
+   "label": "指向亮线/暗带不随动、反向或处于极限",
+   "label_plain": "亮线暗带异常",
+   "category": "画面内容",
+   "order": 16,
+   "in_kb": true,
+   "in_sop": true,
+   "kb_basis": "phenomenon",
+   "user_dictated": false,
+   "author_confirm": false,
+   "abnormal_value": "angle_limit",
+   "abnormal_value_in_kb": true,
+   "kb_rows": [
+    2,
+    3,
+    4,
+    5,
+    141,
+    142,
+    146,
+    147,
+    167,
+    168,
+    190,
+    191,
+    212,
+    213,
+    232,
+    237,
+    242,
+    247,
+    253,
+    255
+   ],
+   "kb_row_count": 20,
+   "kb_row_count_by_abnormal_value": 2,
+   "kb_strength_max": 0.95,
+   "kb_strength_by": [
+    "abnormal_value",
+    "phenomenon_contains"
+   ],
+   "sop_refs": [
+    {
+     "flow_no": "15(10-I)",
+     "check_item": "(操显)-航向指向亮线与暗带正常随动",
+     "subject": "（操显）航向指向亮线与暗带",
+     "method": "摄像头拍摄",
+     "need_qa": "是",
+     "fault_refs": ""
+    },
+    {
+     "flow_no": "15(10-I)",
+     "check_item": "(操显)-下滑指向亮线与暗带正常随动",
+     "subject": "（操显）下滑指向亮线与暗带",
+     "method": "摄像头拍摄",
+     "need_qa": "是",
+     "fault_refs": ""
+    },
+    {
+     "flow_no": "16（10-II）",
+     "check_item": "(领显)-航向指向亮线与暗带正常随动",
+     "subject": "（领显）航向指向亮线与暗带",
+     "method": "摄像头拍摄",
+     "need_qa": "是",
+     "fault_refs": ""
+    },
+    {
+     "flow_no": "16（10-II）",
+     "check_item": "(领显)-下滑指向亮线与暗带正常随动",
+     "subject": "（领显）下滑指向亮线与暗带",
+     "method": "摄像头拍摄",
+     "need_qa": "是",
+     "fault_refs": ""
+    }
+   ],
+   "vision_hintable": false,
+   "vision_supported": false,
+   "vision_state": null,
+   "vision_note": "随动性是**动态**指标（亮线要跟着天线角度走），单帧判不了；SOP 也标「可能需要视频」",
+   "possible_causes": [
+    {
+     "rank": 1,
+     "cabinet": "Z4（传动单元）",
+     "sub_unit": "转控部分",
+     "module": "航向机构极限电位器SA1或SA",
+     "reason": "步骤：(操显)-航向指向亮线与暗带",
+     "reason_source": "step_name",
+     "phenomenon": "航向指向亮线与暗带处于角度极限",
+     "feature_id": "F_(manual_action)(operator_display)_course_guidance_bright_line_dark_band_angle_limit",
+     "confidence": 0.62,
+     "in_part_scope": false,
+     "kb_rows": [
+      253
+     ],
+     "coverage": {
+      "matched": 1,
+      "total": 1,
+      "ratio": 1.0
+     }
+    },
+    {
+     "rank": 2,
+     "cabinet": "Z4（传动单元）",
+     "sub_unit": "转控部分",
+     "module": "下滑机构极限电位器SA1或SA2",
+     "reason": "步骤：(操显)-下滑指向亮线与暗带",
+     "reason_source": "step_name",
+     "phenomenon": "下滑指向亮线与暗带处于角度极限",
+     "feature_id": "F_(manual_action)(operator_display)_glide_guidance_bright_line_dark_band_angle_limit",
+     "confidence": 0.62,
+     "in_part_scope": false,
+     "kb_rows": [
+      255
+     ],
+     "coverage": {
+      "matched": 1,
+      "total": 1,
+      "ratio": 1.0
+     }
+    },
+    {
+     "rank": 3,
+     "cabinet": "Z6（操显机柜）",
+     "sub_unit": "转接分机",
+     "module": "Z19-3（开关电源）无（+12V、-12V）",
+     "reason": "注记：同时拆下（+12V（pin1）、-12V（pin2）…",
+     "reason_source": "remark",
+     "phenomenon": "下滑指向亮线与暗带_不随动",
+     "feature_id": "F_antenna-aided_movement_not_done",
+     "confidence": 0.526,
+     "in_part_scope": false,
+     "kb_rows": [
+      141,
+      142
+     ],
+     "coverage": {
+      "matched": 1,
+      "total": 1,
+      "ratio": 1.0
+     }
+    },
+    {
+     "rank": 4,
+     "cabinet": "Z31(电源控制机柜）",
+     "sub_unit": "配电箱",
+     "module": "ABC相序错误",
+     "reason": "",
+     "reason_source": "none",
+     "phenomenon": "（操显）（内控）航向仰指向亮线与暗带反向随动",
+     "feature_id": "",
+     "confidence": 0.506,
+     "in_part_scope": false,
+     "kb_rows": [
+      2,
+      3,
+      4,
+      5
+     ],
+     "coverage": {
+      "matched": 1,
+      "total": 1,
+      "ratio": 1.0
+     }
+    },
+    {
+     "rank": 5,
+     "cabinet": "Z6（操显机柜）",
+     "sub_unit": "转接分机",
+     "module": "Z19-FU1-2A保险丝",
+     "reason": "",
+     "reason_source": "none",
+     "phenomenon": "下滑指向亮线与暗带_不随动",
+     "feature_id": "",
+     "confidence": 0.506,
+     "in_part_scope": false,
+     "kb_rows": [
+      146,
+      147
+     ],
+     "coverage": {
+      "matched": 1,
+      "total": 1,
+      "ratio": 1.0
+     }
+    },
+    {
+     "rank": 6,
+     "cabinet": "Z6（操显机柜）",
+     "sub_unit": "Z18（控制分机）",
+     "module": "Z18-1（开关电源）-无（+27V）输出",
+     "reason": "",
+     "reason_source": "none",
+     "phenomenon": "航向指向亮线与暗带_不随动",
+     "feature_id": "",
+     "confidence": 0.506,
+     "in_part_scope": false,
+     "kb_rows": [
+      167,
+      168
+     ],
+     "coverage": {
+      "matched": 1,
+      "total": 1,
+      "ratio": 1.0
+     }
+    },
+    {
+     "rank": 7,
+     "cabinet": "Z6（操显机柜）",
+     "sub_unit": "Z18（控制分机）",
+     "module": "纽子开关SA1",
+     "reason": "",
+     "reason_source": "none",
+     "phenomenon": "航向指向亮线与暗带_不随动",
+     "feature_id": "",
+     "confidence": 0.506,
+     "in_part_scope": false,
+     "kb_rows": [
+      190,
+      191
+     ],
+     "coverage": {
+      "matched": 1,
+      "total": 1,
+      "ratio": 1.0
+     }
+    },
+    {
+     "rank": 8,
+     "cabinet": "Z6（操显机柜）",
+     "sub_unit": "Z18（控制分机）",
+     "module": "（面板）保险丝FU10（5A）",
+     "reason": "",
+     "reason_source": "none",
+     "phenomenon": "航向指向亮线与暗带_不随动",
+     "feature_id": "",
+     "confidence": 0.506,
+     "in_part_scope": false,
+     "kb_rows": [
+      212,
+      213
+     ],
+     "coverage": {
+      "matched": 1,
+      "total": 1,
+      "ratio": 1.0
+     }
+    }
+   ],
+   "possible_causes_total": 12,
+   "possible_causes_truncated": true,
+   "nearest_kb_hint": "",
+   "note": "SOP 有「航向/下滑指向亮线与暗带正常随动」（显示画面类，可能需要视频）；故障行覆盖 Z31 相序错误、Z18 电源/继电器、Z19 电源/保险丝、Z4 极限电位器"
+  },
+  {
+   "id": "echo_partial",
+   "value": "echo_partial",
+   "label": "近距/中距回波丢失（远距有回波）",
+   "label_plain": "部分距离无回波",
+   "category": "回波",
+   "order": 17,
+   "in_kb": true,
+   "in_sop": true,
+   "kb_basis": "phenomenon",
+   "user_dictated": false,
+   "author_confirm": false,
+   "abnormal_value": "",
+   "abnormal_value_in_kb": false,
+   "kb_rows": [
+    127,
+    128,
+    130,
+    131,
+    132,
+    133
+   ],
+   "kb_row_count": 6,
+   "kb_row_count_by_abnormal_value": 0,
+   "kb_strength_max": 0.8,
+   "kb_strength_by": [
+    "phenomenon_contains"
+   ],
+   "sop_refs": [
+    {
+     "flow_no": "21",
+     "check_item": "航向回波正常",
+     "subject": "（操显）航向回波",
+     "method": "摄像头拍摄",
+     "need_qa": "是",
+     "fault_refs": ""
+    },
+    {
+     "flow_no": "21",
+     "check_item": "下滑回波正常",
+     "subject": "（操显）下滑回波",
+     "method": "摄像头拍摄",
+     "need_qa": "是",
+     "fault_refs": ""
+    },
+    {
+     "flow_no": "26",
+     "check_item": "航向回波正常",
+     "subject": "（领显）航向回波",
+     "method": "摄像头拍摄",
+     "need_qa": "是",
+     "fault_refs": ""
+    },
+    {
+     "flow_no": "26",
+     "check_item": "下滑回波正常",
+     "subject": "（领显）下滑回波",
+     "method": "摄像头拍摄",
+     "need_qa": "是",
+     "fault_refs": ""
+    }
+   ],
+   "vision_hintable": true,
+   "vision_supported": false,
+   "vision_state": null,
+   "vision_note": "要按距离分档统计亮像素；现有 vision_rules 只做整屏「有/无」，分不了档",
+   "possible_causes": [
+    {
+     "rank": 1,
+     "cabinet": "Z6（操显机柜）",
+     "sub_unit": "Z14（信号处理分机）(I)",
+     "module": "时钟板-0110",
+     "reason": "注记：（PLF Wave 1_2）最右侧拨码开关0110 …",
+     "reason_source": "remark",
+     "phenomenon": "航向回波-近距（无）、中距（无），远距（有）",
+     "feature_id": "",
+     "confidence": 0.547,
+     "in_part_scope": false,
+     "kb_rows": [
+      127,
+      128
+     ],
+     "coverage": {
+      "matched": 1,
+      "total": 1,
+      "ratio": 1.0
+     }
+    },
+    {
+     "rank": 2,
+     "cabinet": "Z6（操显机柜）",
+     "sub_unit": "Z14（信号处理分机）(I)",
+     "module": "时钟板-0100",
+     "reason": "注记：（PLF Wave 1_2）最右侧拨码开关0110 …",
+     "reason_source": "remark",
+     "phenomenon": "航向回波-近距（无）、中距（有），远距（有）",
+     "feature_id": "",
+     "confidence": 0.547,
+     "in_part_scope": false,
+     "kb_rows": [
+      130,
+      131
+     ],
+     "coverage": {
+      "matched": 1,
+      "total": 1,
+      "ratio": 1.0
+     }
+    },
+    {
+     "rank": 3,
+     "cabinet": "Z6（操显机柜）",
+     "sub_unit": "Z14（信号处理分机）(I)",
+     "module": "时钟板-0010",
+     "reason": "注记：（PLF Wave 1_2）最右侧拨码开关0110 …",
+     "reason_source": "remark",
+     "phenomenon": "航向回波-近距（有）、中距（无），远距（无）",
+     "feature_id": "",
+     "confidence": 0.547,
+     "in_part_scope": false,
+     "kb_rows": [
+      132,
+      133
+     ],
+     "coverage": {
+      "matched": 1,
+      "total": 1,
+      "ratio": 1.0
+     }
+    }
+   ],
+   "possible_causes_total": 3,
+   "possible_causes_truncated": false,
+   "nearest_kb_hint": "",
+   "note": "判据库 6 行：Z14 时钟板 DIP 开关 0110/0100/0010 会让近距或中距回波丢失（远距仍正常）"
+  },
+  {
+   "id": "no_guidance_line",
+   "value": "no_guidance_line",
+   "label": "理想线/纠偏线缺失或不连续",
+   "label_plain": "理想线异常",
+   "category": "画面内容",
+   "order": 18,
+   "in_kb": false,
+   "in_sop": true,
+   "kb_basis": "sop_check_item",
+   "user_dictated": false,
+   "author_confirm": false,
+   "abnormal_value": "",
+   "abnormal_value_in_kb": false,
+   "kb_rows": [],
+   "kb_row_count": 0,
+   "kb_row_count_by_abnormal_value": 0,
+   "kb_strength_max": 0.0,
+   "kb_strength_by": [],
+   "sop_refs": [
+    {
+     "flow_no": "15(10-I)",
+     "check_item": "(操显)-理想下滑线及纠偏线连续且正常",
+     "subject": "（操显）理想下滑线及纠偏线",
+     "method": "摄像头拍摄",
+     "need_qa": "是",
+     "fault_refs": ""
+    },
+    {
+     "flow_no": "15(10-I)",
+     "check_item": "(操显)-理想航向线及纠偏线连续且正常",
+     "subject": "（操显）理想航向线及纠偏线",
+     "method": "摄像头拍摄",
+     "need_qa": "是",
+     "fault_refs": ""
+    },
+    {
+     "flow_no": "16（10-II）",
+     "check_item": "(领显)-理想下滑线及纠偏线连续且正常",
+     "subject": "（领显）理想下滑线及纠偏线",
+     "method": "摄像头拍摄",
+     "need_qa": "是",
+     "fault_refs": ""
+    },
+    {
+     "flow_no": "16（10-II）",
+     "check_item": "(领显)-理想航向线及纠偏线连续且正常",
+     "subject": "（领显）理想航向线及纠偏线",
+     "method": "摄像头拍摄",
+     "need_qa": "是",
+     "fault_refs": ""
+    }
+   ],
+   "vision_hintable": true,
+   "vision_supported": false,
+   "vision_state": null,
+   "vision_note": "需要线检测/语义分割，现有 vision_rules 未覆盖（本次不改 ✗）",
+   "possible_causes": [],
+   "possible_causes_total": 0,
+   "possible_causes_truncated": false,
+   "nearest_kb_hint": "SOP 有该检查项，但故障真值表无对应行 ⇒ 给不出机柜/分机/模块，需作者补判据",
+   "note": "SOP 有 4 个检查项，但**故障真值表没有对应行** ⇒ 只能报现象，给不出机柜/分机/模块原因"
+  },
+  {
+   "id": "yellow_line",
+   "value": "yellow_line",
+   "label": "有黄线/黄色干扰线",
+   "label_plain": "有黄线",
+   "category": "干扰",
+   "order": 19,
+   "in_kb": false,
+   "in_sop": false,
+   "kb_basis": "none",
+   "user_dictated": true,
+   "author_confirm": true,
+   "abnormal_value": "",
+   "abnormal_value_in_kb": false,
+   "kb_rows": [],
+   "kb_row_count": 0,
+   "kb_row_count_by_abnormal_value": 0,
+   "kb_strength_max": 0.0,
+   "kb_strength_by": [],
+   "sop_refs": [],
+   "vision_hintable": true,
+   "vision_supported": false,
+   "vision_state": null,
+   "vision_note": "可用颜色阈值 + 长直线检测（Hough）实现；现有 vision_rules 没有黄线规则（本次不改 ✗）",
+   "possible_causes": [],
+   "possible_causes_total": 0,
+   "possible_causes_truncated": false,
+   "nearest_kb_hint": "知识库无此现象 ⇒ 不提供候选原因（本文件不编）。若现场确实出现，请作者补一条真值行后再启用",
+   "note": "**用户 2026-10-18 原话点名的现象**，但判据库/故障源表里都**没有**「黄线」记录 （全仓检索只有示波器测试图里出现过黄线）⇒ in_kb:false，explain() 会返回「无知识库依据」"
+  },
+  {
+   "id": "flicker",
+   "value": "flicker",
+   "label": "闪屏/闪烁（亮度或画面整体抖动）",
+   "label_plain": "闪屏",
+   "category": "干扰",
+   "order": 20,
+   "in_kb": false,
+   "in_sop": false,
+   "kb_basis": "none",
+   "user_dictated": true,
+   "author_confirm": true,
+   "abnormal_value": "",
+   "abnormal_value_in_kb": false,
+   "kb_rows": [],
+   "kb_row_count": 0,
+   "kb_row_count_by_abnormal_value": 0,
+   "kb_strength_max": 0.0,
+   "kb_strength_by": [],
+   "sop_refs": [],
+   "vision_hintable": true,
+   "vision_supported": false,
+   "vision_state": null,
+   "vision_note": "需要连续多帧亮度序列（≥1 s）；单帧判不了",
+   "possible_causes": [],
+   "possible_causes_total": 0,
+   "possible_causes_truncated": false,
+   "nearest_kb_hint": "知识库无此现象 ⇒ 不提供候选原因（本文件不编）。若现场确实出现，请作者补一条真值行后再启用",
+   "note": "知识库无记录：可能是电源纹波/行场同步/接触不良，**均属推断，不能作为判据**"
+  },
+  {
+   "id": "too_bright",
+   "value": "too_bright",
+   "label": "画面过亮/发白（对比度丢失）",
+   "label_plain": "过亮",
+   "category": "亮度",
+   "order": 21,
+   "in_kb": false,
+   "in_sop": false,
+   "kb_basis": "none",
+   "user_dictated": true,
+   "author_confirm": true,
+   "abnormal_value": "",
+   "abnormal_value_in_kb": false,
+   "kb_rows": [],
+   "kb_row_count": 0,
+   "kb_row_count_by_abnormal_value": 0,
+   "kb_strength_max": 0.0,
+   "kb_strength_by": [],
+   "sop_refs": [],
+   "vision_hintable": true,
+   "vision_supported": false,
+   "vision_state": null,
+   "vision_note": "需要亮度标定（参照正常样本）；现有阈值只判「黑/黄/花」，不判过亮",
+   "possible_causes": [],
+   "possible_causes_total": 0,
+   "possible_causes_truncated": false,
+   "nearest_kb_hint": "知识库无此现象 ⇒ 不提供候选原因（本文件不编）。若现场确实出现，请作者补一条真值行后再启用",
+   "note": "知识库无记录（亮度属连续量，判据库只记二值/枚举现象）"
+  },
+  {
+   "id": "too_dim",
+   "value": "too_dim",
+   "label": "画面过暗（能看见但很暗）",
+   "label_plain": "过暗",
+   "category": "亮度",
+   "order": 22,
+   "in_kb": false,
+   "in_sop": false,
+   "kb_basis": "none",
+   "user_dictated": true,
+   "author_confirm": true,
+   "abnormal_value": "",
+   "abnormal_value_in_kb": false,
+   "kb_rows": [],
+   "kb_row_count": 0,
+   "kb_row_count_by_abnormal_value": 0,
+   "kb_strength_max": 0.0,
+   "kb_strength_by": [],
+   "sop_refs": [],
+   "vision_hintable": true,
+   "vision_supported": false,
+   "vision_state": null,
+   "vision_note": "同「过亮」，需基准样本；与 black_screen 的边界要现场标定",
+   "possible_causes": [],
+   "possible_causes_total": 0,
+   "possible_causes_truncated": false,
+   "nearest_kb_hint": "知识库无此现象 ⇒ 不提供候选原因（本文件不编）。若现场确实出现，请作者补一条真值行后再启用",
+   "note": "知识库无记录；注意与黑屏区分（能否看见字符/刻度）"
+  },
+  {
+   "id": "brightness_uneven",
+   "value": "brightness_uneven",
+   "label": "亮度不均/暗角/局部发暗",
+   "label_plain": "亮度不均",
+   "category": "亮度",
+   "order": 23,
+   "in_kb": false,
+   "in_sop": false,
+   "kb_basis": "none",
+   "user_dictated": true,
+   "author_confirm": true,
+   "abnormal_value": "",
+   "abnormal_value_in_kb": false,
+   "kb_rows": [],
+   "kb_row_count": 0,
+   "kb_row_count_by_abnormal_value": 0,
+   "kb_strength_max": 0.0,
+   "kb_strength_by": [],
+   "sop_refs": [],
+   "vision_hintable": true,
+   "vision_supported": false,
+   "vision_state": null,
+   "vision_note": "可用分块亮度方差；现有规则没有该阈值",
+   "possible_causes": [],
+   "possible_causes_total": 0,
+   "possible_causes_truncated": false,
+   "nearest_kb_hint": "知识库无此现象 ⇒ 不提供候选原因（本文件不编）。若现场确实出现，请作者补一条真值行后再启用",
+   "note": "知识库无记录；CRT 老化/高压不足都可能，属推断"
+  },
+  {
+   "id": "missing_rows",
+   "value": "missing_rows",
+   "label": "缺行/缺列（横线或竖线缺失）",
+   "label_plain": "缺行缺列",
+   "category": "扫描",
+   "order": 24,
+   "in_kb": false,
+   "in_sop": false,
+   "kb_basis": "none",
+   "user_dictated": true,
+   "author_confirm": true,
+   "abnormal_value": "",
+   "abnormal_value_in_kb": false,
+   "kb_rows": [],
+   "kb_row_count": 0,
+   "kb_row_count_by_abnormal_value": 0,
+   "kb_strength_max": 0.0,
+   "kb_strength_by": [],
+   "sop_refs": [],
+   "vision_hintable": true,
+   "vision_supported": false,
+   "vision_state": null,
+   "vision_note": "可用网格线投影/Hough 判；现有 vision_rules 没有「缺行」规则",
+   "possible_causes": [],
+   "possible_causes_total": 0,
+   "possible_causes_truncated": false,
+   "nearest_kb_hint": "知识库无此现象 ⇒ 不提供候选原因（本文件不编）。若现场确实出现，请作者补一条真值行后再启用",
+   "note": "知识库无记录（判据库只有「不扫描」这一粒度，没有「缺行」）"
+  },
+  {
+   "id": "image_shift",
+   "value": "image_shift",
+   "label": "图像偏移/跳动（画面位置不稳）",
+   "label_plain": "图像偏移",
+   "category": "同步",
+   "order": 25,
+   "in_kb": false,
+   "in_sop": false,
+   "kb_basis": "none",
+   "user_dictated": true,
+   "author_confirm": true,
+   "abnormal_value": "",
+   "abnormal_value_in_kb": false,
+   "kb_rows": [],
+   "kb_row_count": 0,
+   "kb_row_count_by_abnormal_value": 0,
+   "kb_strength_max": 0.0,
+   "kb_strength_by": [],
+   "sop_refs": [],
+   "vision_hintable": true,
+   "vision_supported": false,
+   "vision_state": null,
+   "vision_note": "需要帧间配准/相位相关；单帧判不了",
+   "possible_causes": [],
+   "possible_causes_total": 0,
+   "possible_causes_truncated": false,
+   "nearest_kb_hint": "知识库无此现象 ⇒ 不提供候选原因（本文件不编）。若现场确实出现，请作者补一条真值行后再启用",
+   "note": "知识库无记录；同步/扫描电路问题属推断"
+  },
+  {
+   "id": "snow_excess",
+   "value": "snow_excess",
+   "label": "雪花噪点过多（噪声过大）",
+   "label_plain": "噪点过多",
+   "category": "底噪",
+   "order": 26,
+   "in_kb": false,
+   "in_sop": false,
+   "kb_basis": "none",
+   "user_dictated": true,
+   "author_confirm": true,
+   "abnormal_value": "",
+   "abnormal_value_in_kb": false,
+   "kb_rows": [],
+   "kb_row_count": 0,
+   "kb_row_count_by_abnormal_value": 0,
+   "kb_strength_max": 0.0,
+   "kb_strength_by": [],
+   "sop_refs": [],
+   "vision_hintable": true,
+   "vision_supported": false,
+   "vision_state": null,
+   "vision_note": "与 no_noise 同一组特征，但「过多」缺标定基线（判据库只记「无噪声」）",
+   "possible_causes": [],
+   "possible_causes_total": 0,
+   "possible_causes_truncated": false,
+   "nearest_kb_hint": "知识库无此现象 ⇒ 不提供候选原因（本文件不编）。若现场确实出现，请作者补一条真值行后再启用",
+   "note": "⚠️ 知识库**只记录「无噪声」**，没有「噪声过大」；不能把无噪声的候选倒过来用"
+  },
+  {
+   "id": "char_garbled",
+   "value": "char_garbled",
+   "label": "字符乱码/字符叠加异常",
+   "label_plain": "字符乱码",
+   "category": "字符",
+   "order": 27,
+   "in_kb": false,
+   "in_sop": false,
+   "kb_basis": "none",
+   "user_dictated": true,
+   "author_confirm": true,
+   "abnormal_value": "",
+   "abnormal_value_in_kb": false,
+   "kb_rows": [],
+   "kb_row_count": 0,
+   "kb_row_count_by_abnormal_value": 0,
+   "kb_strength_max": 0.0,
+   "kb_strength_by": [],
+   "sop_refs": [],
+   "vision_hintable": true,
+   "vision_supported": false,
+   "vision_state": null,
+   "vision_note": "需要字符识别（RapidOCR）复核；现有规则没有字符正确性判据",
+   "possible_causes": [],
+   "possible_causes_total": 0,
+   "possible_causes_truncated": false,
+   "nearest_kb_hint": "知识库无此现象 ⇒ 不提供候选原因（本文件不编）。若现场确实出现，请作者补一条真值行后再启用",
+   "note": "知识库无记录；「花屏」是图像层的，不等于字符乱码 ⇒ 不要把 garbled 的候选直接套用"
+  },
+  {
+   "id": "color_cast",
+   "value": "color_cast",
+   "label": "偏色（整屏发绿/发蓝/发红）",
+   "label_plain": "偏色",
+   "category": "颜色",
+   "order": 28,
+   "in_kb": false,
+   "in_sop": false,
+   "kb_basis": "none",
+   "user_dictated": true,
+   "author_confirm": true,
+   "abnormal_value": "",
+   "abnormal_value_in_kb": false,
+   "kb_rows": [],
+   "kb_row_count": 0,
+   "kb_row_count_by_abnormal_value": 0,
+   "kb_strength_max": 0.0,
+   "kb_strength_by": [],
+   "sop_refs": [],
+   "vision_hintable": true,
+   "vision_supported": false,
+   "vision_state": null,
+   "vision_note": "整屏色相统计可判；现有规则只区分黑/黄/绿内容",
+   "possible_causes": [],
+   "possible_causes_total": 0,
+   "possible_causes_truncated": false,
+   "nearest_kb_hint": "知识库无此现象 ⇒ 不提供候选原因（本文件不编）。若现场确实出现，请作者补一条真值行后再启用",
+   "note": "知识库无记录（黄屏是唯一记录在案的颜色类故障）"
+  },
+  {
+   "id": "black_spot",
+   "value": "black_spot",
+   "label": "黑斑/坏点/污渍",
+   "label_plain": "黑斑",
+   "category": "屏体",
+   "order": 29,
+   "in_kb": false,
+   "in_sop": false,
+   "kb_basis": "none",
+   "user_dictated": true,
+   "author_confirm": true,
+   "abnormal_value": "",
+   "abnormal_value_in_kb": false,
+   "kb_rows": [],
+   "kb_row_count": 0,
+   "kb_row_count_by_abnormal_value": 0,
+   "kb_strength_max": 0.0,
+   "kb_strength_by": [],
+   "sop_refs": [],
+   "vision_hintable": true,
+   "vision_supported": false,
+   "vision_state": null,
+   "vision_note": "可用局部暗区检测；现有规则没有该判据",
+   "possible_causes": [],
+   "possible_causes_total": 0,
+   "possible_causes_truncated": false,
+   "nearest_kb_hint": "知识库无此现象 ⇒ 不提供候选原因（本文件不编）。若现场确实出现，请作者补一条真值行后再启用",
+   "note": "知识库无记录；多属屏体/光路问题（推断）"
+  },
+  {
+   "id": "ghosting",
+   "value": "ghosting",
+   "label": "重影/拖尾",
+   "label_plain": "重影",
+   "category": "画面整体",
+   "order": 30,
+   "in_kb": false,
+   "in_sop": false,
+   "kb_basis": "none",
+   "user_dictated": true,
+   "author_confirm": true,
+   "abnormal_value": "",
+   "abnormal_value_in_kb": false,
+   "kb_rows": [],
+   "kb_row_count": 0,
+   "kb_row_count_by_abnormal_value": 0,
+   "kb_strength_max": 0.0,
+   "kb_strength_by": [],
+   "sop_refs": [],
+   "vision_hintable": true,
+   "vision_supported": false,
+   "vision_state": null,
+   "vision_note": "需要边缘双峰/帧间残留分析；单帧不可靠",
+   "possible_causes": [],
+   "possible_causes_total": 0,
+   "possible_causes_truncated": false,
+   "nearest_kb_hint": "知识库无此现象 ⇒ 不提供候选原因（本文件不编）。若现场确实出现，请作者补一条真值行后再启用",
+   "note": "知识库无记录；视频带宽/匹配问题属推断"
+  },
+  {
+   "id": "interference",
+   "value": "interference",
+   "label": "横纹/条纹干扰（周期性亮暗带）",
+   "label_plain": "条纹干扰",
+   "category": "干扰",
+   "order": 31,
+   "in_kb": false,
+   "in_sop": false,
+   "kb_basis": "none",
+   "user_dictated": true,
+   "author_confirm": true,
+   "abnormal_value": "",
+   "abnormal_value_in_kb": false,
+   "kb_rows": [],
+   "kb_row_count": 0,
+   "kb_row_count_by_abnormal_value": 0,
+   "kb_strength_max": 0.0,
+   "kb_strength_by": [],
+   "sop_refs": [],
+   "vision_hintable": true,
+   "vision_supported": false,
+   "vision_state": null,
+   "vision_note": "可用频域峰值检测；现有 vision_rules 没有该规则",
+   "possible_causes": [],
+   "possible_causes_total": 0,
+   "possible_causes_truncated": false,
+   "nearest_kb_hint": "知识库无此现象 ⇒ 不提供候选原因（本文件不编）。若现场确实出现，请作者补一条真值行后再启用",
+   "note": "知识库有「工频通时两个粗贯穿横线」的**注记**（在 remark 里，不是独立现象行）⇒ 未单独建判据"
+  }
+ ],
+ "abnormal_value_inventory": [
+  {
+   "value": "off",
+   "rows": 28,
+   "row_numbers": [
+    1,
+    6,
+    7,
+    8,
+    19,
+    20,
+    25,
+    28,
+    29,
+    38,
+    39,
+    42,
+    43,
+    60,
+    62,
+    63,
+    91,
+    92,
+    95,
+    96,
+    104,
+    105,
+    111,
+    112,
+    120,
+    121,
+    170,
+    194
+   ],
+   "fields": [
+    {
+     "field": "(led_indicator)_route_one_z11_work",
+     "rows": 11
+    },
+    {
+     "field": "(led_indicator)_z20_transmitter_work_route_one",
+     "rows": 11
+    },
+    {
+     "field": "(led_indicator)_z18_phase_sequence",
+     "rows": 1
+    },
+    {
+     "field": "(led_indicator)_z31_aircon_power",
+     "rows": 1
+    },
+    {
+     "field": "(led_indicator)_z31_mains_power",
+     "rows": 1
+    },
+    {
+     "field": "(led_indicator)_z31_control",
+     "rows": 1
+    },
+    {
+     "field": "(led_indicator)(operator_display)_z15_display_power",
+     "rows": 1
+    },
+    {
+     "field": "(led_indicator)(operator_display)_z15_modem_power",
+     "rows": 1
+    }
+   ],
+   "phenomena_sample": [
+    "Z18（控制）-(下柜）-[相序指示]-指示灯_不亮",
+    "Z31（电源控制）-[空调电源指示]-指示灯_不亮",
+    "Z31（电源控制）-[市电电源]-指示灯_不亮",
+    "Z31（电源控制）-[控制]-指示灯_不亮"
+   ],
+   "screen_options": [],
+   "is_screen": false,
+   "meaning": "灯灭 / 无输出"
+  },
+  {
+   "value": "no",
+   "rows": 16,
+   "row_numbers": [
+    22,
+    23,
+    26,
+    27,
+    30,
+    31,
+    32,
+    33,
+    36,
+    37,
+    40,
+    41,
+    44,
+    45,
+    49,
+    51
+   ],
+   "fields": [
+    {
+     "field": "(image)(operator_display)_course_echo",
+     "rows": 8
+    },
+    {
+     "field": "(image)(operator_display)_glide_echo",
+     "rows": 8
+    }
+   ],
+   "phenomena_sample": [
+    "（I）路-Z11（收发）-[工作]-指示灯_不亮",
+    "Z20（控制台）-[发射机控制]-[发射机工作]-[I]-指示灯_不亮",
+    "航向回波(无)",
+    "下滑回波(无）"
+   ],
+   "screen_options": [
+    "no_echo"
+   ],
+   "is_screen": true,
+   "meaning": "无（波形/回波）"
+  },
+  {
+   "value": "no_move",
+   "rows": 16,
+   "row_numbers": [
+    78,
+    79,
+    80,
+    81,
+    256,
+    257,
+    258,
+    259,
+    260,
+    261,
+    262,
+    263,
+    264,
+    265,
+    266,
+    267
+   ],
+   "fields": [
+    {
+     "field": "(manual_action)(operator_display)_external_control_glide_left",
+     "rows": 2
+    },
+    {
+     "field": "(manual_action)(operator_display)_external_control_glide_right",
+     "rows": 2
+    },
+    {
+     "field": "(manual_action)(operator_display)_external_control_course_down",
+     "rows": 2
+    },
+    {
+     "field": "(manual_action)(operator_display)_external_control_course_up",
+     "rows": 2
+    },
+    {
+     "field": "(manual_action)_internal_control_course_down",
+     "rows": 1
+    },
+    {
+     "field": "(manual_action)(pilot_display)_external_control_course_down",
+     "rows": 1
+    },
+    {
+     "field": "(manual_action)_internal_control_course_up",
+     "rows": 1
+    },
+    {
+     "field": "(manual_action)(pilot_display)_external_control_course_up",
+     "rows": 1
+    },
+    {
+     "field": "(manual_action)_internal_control_glide_left",
+     "rows": 1
+    },
+    {
+     "field": "(manual_action)(pilot_display)_external_control_glide_left",
+     "rows": 1
+    },
+    {
+     "field": "(manual_action)_internal_control_glide_right",
+     "rows": 1
+    },
+    {
+     "field": "(manual_action)(pilot_display)_external_control_glide_right",
+     "rows": 1
+    }
+   ],
+   "phenomena_sample": [
+    "(操显)（外控）下滑-左_失效",
+    "(操显)（外控）下滑-右_失效",
+    "(操显)（外控）航向-俯_失效",
+    "(操显)（外控）航向-仰_失效"
+   ],
+   "screen_options": [],
+   "is_screen": false,
+   "meaning": "机构不动作 / 不随动"
+  },
+  {
+   "value": "not_done",
+   "rows": 11,
+   "row_numbers": [
+    141,
+    169,
+    171,
+    177,
+    193,
+    196,
+    214,
+    217,
+    219,
+    252,
+    254
+   ],
+   "fields": [
+    {
+     "field": "(manual_action)_z20_transmit_control_power_on",
+     "rows": 3
+    },
+    {
+     "field": "(manual_action)_switch_to_route_one",
+     "rows": 3
+    },
+    {
+     "field": "antenna-aided_movement",
+     "rows": 2
+    },
+    {
+     "field": "antenna-aided movement",
+     "rows": 2
+    },
+    {
+     "field": "(manual_action)_z20_antenna_start_power_on",
+     "rows": 1
+    }
+   ],
+   "phenomena_sample": [
+    "下滑指向亮线与暗带_不随动",
+    "（I）路-Z11（收发）-[发射通]-指示灯_不亮",
+    "Z20(控制台)-[发射机控制]-[发射机工作]-[I]-指示灯_不亮",
+    "（内控）下滑-左_失效"
+   ],
+   "screen_options": [],
+   "is_screen": false,
+   "meaning": "按键/切换未完成"
+  },
+  {
+   "value": "no_noise",
+   "rows": 6,
+   "row_numbers": [
+    115,
+    116,
+    135,
+    136,
+    150,
+    151
+   ],
+   "fields": [
+    {
+     "field": "(image)(operator_display)_course_noise",
+     "rows": 3
+    },
+    {
+     "field": "(image)(operator_display)_glide_noise",
+     "rows": 3
+    }
+   ],
+   "phenomena_sample": [
+    "（操显）航向_无噪声",
+    "（操显）下滑_无噪声",
+    "（操显）航向无噪声",
+    "（操显）下滑无噪声"
+   ],
+   "screen_options": [
+    "no_noise"
+   ],
+   "is_screen": true,
+   "meaning": "无噪声 / 无底噪"
+  },
+  {
+   "value": "yellow_screen",
+   "rows": 5,
+   "row_numbers": [
+    18,
+    94,
+    103,
+    110,
+    119
+   ],
+   "fields": [
+    {
+     "field": "(image)(operator_display)_display_screen",
+     "rows": 5
+    }
+   ],
+   "phenomena_sample": [
+    "（下滑）（航向）黄屏"
+   ],
+   "screen_options": [
+    "yellow_screen"
+   ],
+   "is_screen": true,
+   "meaning": "黄屏"
+  },
+  {
+   "value": "abnormal",
+   "rows": 3,
+   "row_numbers": [
+    55,
+    61,
+    71
+   ],
+   "fields": [
+    {
+     "field": "(image)z12_i_internal_supply_11v",
+     "rows": 1
+    },
+    {
+     "field": "(image)z12_i_internal_supply_(+15V)_and_(-15V)",
+     "rows": 1
+    },
+    {
+     "field": "(image)z12_i_internal_supply_(+5V、-5V)",
+     "rows": 1
+    }
+   ],
+   "phenomena_sample": [
+    "11V显示（0.00或8.1V） 当显示有数值，例如为8.1V或者9.5V时，开天线，开发射之后变为0.00",
+    "（+15V）显示（0.00） （-15V）显示（0.00）",
+    "数字面板表不亮"
+   ],
+   "screen_options": [
+    "meter_zero"
+   ],
+   "is_screen": true,
+   "meaning": "表头/数值异常（0.00 或离谱值）"
+  },
+  {
+   "value": "under_voltage",
+   "rows": 3,
+   "row_numbers": [
+    10,
+    11,
+    12
+   ],
+   "fields": [
+    {
+     "field": "(manual_action)_z18_phase_a_voltage",
+     "rows": 1
+    },
+    {
+     "field": "(manual_action)_z18_phase_b_voltage",
+     "rows": 1
+    },
+    {
+     "field": "(manual_action)_z18_phase_c_voltage",
+     "rows": 1
+    }
+   ],
+   "phenomena_sample": [
+    "A相欠压",
+    "B相欠压",
+    "C相欠压"
+   ],
+   "screen_options": [],
+   "is_screen": false,
+   "meaning": "欠压"
+  },
+  {
+   "value": "angle_limit",
+   "rows": 2,
+   "row_numbers": [
+    253,
+    255
+   ],
+   "fields": [
+    {
+     "field": "(manual_action)(operator_display)_course_guidance_bright_line_dark_band",
+     "rows": 1
+    },
+    {
+     "field": "(manual_action)(operator_display)_glide_guidance_bright_line_dark_band",
+     "rows": 1
+    }
+   ],
+   "phenomena_sample": [
+    "航向指向亮线与暗带处于角度极限",
+    "下滑指向亮线与暗带处于角度极限"
+   ],
+   "screen_options": [
+    "guidance_stuck"
+   ],
+   "is_screen": true,
+   "meaning": "亮线暗带处于极限或反向"
+  },
+  {
+   "value": "led_count_less_than_6_on",
+   "rows": 2,
+   "row_numbers": [
+    123,
+    125
+   ],
+   "fields": [
+    {
+     "field": "(image)route_one_mtd_board_led_count",
+     "rows": 1
+    },
+    {
+     "field": "(image)route_one_my_board_led_count",
+     "rows": 1
+    }
+   ],
+   "phenomena_sample": [
+    "时钟（不存在），MTD（3），数字脉压（1） MTD指示灯不为6",
+    "时钟（不存在），MTD（3），数字脉压（1） 数字脉压指示灯不为6"
+   ],
+   "screen_options": [],
+   "is_screen": false,
+   "meaning": "板件亮灯数不足 6"
+  },
+  {
+   "value": "weak",
+   "rows": 2,
+   "row_numbers": [
+    34,
+    35
+   ],
+   "fields": [
+    {
+     "field": "(image)(operator_display)_course_echo",
+     "rows": 1
+    },
+    {
+     "field": "(image)(operator_display)_glide_echo",
+     "rows": 1
+    }
+   ],
+   "phenomena_sample": [
+    "航向回波(无)",
+    "下滑回波(无）"
+   ],
+   "screen_options": [
+    "weak_echo"
+   ],
+   "is_screen": true,
+   "meaning": "弱（回波/幅度偏小）"
+  },
+  {
+   "value": "black_screen",
+   "rows": 1,
+   "row_numbers": [
+    89
+   ],
+   "fields": [
+    {
+     "field": "(image)(operator_display)_display_screen",
+     "rows": 1
+    }
+   ],
+   "phenomena_sample": [
+    "黑屏"
+   ],
+   "screen_options": [
+    "black_screen"
+   ],
+   "is_screen": true,
+   "meaning": "黑屏"
+  },
+  {
+   "value": "error",
+   "rows": 1,
+   "row_numbers": [
+    197
+   ],
+   "fields": [
+    {
+     "field": "(image)(operator_display)_meter_antenna_direction",
+     "rows": 1
+    }
+   ],
+   "phenomena_sample": [
+    "天线方向：错误"
+   ],
+   "screen_options": [
+    "meter_direction"
+   ],
+   "is_screen": true,
+   "meaning": "方向/读数错误"
+  },
+  {
+   "value": "no_sound",
+   "rows": 1,
+   "row_numbers": [
+    9
+   ],
+   "fields": [
+    {
+     "field": "(audio)_z31_power_box_contactor",
+     "rows": 1
+    }
+   ],
+   "phenomena_sample": [
+    "Z31（电源控制）-（交流接触器）_无吸合声"
+   ],
+   "screen_options": [],
+   "is_screen": false,
+   "meaning": "无吸合声"
+  },
+  {
+   "value": "on",
+   "rows": 1,
+   "row_numbers": [
+    90
+   ],
+   "fields": [
+    {
+     "field": "(led_indicator)(operator_display)_z15_display_2A_fuse",
+     "rows": 1
+    }
+   ],
+   "phenomena_sample": [
+    "2A保险丝灯-亮"
+   ],
+   "screen_options": [],
+   "is_screen": false,
+   "meaning": "灯亮（**仅对 2A 保险丝报警灯是异常**；普通指示灯 on 是正常）"
+  },
+  {
+   "value": "start_fail",
+   "rows": 1,
+   "row_numbers": [
+    268
+   ],
+   "fields": [
+    {
+     "field": "(manual_action)_antenna_main_motion",
+     "rows": 1
+    }
+   ],
+   "phenomena_sample": [
+    "天线主运动无法启动"
+   ],
+   "screen_options": [],
+   "is_screen": false,
+   "meaning": "启动失败"
+  }
+ ],
+ "abnormal_value_uncovered": [
+  {
+   "value": "off",
+   "rows": 28,
+   "row_numbers": [
+    1,
+    6,
+    7,
+    8,
+    19,
+    20,
+    25,
+    28,
+    29,
+    38,
+    39,
+    42,
+    43,
+    60,
+    62,
+    63,
+    91,
+    92,
+    95,
+    96,
+    104,
+    105,
+    111,
+    112,
+    120,
+    121,
+    170,
+    194
+   ],
+   "fields": [
+    {
+     "field": "(led_indicator)_route_one_z11_work",
+     "rows": 11
+    },
+    {
+     "field": "(led_indicator)_z20_transmitter_work_route_one",
+     "rows": 11
+    },
+    {
+     "field": "(led_indicator)_z18_phase_sequence",
+     "rows": 1
+    },
+    {
+     "field": "(led_indicator)_z31_aircon_power",
+     "rows": 1
+    },
+    {
+     "field": "(led_indicator)_z31_mains_power",
+     "rows": 1
+    },
+    {
+     "field": "(led_indicator)_z31_control",
+     "rows": 1
+    },
+    {
+     "field": "(led_indicator)(operator_display)_z15_display_power",
+     "rows": 1
+    },
+    {
+     "field": "(led_indicator)(operator_display)_z15_modem_power",
+     "rows": 1
+    }
+   ],
+   "phenomena_sample": [
+    "Z18（控制）-(下柜）-[相序指示]-指示灯_不亮",
+    "Z31（电源控制）-[空调电源指示]-指示灯_不亮",
+    "Z31（电源控制）-[市电电源]-指示灯_不亮",
+    "Z31（电源控制）-[控制]-指示灯_不亮"
+   ],
+   "screen_options": [],
+   "is_screen": false,
+   "meaning": "灯灭 / 无输出"
+  },
+  {
+   "value": "no_move",
+   "rows": 16,
+   "row_numbers": [
+    78,
+    79,
+    80,
+    81,
+    256,
+    257,
+    258,
+    259,
+    260,
+    261,
+    262,
+    263,
+    264,
+    265,
+    266,
+    267
+   ],
+   "fields": [
+    {
+     "field": "(manual_action)(operator_display)_external_control_glide_left",
+     "rows": 2
+    },
+    {
+     "field": "(manual_action)(operator_display)_external_control_glide_right",
+     "rows": 2
+    },
+    {
+     "field": "(manual_action)(operator_display)_external_control_course_down",
+     "rows": 2
+    },
+    {
+     "field": "(manual_action)(operator_display)_external_control_course_up",
+     "rows": 2
+    },
+    {
+     "field": "(manual_action)_internal_control_course_down",
+     "rows": 1
+    },
+    {
+     "field": "(manual_action)(pilot_display)_external_control_course_down",
+     "rows": 1
+    },
+    {
+     "field": "(manual_action)_internal_control_course_up",
+     "rows": 1
+    },
+    {
+     "field": "(manual_action)(pilot_display)_external_control_course_up",
+     "rows": 1
+    },
+    {
+     "field": "(manual_action)_internal_control_glide_left",
+     "rows": 1
+    },
+    {
+     "field": "(manual_action)(pilot_display)_external_control_glide_left",
+     "rows": 1
+    },
+    {
+     "field": "(manual_action)_internal_control_glide_right",
+     "rows": 1
+    },
+    {
+     "field": "(manual_action)(pilot_display)_external_control_glide_right",
+     "rows": 1
+    }
+   ],
+   "phenomena_sample": [
+    "(操显)（外控）下滑-左_失效",
+    "(操显)（外控）下滑-右_失效",
+    "(操显)（外控）航向-俯_失效",
+    "(操显)（外控）航向-仰_失效"
+   ],
+   "screen_options": [],
+   "is_screen": false,
+   "meaning": "机构不动作 / 不随动"
+  },
+  {
+   "value": "not_done",
+   "rows": 11,
+   "row_numbers": [
+    141,
+    169,
+    171,
+    177,
+    193,
+    196,
+    214,
+    217,
+    219,
+    252,
+    254
+   ],
+   "fields": [
+    {
+     "field": "(manual_action)_z20_transmit_control_power_on",
+     "rows": 3
+    },
+    {
+     "field": "(manual_action)_switch_to_route_one",
+     "rows": 3
+    },
+    {
+     "field": "antenna-aided_movement",
+     "rows": 2
+    },
+    {
+     "field": "antenna-aided movement",
+     "rows": 2
+    },
+    {
+     "field": "(manual_action)_z20_antenna_start_power_on",
+     "rows": 1
+    }
+   ],
+   "phenomena_sample": [
+    "下滑指向亮线与暗带_不随动",
+    "（I）路-Z11（收发）-[发射通]-指示灯_不亮",
+    "Z20(控制台)-[发射机控制]-[发射机工作]-[I]-指示灯_不亮",
+    "（内控）下滑-左_失效"
+   ],
+   "screen_options": [],
+   "is_screen": false,
+   "meaning": "按键/切换未完成"
+  },
+  {
+   "value": "under_voltage",
+   "rows": 3,
+   "row_numbers": [
+    10,
+    11,
+    12
+   ],
+   "fields": [
+    {
+     "field": "(manual_action)_z18_phase_a_voltage",
+     "rows": 1
+    },
+    {
+     "field": "(manual_action)_z18_phase_b_voltage",
+     "rows": 1
+    },
+    {
+     "field": "(manual_action)_z18_phase_c_voltage",
+     "rows": 1
+    }
+   ],
+   "phenomena_sample": [
+    "A相欠压",
+    "B相欠压",
+    "C相欠压"
+   ],
+   "screen_options": [],
+   "is_screen": false,
+   "meaning": "欠压"
+  },
+  {
+   "value": "led_count_less_than_6_on",
+   "rows": 2,
+   "row_numbers": [
+    123,
+    125
+   ],
+   "fields": [
+    {
+     "field": "(image)route_one_mtd_board_led_count",
+     "rows": 1
+    },
+    {
+     "field": "(image)route_one_my_board_led_count",
+     "rows": 1
+    }
+   ],
+   "phenomena_sample": [
+    "时钟（不存在），MTD（3），数字脉压（1） MTD指示灯不为6",
+    "时钟（不存在），MTD（3），数字脉压（1） 数字脉压指示灯不为6"
+   ],
+   "screen_options": [],
+   "is_screen": false,
+   "meaning": "板件亮灯数不足 6"
+  },
+  {
+   "value": "no_sound",
+   "rows": 1,
+   "row_numbers": [
+    9
+   ],
+   "fields": [
+    {
+     "field": "(audio)_z31_power_box_contactor",
+     "rows": 1
+    }
+   ],
+   "phenomena_sample": [
+    "Z31（电源控制）-（交流接触器）_无吸合声"
+   ],
+   "screen_options": [],
+   "is_screen": false,
+   "meaning": "无吸合声"
+  },
+  {
+   "value": "on",
+   "rows": 1,
+   "row_numbers": [
+    90
+   ],
+   "fields": [
+    {
+     "field": "(led_indicator)(operator_display)_z15_display_2A_fuse",
+     "rows": 1
+    }
+   ],
+   "phenomena_sample": [
+    "2A保险丝灯-亮"
+   ],
+   "screen_options": [],
+   "is_screen": false,
+   "meaning": "灯亮（**仅对 2A 保险丝报警灯是异常**；普通指示灯 on 是正常）"
+  },
+  {
+   "value": "start_fail",
+   "rows": 1,
+   "row_numbers": [
+    268
+   ],
+   "fields": [
+    {
+     "field": "(manual_action)_antenna_main_motion",
+     "rows": 1
+    }
+   ],
+   "phenomena_sample": [
+    "天线主运动无法启动"
+   ],
+   "screen_options": [],
+   "is_screen": false,
+   "meaning": "启动失败"
+  }
+ ],
+ "align_with_qa_items_screen": {
+  "how": "qa_items_screen.json（另一 agent 产出）的选项值与本清单对齐；本文件只读对齐、绝不写别人的文件。传值时建议带上该题的 evidence_field（见 crosswalk）",
+  "ui_option_shape": {
+   "id": "<options[].id>",
+   "value": "<options[].value>",
+   "label": "<label>",
+   "label_plain": "<label_plain>",
+   "tone": "ok|bad|warn",
+   "in_kb": "<in_kb>"
+  },
+  "rule": "in_kb=false 的选项必须带「知识库未收录，需人工确认」提示；不得给它编候选原因",
+  "crosswalk": {
+   "normal": {
+    "to": [
+     "normal"
+    ],
+    "note": "两边同名；正常态，不产生候选"
+   },
+   "black_screen": {
+    "to": [
+     "black_screen"
+    ],
+    "note": "两边同名；判据库 abnormal_value"
+   },
+   "yellow_screen": {
+    "to": [
+     "yellow_screen"
+    ],
+    "note": "两边同名；判据库 abnormal_value"
+   },
+   "garbled": {
+    "to": [
+     "garbled"
+    ],
+    "note": "两边同名；判据库只有现象文本"
+   },
+   "no": {
+    "to": [
+     "no_echo",
+     "no_scan"
+    ],
+    "note": "有歧义：回波题 → no_echo，扫描题 → no_scan；带 field 或直接传我的 id 才准"
+   },
+   "weak": {
+    "to": [
+     "weak_echo"
+    ],
+    "note": "值相同、id 不同（我的是 weak_echo）"
+   },
+   "no_noise": {
+    "to": [
+     "no_noise"
+    ],
+    "note": "两边同名"
+   },
+   "abnormal": {
+    "to": [
+     "meter_zero",
+     "no_guidance_line"
+    ],
+    "note": "有歧义：表头/数值题 → meter_zero，理想线/方向题 → no_guidance_line（无候选）"
+   },
+   "skipped": {
+    "to": [],
+    "note": "跳过/看不清：不算异常，也不给原因（UNDETERMINED_INPUTS）"
+   }
+  },
+  "ambiguous_values": [
+   "abnormal",
+   "no"
+  ],
+  "cli": "python cause_explainer.py --crosswalk   # 实时核对对方的 qa_items_screen.json"
+ }
+}

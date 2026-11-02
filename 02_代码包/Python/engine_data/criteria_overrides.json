@@ -1,0 +1,2661 @@
+{
+  "z20": {
+    "part": "z20",
+    "name": "控制台",
+    "level": "cabinet",
+    "schema": "criteria_override/1.0",
+    "generated_at": "2026-10-18T11:04:15+08:00",
+    "generated_by": "_criteria_override_build.py（只读 CSV，不改判据库/代码）",
+    "source": {
+      "sop_csv": "D:\\xuexishengshou\\雷达判据\\判据库_SOP.csv",
+      "fault_csv": "D:\\xuexishengshou\\雷达判据\\判据库_故障.csv",
+      "sop_rows": 166,
+      "fault_rows": 268
+    },
+    "problem": "criteria_for('z20') 返回 0 行：故障真值表里没有 cabinet/sub_unit 为 Z20 的行，识别到控制台后无判据可挂。",
+    "match_scope": "symptom",
+    "owner_policy": "do_not_treat_as_owner",
+    "diagnosis": {
+      "dedicated_fault_rows": 0,
+      "why_no_dedicated": "268 行的 cabinet 只有 Z6/Z5/Z4/Z31；sub_unit 无 Z20。criteria_for 对 z20 用 sub_keys=['Z20'] + 空 cab_keys（part_recognizer.py:1300-1303），因此命中 0。",
+      "step_name_or_phenomenon_rows": 26,
+      "field_only_rows": 8,
+      "field_usable_rows": 9,
+      "known_misalignment_rows": 14,
+      "sop_items": 17,
+      "sop_status": {
+        "missing": 9,
+        "matched": 7,
+        "partial": 1
+      },
+      "owner_cabinets": [
+        "Z5（收发机柜）",
+        "Z6（操显机柜）"
+      ],
+      "owner_parts": [
+        "z11",
+        "z12",
+        "z14",
+        "z18"
+      ]
+    },
+    "narrow_by": [
+      {
+        "id": "transmitter_work_route_one",
+        "when": {
+          "sop_flow_in": [
+            21
+          ],
+          "text_contains_any": [
+            "发射机工作",
+            "发射机工作]-[I]"
+          ]
+        },
+        "match": {
+          "step_name_contains_any": [
+            "发射机工作"
+          ]
+        },
+        "keep_rows": 18,
+        "result_rows": [
+          16,
+          20,
+          23,
+          27,
+          37,
+          41,
+          45,
+          57,
+          63,
+          70,
+          75,
+          96,
+          105,
+          112,
+          121,
+          171,
+          195,
+          216
+        ],
+        "gradable_rows": [
+          20,
+          63,
+          96,
+          105,
+          112,
+          121
+        ],
+        "purpose": "Z20 面板“发射机工作 I 指示灯亮”异常时，只取 18 行现象行；其中 6 行 field 可直接判灯。"
+      },
+      {
+        "id": "antenna_start",
+        "when": {
+          "sop_flow_in": [
+            19
+          ]
+        },
+        "match": {
+          "step_name_contains_any": [
+            "天线启动"
+          ]
+        },
+        "keep_rows": 4,
+        "result_rows": [
+          174,
+          219,
+          222,
+          225
+        ],
+        "gradable_rows": [
+          219
+        ],
+        "purpose": "天线启动指示灯/按键异常，4 行均为 Z6/Z18-1 电源或接触器故障。"
+      },
+      {
+        "id": "route_switch",
+        "when": {
+          "sop_flow_in": [
+            7,
+            20,
+            25
+          ]
+        },
+        "match": {
+          "step_name_contains_any": [
+            "两路转换"
+          ]
+        },
+        "keep_rows": 3,
+        "result_rows": [
+          172,
+          196,
+          217
+        ],
+        "gradable_rows": [
+          196,
+          217
+        ],
+        "purpose": "I/II 路转换无反应，3 行均指向 Z6/Z18 电源或 SA1 纽子开关。"
+      },
+      {
+        "id": "transmit_control_on",
+        "when": {
+          "sop_flow_in": [
+            21,
+            26
+          ]
+        },
+        "match": {
+          "step_name_contains_any": [
+            "发射控制"
+          ],
+          "text_contains_all": [
+            "通"
+          ]
+        },
+        "keep_rows": 1,
+        "result_rows": [
+          50
+        ],
+        "gradable_rows": [],
+        "purpose": "发射控制“通”按键无反应，唯一一行是 Z5/Z11 分机不到位。"
+      },
+      {
+        "id": "all_symptom_rows",
+        "when": {},
+        "match": {
+          "step_name_contains_any": [
+            "Z20"
+          ]
+        },
+        "keep_rows": 26,
+        "result_rows": [
+          16,
+          20,
+          23,
+          27,
+          37,
+          41,
+          45,
+          50,
+          57,
+          63,
+          70,
+          75,
+          96,
+          105,
+          112,
+          121,
+          171,
+          172,
+          174,
+          195,
+          196,
+          216,
+          217,
+          219,
+          222,
+          225
+        ],
+        "gradable_rows": [
+          20,
+          63,
+          96,
+          105,
+          112,
+          121,
+          196,
+          217,
+          219
+        ],
+        "purpose": "兜底：只允许 step_name/phenomenon 含 Z20 的 26 行；不得扩到 Z11/Z12/Z18 的全部故障行。"
+      }
+    ],
+    "allow_rows": [
+      16,
+      20,
+      23,
+      27,
+      37,
+      41,
+      45,
+      50,
+      57,
+      63,
+      70,
+      75,
+      96,
+      105,
+      112,
+      121,
+      171,
+      172,
+      174,
+      195,
+      196,
+      216,
+      217,
+      219,
+      222,
+      225
+    ],
+    "excluded_rows": [
+      {
+        "row": 29,
+        "csv_line": 54,
+        "cabinet": "Z5（收发机柜）",
+        "sub_unit": "Z11（收发分机） （I路）",
+        "module": "（Z11-1频综）（9000M）",
+        "step_name": "（操显）下滑回波",
+        "phenomenon": "无回波",
+        "field": "(led_indicator)_z20_transmitter_work_route_one",
+        "abnormal_value": "off",
+        "feature_id": "F_(led_indicator)_z20_transmitter_work_route_one_off",
+        "why": "仅在 field 里出现 z20，step_name 是 Z11 灯或操显屏，已知列错位，不能算 Z20 面板判据"
+      },
+      {
+        "row": 39,
+        "csv_line": 77,
+        "cabinet": "Z5（收发机柜）",
+        "sub_unit": "Z11（收发分机） （I路）",
+        "module": "（Z11-3固态功放）（无供电）",
+        "step_name": "（操显）下滑回波",
+        "phenomenon": "下滑回波(无）",
+        "field": "(led_indicator)_z20_transmitter_work_route_one",
+        "abnormal_value": "off",
+        "feature_id": "F_(led_indicator)_z20_transmitter_work_route_one_off",
+        "why": "仅在 field 里出现 z20，step_name 是 Z11 灯或操显屏，已知列错位，不能算 Z20 面板判据"
+      },
+      {
+        "row": 43,
+        "csv_line": 87,
+        "cabinet": "Z5（收发机柜）",
+        "sub_unit": "Z11（收发分机） （I路）",
+        "module": "（Z11-3固态功放）（发射高频）",
+        "step_name": "（操显）下滑回波",
+        "phenomenon": "下滑回波(无）",
+        "field": "(led_indicator)_z20_transmitter_work_route_one",
+        "abnormal_value": "off",
+        "feature_id": "F_(led_indicator)_z20_transmitter_work_route_one_off",
+        "why": "仅在 field 里出现 z20，step_name 是 Z11 灯或操显屏，已知列错位，不能算 Z20 面板判据"
+      },
+      {
+        "row": 169,
+        "csv_line": 320,
+        "cabinet": "Z6（操显机柜）",
+        "sub_unit": "Z18（控制分机）",
+        "module": "Z18-1（开关电源）-无（+27V）输出",
+        "step_name": "（I）路-Z11（收发）-[发射通]-指示灯",
+        "phenomenon": "（I）路-Z11（收发）-[发射通]-指示灯_不亮",
+        "field": "(manual_action)_z20_transmit_control_power_on",
+        "abnormal_value": "not_done",
+        "feature_id": "F_(manual_action)_z20_transmit_control_power_on_not_done",
+        "why": "仅在 field 里出现 z20，step_name 是 Z11 灯或操显屏，已知列错位，不能算 Z20 面板判据"
+      },
+      {
+        "row": 170,
+        "csv_line": 321,
+        "cabinet": "Z6（操显机柜）",
+        "sub_unit": "Z18（控制分机）",
+        "module": "Z18-1（开关电源）-无（+27V）输出",
+        "step_name": "（I）路-Z11（收发）-[工作]-指示灯",
+        "phenomenon": "（I）路-Z11（收发）-[工作]-指示灯_不亮",
+        "field": "(led_indicator)_z20_transmitter_work_route_one",
+        "abnormal_value": "off",
+        "feature_id": "F_(led_indicator)_z20_transmitter_work_route_one_off",
+        "why": "仅在 field 里出现 z20，step_name 是 Z11 灯或操显屏，已知列错位，不能算 Z20 面板判据"
+      },
+      {
+        "row": 193,
+        "csv_line": 345,
+        "cabinet": "Z6（操显机柜）",
+        "sub_unit": "Z18（控制分机）",
+        "module": "纽子开关SA1",
+        "step_name": "（I）路-Z11（收发）-[发射通]-指示灯",
+        "phenomenon": "（I）路-Z11（收发）-[发射通]-指示灯_不亮",
+        "field": "(manual_action)_z20_transmit_control_power_on",
+        "abnormal_value": "not_done",
+        "feature_id": "F_(manual_action)_z20_transmit_control_power_on_not_done",
+        "why": "仅在 field 里出现 z20，step_name 是 Z11 灯或操显屏，已知列错位，不能算 Z20 面板判据"
+      },
+      {
+        "row": 194,
+        "csv_line": 346,
+        "cabinet": "Z6（操显机柜）",
+        "sub_unit": "Z18（控制分机）",
+        "module": "纽子开关SA1",
+        "step_name": "（I）路-Z11（收发）-[工作]-指示灯",
+        "phenomenon": "（I）路-Z11（收发）-[工作]-指示灯_不亮",
+        "field": "(led_indicator)_z20_transmitter_work_route_one",
+        "abnormal_value": "off",
+        "feature_id": "F_(led_indicator)_z20_transmitter_work_route_one_off",
+        "why": "仅在 field 里出现 z20，step_name 是 Z11 灯或操显屏，已知列错位，不能算 Z20 面板判据"
+      },
+      {
+        "row": 214,
+        "csv_line": 366,
+        "cabinet": "Z6（操显机柜）",
+        "sub_unit": "Z18（控制分机）",
+        "module": "（面板）保险丝FU10（5A）",
+        "step_name": "（I）路-Z11（收发）-[发射通]-指示灯",
+        "phenomenon": "（I）路-Z11（收发）-[发射通]-指示灯_不亮",
+        "field": "(manual_action)_z20_transmit_control_power_on",
+        "abnormal_value": "not_done",
+        "feature_id": "F_(manual_action)_z20_transmit_control_power_on_not_done",
+        "why": "仅在 field 里出现 z20，step_name 是 Z11 灯或操显屏，已知列错位，不能算 Z20 面板判据"
+      }
+    ],
+    "row_refs": [
+      {
+        "row": 16,
+        "csv_line": 24,
+        "cabinet": "Z5（收发机柜）",
+        "sub_unit": "Z11（收发分机） （I路）",
+        "module": "（Z11-1频综）（无供电）",
+        "step_name": "Z20（控制台）-[发射机控制]-[发射机工作]-[I]-指示灯",
+        "phenomenon": "Z20（控制台）-[发射机控制]-[发射机工作]-[I]-指示灯_不亮",
+        "field": "",
+        "abnormal_value": "",
+        "feature_id": "",
+        "field_align": "empty",
+        "topics": [
+          "transmitter_work"
+        ]
+      },
+      {
+        "row": 20,
+        "csv_line": 34,
+        "cabinet": "Z5（收发机柜）",
+        "sub_unit": "Z11（收发分机） （I路）",
+        "module": "（Z11-1频综）（10M相参基准）",
+        "step_name": "Z20（控制台）-[发射机控制]-[发射机工作]-[I]-指示灯",
+        "phenomenon": "Z20(控制台)->[发射机控制]->[发射机工作]-(I)-不亮",
+        "field": "(led_indicator)_z20_transmitter_work_route_one",
+        "abnormal_value": "off",
+        "feature_id": "F_(led_indicator)_z20_transmitter_work_route_one_off",
+        "field_align": "ok",
+        "topics": [
+          "transmitter_work"
+        ]
+      },
+      {
+        "row": 23,
+        "csv_line": 41,
+        "cabinet": "Z5（收发机柜）",
+        "sub_unit": "Z11（收发分机） （I路）",
+        "module": "（Z11-1频综）（400M）",
+        "step_name": "Z20（控制台）-[发射机控制]-[发射机工作]-[I]-指示灯",
+        "phenomenon": "Z20（控制台）-[发射机控制]-[发射机工作]-[I]-指示灯_不亮",
+        "field": "(image)(operator_display)_glide_echo",
+        "abnormal_value": "no",
+        "feature_id": "F_(image)(operator_display)_glide_echo_no",
+        "field_align": "mismatch",
+        "topics": [
+          "transmitter_work"
+        ]
+      },
+      {
+        "row": 27,
+        "csv_line": 50,
+        "cabinet": "Z5（收发机柜）",
+        "sub_unit": "Z11（收发分机） （I路）",
+        "module": "（Z11-1频综）（9000M）",
+        "step_name": "Z20（控制台）-[发射机控制]-[发射机工作]-[I]-指示灯",
+        "phenomenon": "Z20（控制台）-[发射机控制]-[发射机工作]-[I]-指示灯_不亮",
+        "field": "(image)(operator_display)_glide_echo",
+        "abnormal_value": "no",
+        "feature_id": "F_(image)(operator_display)_glide_echo_no",
+        "field_align": "mismatch",
+        "topics": [
+          "transmitter_work"
+        ]
+      },
+      {
+        "row": 37,
+        "csv_line": 73,
+        "cabinet": "Z5（收发机柜）",
+        "sub_unit": "Z11（收发分机） （I路）",
+        "module": "（Z11-3固态功放）（无供电）",
+        "step_name": "Z20（控制台）-[发射机控制]-[发射机工作]-[I]-指示灯",
+        "phenomenon": "Z20（控制台）-[发射机控制]-[发射机工作]-[I]-指示灯_不亮",
+        "field": "(image)(operator_display)_glide_echo",
+        "abnormal_value": "no",
+        "feature_id": "F_(image)(operator_display)_glide_echo_no",
+        "field_align": "mismatch",
+        "topics": [
+          "transmitter_work"
+        ]
+      },
+      {
+        "row": 41,
+        "csv_line": 83,
+        "cabinet": "Z5（收发机柜）",
+        "sub_unit": "Z11（收发分机） （I路）",
+        "module": "（Z11-3固态功放）（发射高频）",
+        "step_name": "Z20（控制台）-[发射机控制]-[发射机工作]-[I]-指示灯",
+        "phenomenon": "Z20（控制台）-[发射机控制]-[发射机工作]-[I]-指示灯_不亮",
+        "field": "(image)(operator_display)_glide_echo",
+        "abnormal_value": "no",
+        "feature_id": "F_(image)(operator_display)_glide_echo_no",
+        "field_align": "mismatch",
+        "topics": [
+          "transmitter_work"
+        ]
+      },
+      {
+        "row": 45,
+        "csv_line": 93,
+        "cabinet": "Z5（收发机柜）",
+        "sub_unit": "Z11（收发分机） （I路）",
+        "module": "（发射中频）线断",
+        "step_name": "Z20（控制台）-[发射机控制]-[发射机工作]-[I]-指示灯",
+        "phenomenon": "Z20（控制台）-[发射机控制]-[发射机工作]-[I]-指示灯_不亮",
+        "field": "(image)(operator_display)_glide_echo",
+        "abnormal_value": "no",
+        "feature_id": "F_(image)(operator_display)_glide_echo_no",
+        "field_align": "mismatch",
+        "topics": [
+          "transmitter_work"
+        ]
+      },
+      {
+        "row": 50,
+        "csv_line": 105,
+        "cabinet": "Z5（收发机柜）",
+        "sub_unit": "Z11（收发分机） （I路）",
+        "module": "分机不到位",
+        "step_name": "Z20(控制台)->[发射机控制]->[发射控制]-“通”-按键",
+        "phenomenon": "Z20(控制台)->[发射机控制]->[发射控制]-“通”-按键_按键无反应",
+        "field": "",
+        "abnormal_value": "",
+        "feature_id": "",
+        "field_align": "empty",
+        "topics": [
+          "transmit_control"
+        ]
+      },
+      {
+        "row": 57,
+        "csv_line": 125,
+        "cabinet": "Z5（收发机柜）",
+        "sub_unit": "Z12（电源分机） （I路）",
+        "module": "4NIC-X220F-11V",
+        "step_name": "Z20（控制台）-[发射机控制]-[发射机工作]-[I]-指示灯",
+        "phenomenon": "Z20（控制台）-[发射机控制]-[发射机工作]-[I]-指示灯_不亮",
+        "field": "",
+        "abnormal_value": "",
+        "feature_id": "",
+        "field_align": "empty",
+        "topics": [
+          "transmitter_work"
+        ]
+      },
+      {
+        "row": 63,
+        "csv_line": 146,
+        "cabinet": "Z5（收发机柜）",
+        "sub_unit": "Z12（电源分机） （I路）",
+        "module": "4NIC-X82.5-（+15V、-15V） 分别拆和同时拆，现象一样",
+        "step_name": "Z20（控制台）-[发射机控制]-[发射机工作]-[I]-指示灯",
+        "phenomenon": "Z20（控制台）-[发射机控制]-[发射机工作]-[I]-指示灯_不亮",
+        "field": "(led_indicator)_z20_transmitter_work_route_one",
+        "abnormal_value": "off",
+        "feature_id": "F_(led_indicator)_z20_transmitter_work_route_one_off",
+        "field_align": "ok",
+        "topics": [
+          "transmitter_work"
+        ]
+      },
+      {
+        "row": 70,
+        "csv_line": 173,
+        "cabinet": "Z5（收发机柜）",
+        "sub_unit": "Z12（电源分机） （I路）",
+        "module": "4NIC-X55.5-（+12V、-12V、+5V、-5V）",
+        "step_name": "Z20（控制台）-[发射机控制]-[发射机工作]-[I]-指示灯",
+        "phenomenon": "Z20（控制台）-[发射机控制]-[发射机工作]-[I]-指示灯_不亮",
+        "field": "",
+        "abnormal_value": "",
+        "feature_id": "",
+        "field_align": "empty",
+        "topics": [
+          "transmitter_work"
+        ]
+      },
+      {
+        "row": 75,
+        "csv_line": 183,
+        "cabinet": "Z5（收发机柜）",
+        "sub_unit": "Z12（电源分机） （I路）",
+        "module": "4NIC-X55.5-（+12V、-12V、+5V、-5V）",
+        "step_name": "Z20（控制台）-[发射机控制]-[发射机工作]-[I]-指示灯",
+        "phenomenon": "Z20（控制台）-[发射机控制]-[发射机工作]-[I]-指示灯_不亮",
+        "field": "",
+        "abnormal_value": "",
+        "feature_id": "",
+        "field_align": "empty",
+        "topics": [
+          "transmitter_work"
+        ]
+      },
+      {
+        "row": 96,
+        "csv_line": 209,
+        "cabinet": "Z6（操显机柜）",
+        "sub_unit": "Z14（信号处理分机）(I)",
+        "module": "GL1电源模块-无（3路+5V，1路-5V）输出",
+        "step_name": "Z20（控制台）-[发射机控制]-[发射机工作]-[I]-指示灯",
+        "phenomenon": "Z20（控制台）-[发射机控制]-[发射机工作]-[I]-指示灯_不亮",
+        "field": "(led_indicator)_z20_transmitter_work_route_one",
+        "abnormal_value": "off",
+        "feature_id": "F_(led_indicator)_z20_transmitter_work_route_one_off",
+        "field_align": "ok",
+        "topics": [
+          "transmitter_work"
+        ]
+      },
+      {
+        "row": 105,
+        "csv_line": 222,
+        "cabinet": "Z6（操显机柜）",
+        "sub_unit": "Z14（信号处理分机）(I)",
+        "module": "GL2电源模块",
+        "step_name": "Z20（控制台）-[发射机控制]-[发射机工作]-[I]-指示灯",
+        "phenomenon": "Z20（控制台）-[发射机控制]-[发射机工作]-[I]-指示灯_不亮",
+        "field": "(led_indicator)_z20_transmitter_work_route_one",
+        "abnormal_value": "off",
+        "feature_id": "F_(led_indicator)_z20_transmitter_work_route_one_off",
+        "field_align": "ok",
+        "topics": [
+          "transmitter_work"
+        ]
+      },
+      {
+        "row": 112,
+        "csv_line": 233,
+        "cabinet": "Z6（操显机柜）",
+        "sub_unit": "Z14（信号处理分机）(I)",
+        "module": "信处保险丝",
+        "step_name": "Z20（控制台）-[发射机控制]-[发射机工作]-[I]-指示灯",
+        "phenomenon": "Z20（控制台）-[发射机控制]-[发射机工作]-[I]-指示灯_不亮",
+        "field": "(led_indicator)_z20_transmitter_work_route_one",
+        "abnormal_value": "off",
+        "feature_id": "F_(led_indicator)_z20_transmitter_work_route_one_off",
+        "field_align": "ok",
+        "topics": [
+          "transmitter_work"
+        ]
+      },
+      {
+        "row": 121,
+        "csv_line": 249,
+        "cabinet": "Z6（操显机柜）",
+        "sub_unit": "Z14（信号处理分机）(I)",
+        "module": "Z14-1（时钟插件板）",
+        "step_name": "Z20（控制台）-[发射机控制]-[发射机工作]-[I]-指示灯",
+        "phenomenon": "Z20（控制台）-[发射机控制]-[发射机工作]-[I]-指示灯_不亮",
+        "field": "(led_indicator)_z20_transmitter_work_route_one",
+        "abnormal_value": "off",
+        "feature_id": "F_(led_indicator)_z20_transmitter_work_route_one_off",
+        "field_align": "ok",
+        "topics": [
+          "transmitter_work"
+        ]
+      },
+      {
+        "row": 171,
+        "csv_line": 322,
+        "cabinet": "Z6（操显机柜）",
+        "sub_unit": "Z18（控制分机）",
+        "module": "Z18-1（开关电源）-无（+27V）输出",
+        "step_name": "Z20(控制台)-[发射机控制]-[发射机工作]-[I]-指示灯",
+        "phenomenon": "Z20(控制台)-[发射机控制]-[发射机工作]-[I]-指示灯_不亮",
+        "field": "(manual_action)_switch_to_route_one",
+        "abnormal_value": "not_done",
+        "feature_id": "F_(manual_action)_switch_to_route_one_not_done",
+        "field_align": "mismatch",
+        "topics": [
+          "transmitter_work"
+        ]
+      },
+      {
+        "row": 172,
+        "csv_line": 323,
+        "cabinet": "Z6（操显机柜）",
+        "sub_unit": "Z18（控制分机）",
+        "module": "Z18-1（开关电源）-无（+27V）输出",
+        "step_name": "Z20（控制台）-[发射机控制]-[两路转换]-[I/II]",
+        "phenomenon": "Z20(控制台)->[发射机控制]->[两路转换]->钮子开关_无反应",
+        "field": "",
+        "abnormal_value": "",
+        "feature_id": "",
+        "field_align": "empty",
+        "topics": [
+          "route_switch"
+        ]
+      },
+      {
+        "row": 174,
+        "csv_line": 326,
+        "cabinet": "Z6（操显机柜）",
+        "sub_unit": "Z18（控制分机）",
+        "module": "Z18-1（开关电源）-无（+5V）输出",
+        "step_name": "Z20（控制台）-[天线控制]-[天线启动]-指示灯",
+        "phenomenon": "Z20（控制台）-[天线控制]-[天线启动]-指示灯_不亮",
+        "field": "",
+        "abnormal_value": "",
+        "feature_id": "",
+        "field_align": "empty",
+        "topics": [
+          "antenna_start"
+        ]
+      },
+      {
+        "row": 195,
+        "csv_line": 347,
+        "cabinet": "Z6（操显机柜）",
+        "sub_unit": "Z18（控制分机）",
+        "module": "纽子开关SA1",
+        "step_name": "Z20(控制台)-[发射机控制]-[发射机工作]-[I]-指示灯",
+        "phenomenon": "Z20(控制台)-[发射机控制]-[发射机工作]-[I]-指示灯_不亮",
+        "field": "",
+        "abnormal_value": "",
+        "feature_id": "",
+        "field_align": "empty",
+        "topics": [
+          "transmitter_work"
+        ]
+      },
+      {
+        "row": 196,
+        "csv_line": 348,
+        "cabinet": "Z6（操显机柜）",
+        "sub_unit": "Z18（控制分机）",
+        "module": "纽子开关SA1",
+        "step_name": "Z20（控制台）-[发射机控制]-[两路转换]-[I/II]",
+        "phenomenon": "Z20(控制台)->[发射机控制]->[两路转换]->钮子开关_无反应",
+        "field": "(manual_action)_switch_to_route_one",
+        "abnormal_value": "not_done",
+        "feature_id": "F_(manual_action)_switch_to_route_one_not_done",
+        "field_align": "ok",
+        "topics": [
+          "route_switch"
+        ]
+      },
+      {
+        "row": 216,
+        "csv_line": 368,
+        "cabinet": "Z6（操显机柜）",
+        "sub_unit": "Z18（控制分机）",
+        "module": "（面板）保险丝FU10（5A）",
+        "step_name": "Z20(控制台)-[发射机控制]-[发射机工作]-[I]-指示灯",
+        "phenomenon": "Z20(控制台)-[发射机控制]-[发射机工作]-[I]-指示灯_不亮",
+        "field": "",
+        "abnormal_value": "",
+        "feature_id": "",
+        "field_align": "empty",
+        "topics": [
+          "transmitter_work"
+        ]
+      },
+      {
+        "row": 217,
+        "csv_line": 369,
+        "cabinet": "Z6（操显机柜）",
+        "sub_unit": "Z18（控制分机）",
+        "module": "（面板）保险丝FU10（5A）",
+        "step_name": "Z20（控制台）-[发射机控制]-[两路转换]-[I/II]",
+        "phenomenon": "Z20(控制台)->[发射机控制]->[两路转换]->钮子开关_无反应",
+        "field": "(manual_action)_switch_to_route_one",
+        "abnormal_value": "not_done",
+        "feature_id": "F_(manual_action)_switch_to_route_one_not_done",
+        "field_align": "ok",
+        "topics": [
+          "route_switch"
+        ]
+      },
+      {
+        "row": 219,
+        "csv_line": 372,
+        "cabinet": "Z6（操显机柜）",
+        "sub_unit": "Z18（控制分机）",
+        "module": "保险丝FU9（5A）损坏",
+        "step_name": "Z20（控制台）-[天线控制]-[天线启动]-指示灯",
+        "phenomenon": "Z20（控制台）-[天线控制]-[天线启动]-指示灯_不亮",
+        "field": "(manual_action)_z20_antenna_start_power_on",
+        "abnormal_value": "not_done",
+        "feature_id": "F_(manual_action)_z20_antenna_start_power_on_not_done",
+        "field_align": "ok",
+        "topics": [
+          "antenna_start"
+        ]
+      },
+      {
+        "row": 222,
+        "csv_line": 375,
+        "cabinet": "Z6（操显机柜）",
+        "sub_unit": "Z18（控制分机）",
+        "module": "交流接触器KM1损坏",
+        "step_name": "Z20（控制台）-[天线控制]-[天线启动]-指示灯",
+        "phenomenon": "Z20（控制台）-[天线控制]-[天线启动]-指示灯_不亮",
+        "field": "",
+        "abnormal_value": "",
+        "feature_id": "",
+        "field_align": "empty",
+        "topics": [
+          "antenna_start"
+        ]
+      },
+      {
+        "row": 225,
+        "csv_line": 379,
+        "cabinet": "Z6（操显机柜）",
+        "sub_unit": "Z18（控制分机）",
+        "module": "继电器KA5损坏",
+        "step_name": "Z20（控制台）-[天线控制]-[天线启动]-指示灯",
+        "phenomenon": "Z20（控制台）-[天线控制]-[天线启动]-指示灯_不亮",
+        "field": "",
+        "abnormal_value": "",
+        "feature_id": "",
+        "field_align": "empty",
+        "topics": [
+          "antenna_start"
+        ]
+      }
+    ],
+    "sop_refs": [
+      {
+        "csv_line": 12,
+        "flow_no": "4",
+        "check_item": "Z20(控制台)-[电源控制]-[工频电源]-“通”-按键",
+        "category": "人工动作",
+        "need_qa": "否",
+        "topic": "power_control",
+        "status": "missing",
+        "fault_rows": [],
+        "why": "判据库只有 Z31（电源控制）的 Z31/配电箱行，没有 Z20 工频电源行"
+      },
+      {
+        "csv_line": 13,
+        "flow_no": "4",
+        "check_item": "Z20(控制台)-[电源控制]-（接触器）-有吸合声",
+        "category": "采集声音",
+        "need_qa": "是",
+        "topic": "power_control",
+        "status": "missing",
+        "fault_rows": [],
+        "why": "判据库只有 Z31（电源控制）的 Z31/配电箱行，没有 Z20 工频电源行"
+      },
+      {
+        "csv_line": 14,
+        "flow_no": "4",
+        "check_item": "Z20(控制台)-[电源控制]-[工频电源]-指示灯亮",
+        "category": "指示灯",
+        "need_qa": "是",
+        "topic": "power_control",
+        "status": "missing",
+        "fault_rows": [],
+        "why": "判据库只有 Z31（电源控制）的 Z31/配电箱行，没有 Z20 工频电源行"
+      },
+      {
+        "csv_line": 24,
+        "flow_no": "7",
+        "check_item": "Z20（控制台）-[发射机控制-[两路转换]-（I）",
+        "category": "人工动作",
+        "need_qa": "否",
+        "topic": "route_switch",
+        "status": "matched",
+        "fault_rows": [
+          172,
+          196,
+          217
+        ],
+        "why": "3 行 Z20-[发射机控制]-[两路转换]-[I/II]"
+      },
+      {
+        "csv_line": 52,
+        "flow_no": "15(10-I)",
+        "check_item": "Z20（控制台）-[天线控制]-[手操控制]-内",
+        "category": "人工动作",
+        "need_qa": "否",
+        "topic": "manual_control",
+        "status": "missing",
+        "fault_rows": [],
+        "why": "判据库 step_name 无“手操控制”，Z4 只有天线辅助运动 manual_action 行"
+      },
+      {
+        "csv_line": 57,
+        "flow_no": "15(10-I)",
+        "check_item": "Z20（控制台）-[天线控制]-[手操控制]-外",
+        "category": "人工动作",
+        "need_qa": "否",
+        "topic": "manual_control",
+        "status": "missing",
+        "fault_rows": [],
+        "why": "判据库 step_name 无“手操控制”，Z4 只有天线辅助运动 manual_action 行"
+      },
+      {
+        "csv_line": 73,
+        "flow_no": "16（10-II）",
+        "check_item": "Z20（控制台）-[天线控制]-[手操控制]-内",
+        "category": "人工动作",
+        "need_qa": "否",
+        "topic": "manual_control",
+        "status": "missing",
+        "fault_rows": [],
+        "why": "判据库 step_name 无“手操控制”，Z4 只有天线辅助运动 manual_action 行"
+      },
+      {
+        "csv_line": 79,
+        "flow_no": "16（10-II）",
+        "check_item": "Z20（控制台）-[天线控制]-[手操控制]-外",
+        "category": "人工动作",
+        "need_qa": "否",
+        "topic": "manual_control",
+        "status": "missing",
+        "fault_rows": [],
+        "why": "判据库 step_name 无“手操控制”，Z4 只有天线辅助运动 manual_action 行"
+      },
+      {
+        "csv_line": 96,
+        "flow_no": "19",
+        "check_item": "Z20（控制台）-[天线控制]-[天线启动]-“通”-按键",
+        "category": "人工动作",
+        "need_qa": "否",
+        "topic": "antenna_start_button",
+        "status": "partial",
+        "fault_rows": [
+          174,
+          219,
+          222,
+          225
+        ],
+        "why": "有 4 行“天线启动指示灯不亮”，没有“按键无反应”行；现象不完全等价"
+      },
+      {
+        "csv_line": 97,
+        "flow_no": "19",
+        "check_item": "Z20（控制台）-[天线控制]-[天线启动]-指示灯亮",
+        "category": "指示灯",
+        "need_qa": "是",
+        "topic": "antenna_start_lamp",
+        "status": "matched",
+        "fault_rows": [
+          174,
+          219,
+          222,
+          225
+        ],
+        "why": "4 行“天线启动指示灯不亮”"
+      },
+      {
+        "csv_line": 109,
+        "flow_no": "20",
+        "check_item": "Z20（控制台）-[发射机控制-[两路转换]-（I）",
+        "category": "人工动作",
+        "need_qa": "否",
+        "topic": "route_switch",
+        "status": "matched",
+        "fault_rows": [
+          172,
+          196,
+          217
+        ],
+        "why": "3 行 Z20-[发射机控制]-[两路转换]-[I/II]"
+      },
+      {
+        "csv_line": 110,
+        "flow_no": "21",
+        "check_item": "Z20（控制台）-[发射机控制]-[发射控制]-“通”-按键",
+        "category": "人工动作",
+        "need_qa": "否",
+        "topic": "transmit_control_on",
+        "status": "matched",
+        "fault_rows": [
+          50
+        ],
+        "why": "唯一“发射控制-通-按键_按键无反应”行（Z5/分机不到位）"
+      },
+      {
+        "csv_line": 111,
+        "flow_no": "21",
+        "check_item": "Z20（控制台）-[发射机控制]-[发射机工作]-[I]-指示灯亮",
+        "category": "指示灯",
+        "need_qa": "是",
+        "topic": "transmitter_work_route_one",
+        "status": "matched",
+        "fault_rows": [
+          16,
+          20,
+          23,
+          27,
+          37,
+          41,
+          45,
+          57,
+          63,
+          70,
+          75,
+          96,
+          105,
+          112,
+          121,
+          171,
+          195,
+          216
+        ],
+        "why": "18 行“发射机工作-[I]-指示灯不亮”"
+      },
+      {
+        "csv_line": 139,
+        "flow_no": "24",
+        "check_item": "Z20（控制台）-[发射机控制]-[发射控制]-“断”-按键",
+        "category": "人工动作",
+        "need_qa": "否",
+        "topic": "transmit_control_off",
+        "status": "missing",
+        "fault_rows": [],
+        "why": "只有“发射控制-通-按键”一行，无“断”行"
+      },
+      {
+        "csv_line": 140,
+        "flow_no": "25",
+        "check_item": "Z20（控制台）-[发射机控制-[两路转换]-（II）",
+        "category": "人工动作",
+        "need_qa": "否",
+        "topic": "route_switch",
+        "status": "matched",
+        "fault_rows": [
+          172,
+          196,
+          217
+        ],
+        "why": "3 行 Z20-[发射机控制]-[两路转换]-[I/II]"
+      },
+      {
+        "csv_line": 141,
+        "flow_no": "26",
+        "check_item": "Z20（控制台）-[发射机控制]-[发射控制]-“通”-按键",
+        "category": "人工动作",
+        "need_qa": "否",
+        "topic": "transmit_control_on",
+        "status": "matched",
+        "fault_rows": [
+          50
+        ],
+        "why": "唯一“发射控制-通-按键_按键无反应”行（Z5/分机不到位）"
+      },
+      {
+        "csv_line": 142,
+        "flow_no": "26",
+        "check_item": "Z20（控制台）-[发射机控制]-[发射机工作]-[II]-指示灯亮",
+        "category": "指示灯",
+        "need_qa": "是",
+        "topic": "transmitter_work_route_two",
+        "status": "missing",
+        "fault_rows": [],
+        "why": "判据库只有 I 路，Z5/Z6 的 sub_unit 全是 I路；全库无 II路 子单元"
+      }
+    ],
+    "suggested_rows": [
+      {
+        "for_sop_line": 12,
+        "cabinet": "Z31(电源控制机柜）",
+        "sub_unit": "配电箱",
+        "module": "工频电源接触器",
+        "step_name": "Z20(控制台)-[电源控制]-[工频电源]-“通”-按键",
+        "phenomenon": "Z20(控制台)-[电源控制]-[工频电源]-“通”-按键_按键无反应",
+        "field": "(manual_action)_z20_power_on_button",
+        "abnormal_value": "not_done",
+        "feature_id": "F_(manual_action)_z20_power_on_button_not_done",
+        "why": "SOP line 12 无任何对应故障行；挂到实际执行工频上电的 Z31 配电箱"
+      },
+      {
+        "for_sop_line": 13,
+        "cabinet": "Z31(电源控制机柜）",
+        "sub_unit": "配电箱",
+        "module": "工频电源接触器",
+        "step_name": "Z20(控制台)-[电源控制]-（接触器）-有吸合声",
+        "phenomenon": "Z20(控制台)-[电源控制]-（接触器）-无吸合声",
+        "field": "(audio)_z20_power_contactor_pull_in",
+        "abnormal_value": "absent",
+        "feature_id": "F_(audio)_z20_power_contactor_pull_in_absent",
+        "why": "SOP line 13 需要声音判据；判据库现无 (audio) 字段的 Z20 行"
+      },
+      {
+        "for_sop_line": 14,
+        "cabinet": "Z31(电源控制机柜）",
+        "sub_unit": "配电箱",
+        "module": "工频电源指示灯",
+        "step_name": "Z20(控制台)-[电源控制]-[工频电源]-指示灯亮",
+        "phenomenon": "Z20(控制台)-[电源控制]-[工频电源]-指示灯_不亮",
+        "field": "(led_indicator)_z20_power_on",
+        "abnormal_value": "off",
+        "feature_id": "F_(led_indicator)_z20_power_on_off",
+        "why": "SOP line 14 无对应故障行；灯在 Z20 面板，源在 Z31"
+      },
+      {
+        "for_sop_line": 52,
+        "cabinet": "Z4（传动单元）",
+        "sub_unit": "天线控制",
+        "module": "手操控制开关（内）",
+        "step_name": "Z20（控制台）-[天线控制]-[手操控制]-内",
+        "phenomenon": "Z20（控制台）-[天线控制]-[手操控制]-内_开关无反应",
+        "field": "(manual_action)_z20_antenna_manual_inner",
+        "abnormal_value": "not_done",
+        "feature_id": "F_(manual_action)_z20_antenna_manual_inner_not_done",
+        "why": "SOP line 52 无对应故障行；手操最终驱动 Z4 传动单元"
+      },
+      {
+        "for_sop_line": 57,
+        "cabinet": "Z4（传动单元）",
+        "sub_unit": "天线控制",
+        "module": "手操控制开关（外）",
+        "step_name": "Z20（控制台）-[天线控制]-[手操控制]-外",
+        "phenomenon": "Z20（控制台）-[天线控制]-[手操控制]-外_开关无反应",
+        "field": "(manual_action)_z20_antenna_manual_outer",
+        "abnormal_value": "not_done",
+        "feature_id": "F_(manual_action)_z20_antenna_manual_outer_not_done",
+        "why": "SOP line 57 同上"
+      },
+      {
+        "for_sop_line": 73,
+        "cabinet": "Z4（传动单元）",
+        "sub_unit": "天线控制",
+        "module": "手操控制开关（内）",
+        "step_name": "Z20（控制台）-[天线控制]-[手操控制]-内",
+        "phenomenon": "Z20（控制台）-[天线控制]-[手操控制]-内_开关无反应",
+        "field": "(manual_action)_z20_antenna_manual_inner",
+        "abnormal_value": "not_done",
+        "feature_id": "F_(manual_action)_z20_antenna_manual_inner_not_done",
+        "why": "SOP line 73 与 52 同项（flow 16 领显），可复用同一行"
+      },
+      {
+        "for_sop_line": 79,
+        "cabinet": "Z4（传动单元）",
+        "sub_unit": "天线控制",
+        "module": "手操控制开关（外）",
+        "step_name": "Z20（控制台）-[天线控制]-[手操控制]-外",
+        "phenomenon": "Z20（控制台）-[天线控制]-[手操控制]-外_开关无反应",
+        "field": "(manual_action)_z20_antenna_manual_outer",
+        "abnormal_value": "not_done",
+        "feature_id": "F_(manual_action)_z20_antenna_manual_outer_not_done",
+        "why": "SOP line 79 与 57 同项（flow 16 领显）"
+      },
+      {
+        "for_sop_line": 139,
+        "cabinet": "Z5（收发机柜）",
+        "sub_unit": "Z11（收发分机）（I路）",
+        "module": "分机不到位",
+        "step_name": "Z20（控制台）-[发射机控制]-[发射控制]-“断”-按键",
+        "phenomenon": "Z20（控制台）-[发射机控制]-[发射控制]-“断”-按键_按键无反应",
+        "field": "(manual_action)_z20_transmit_control_power_off",
+        "abnormal_value": "not_done",
+        "feature_id": "F_(manual_action)_z20_transmit_control_power_off_not_done",
+        "why": "SOP line 139 只有“通”行（row50），无“断”行"
+      },
+      {
+        "for_sop_line": 142,
+        "cabinet": "Z5（收发机柜）",
+        "sub_unit": "Z11（收发分机）（II路）",
+        "module": "发射机 II 路",
+        "step_name": "Z20（控制台）-[发射机控制]-[发射机工作]-[II]-指示灯亮",
+        "phenomenon": "Z20（控制台）-[发射机控制]-[发射机工作]-[II]-指示灯_不亮",
+        "field": "(led_indicator)_z20_transmitter_work_route_two",
+        "abnormal_value": "off",
+        "feature_id": "F_(led_indicator)_z20_transmitter_work_route_two_off",
+        "why": "全库无 II路 子单元；这是整张表的结构性缺口，不只是一行"
+      }
+    ],
+    "integration": {
+      "semantics": "allow_rows 是绝对白名单；narrow_by 第一条 when 命中即按其 match 过滤。返回行必须带 match_scope='symptom'，并保留原 cabinet/sub_unit/module 作为故障归属。",
+      "must_not": "不得把 26 行改写成 z20 自身故障；不得把 field-only 的 8 行算进 z20。",
+      "gaps": "9 条 SOP 检查项在现表无对应行（power_control×3、manual_control×4、transmit_control_off×1、transmitter_work_II×1）；suggested_rows 给出建议补法。"
+    }
+  },
+  "z5": {
+    "part": "z5",
+    "name": "收发机柜",
+    "level": "cabinet",
+    "schema": "criteria_override/1.0",
+    "generated_at": "2026-10-18T11:04:15+08:00",
+    "generated_by": "_criteria_override_build.py（只读 CSV，不改判据库/代码）",
+    "source": {
+      "sop_csv": "D:\\xuexishengshou\\雷达判据\\判据库_SOP.csv",
+      "fault_csv": "D:\\xuexishengshou\\雷达判据\\判据库_故障.csv",
+      "sop_rows": 166,
+      "fault_rows": 268
+    },
+    "problem": "criteria_for('z5') 返回 63 行（cabinet=Z5 全柜），无法定位到具体分机/模块，现场会拿整柜判据乱套。",
+    "match_scope": "cabinet",
+    "diagnosis": {
+      "cabinet_rows": 63,
+      "row_range": [
+        14,
+        76
+      ],
+      "by_sub_unit": {
+        "Z11（收发分机）(I路)": 38,
+        "Z12（电源分机）(I路)": 22,
+        "两路转换（两路）": 3
+      },
+      "by_field_prefix": {
+        "(image)": 22,
+        "(led_indicator)": 12,
+        "EMPTY": 29
+      },
+      "by_route": {
+        "I": 60,
+        "unmarked": 3,
+        "II": 0
+      },
+      "note": "Z5 的 63 行 = Z11 38 + Z12 22 + 两路转换 3；其中 60 行 sub_unit 带 (I路)，3 行两路转换不带路别；全库没有 II路 子单元。"
+    },
+    "narrow_by": [
+      {
+        "id": "module_z11_1",
+        "when": {
+          "recognized_part": [
+            "z11-1"
+          ]
+        },
+        "match": {
+          "sub_unit_contains": [
+            "Z11"
+          ],
+          "module_contains": [
+            "频综"
+          ]
+        },
+        "keep_rows": 18,
+        "result_rows": [
+          14,
+          15,
+          16,
+          17,
+          18,
+          19,
+          20,
+          21,
+          22,
+          23,
+          24,
+          25,
+          26,
+          27,
+          28,
+          29,
+          30,
+          31
+        ],
+        "gradable_rows": [
+          18,
+          19,
+          20,
+          22,
+          23,
+          25,
+          26,
+          27,
+          28,
+          29,
+          30,
+          31
+        ],
+        "purpose": "识别到频综时只留 Z11-1 的 18 行（5 个模块：无供电/10M/400M/9000M/9400M）。"
+      },
+      {
+        "id": "module_z11_3",
+        "when": {
+          "recognized_part": [
+            "z11-3"
+          ]
+        },
+        "match": {
+          "sub_unit_contains": [
+            "Z11"
+          ],
+          "module_contains": [
+            "固态功放"
+          ]
+        },
+        "keep_rows": 8,
+        "result_rows": [
+          36,
+          37,
+          38,
+          39,
+          40,
+          41,
+          42,
+          43
+        ],
+        "gradable_rows": [
+          36,
+          37,
+          38,
+          39,
+          40,
+          41,
+          42,
+          43
+        ],
+        "purpose": "识别到固态功放时只留 8 行。"
+      },
+      {
+        "id": "module_z11_4",
+        "when": {
+          "recognized_part": [
+            "z11-4"
+          ]
+        },
+        "match": {
+          "sub_unit_contains": [
+            "Z11"
+          ],
+          "module_contains": [
+            "接收前端"
+          ]
+        },
+        "keep_rows": 2,
+        "result_rows": [
+          32,
+          33
+        ],
+        "gradable_rows": [
+          32,
+          33
+        ],
+        "purpose": "识别到接收前端时只留 2 行。"
+      },
+      {
+        "id": "module_z11_5",
+        "when": {
+          "recognized_part": [
+            "z11-5"
+          ]
+        },
+        "match": {
+          "sub_unit_contains": [
+            "Z11"
+          ],
+          "module_contains": [
+            "近程增益"
+          ]
+        },
+        "keep_rows": 2,
+        "result_rows": [
+          34,
+          35
+        ],
+        "gradable_rows": [
+          34,
+          35
+        ],
+        "purpose": "识别到近程增益时只留 2 行。"
+      },
+      {
+        "id": "sub_unit_z11",
+        "when": {
+          "recognized_part": [
+            "z11"
+          ]
+        },
+        "match": {
+          "sub_unit_contains": [
+            "Z11"
+          ]
+        },
+        "keep_rows": 38,
+        "result_rows": [
+          14,
+          15,
+          16,
+          17,
+          18,
+          19,
+          20,
+          21,
+          22,
+          23,
+          24,
+          25,
+          26,
+          27,
+          28,
+          29,
+          30,
+          31,
+          32,
+          33,
+          34,
+          35,
+          36,
+          37,
+          38,
+          39,
+          40,
+          41,
+          42,
+          43,
+          44,
+          45,
+          46,
+          47,
+          48,
+          49,
+          50,
+          51
+        ],
+        "gradable_rows": [
+          18,
+          19,
+          20,
+          22,
+          23,
+          25,
+          26,
+          27,
+          28,
+          29,
+          30,
+          31,
+          32,
+          33,
+          34,
+          35,
+          36,
+          37,
+          38,
+          39,
+          40,
+          41,
+          42,
+          43,
+          44,
+          45,
+          49,
+          51
+        ],
+        "purpose": "识别到 Z11 收发分机（未到模块）时留 38 行，仍比 63 少 25 行。"
+      },
+      {
+        "id": "sub_unit_z12",
+        "when": {
+          "recognized_part": [
+            "z12"
+          ]
+        },
+        "match": {
+          "sub_unit_contains": [
+            "Z12"
+          ]
+        },
+        "keep_rows": 22,
+        "result_rows": [
+          55,
+          56,
+          57,
+          58,
+          59,
+          60,
+          61,
+          62,
+          63,
+          64,
+          65,
+          66,
+          67,
+          68,
+          69,
+          70,
+          71,
+          72,
+          73,
+          74,
+          75,
+          76
+        ],
+        "gradable_rows": [
+          55,
+          60,
+          61,
+          62,
+          63,
+          71
+        ],
+        "purpose": "识别到 Z12 电源分机时留 22 行。"
+      },
+      {
+        "id": "route_switch",
+        "when": {
+          "text_contains_any": [
+            "两路转换"
+          ]
+        },
+        "match": {
+          "sub_unit_contains": [
+            "两路转换"
+          ]
+        },
+        "keep_rows": 3,
+        "result_rows": [
+          52,
+          53,
+          54
+        ],
+        "gradable_rows": [],
+        "purpose": "两路转换相关证据只留 3 行（微动开关/电机/转接件）。"
+      },
+      {
+        "id": "vision_only",
+        "when": {
+          "modality": "vision"
+        },
+        "match": {
+          "field_prefix_any": [
+            "(image)",
+            "(led_indicator)"
+          ]
+        },
+        "keep_rows": 34,
+        "result_rows": [
+          18,
+          19,
+          20,
+          22,
+          23,
+          25,
+          26,
+          27,
+          28,
+          29,
+          30,
+          31,
+          32,
+          33,
+          34,
+          35,
+          36,
+          37,
+          38,
+          39,
+          40,
+          41,
+          42,
+          43,
+          44,
+          45,
+          49,
+          51,
+          55,
+          60,
+          61,
+          62,
+          63,
+          71
+        ],
+        "gradable_rows": [
+          18,
+          19,
+          20,
+          22,
+          23,
+          25,
+          26,
+          27,
+          28,
+          29,
+          30,
+          31,
+          32,
+          33,
+          34,
+          35,
+          36,
+          37,
+          38,
+          39,
+          40,
+          41,
+          42,
+          43,
+          44,
+          45,
+          49,
+          51,
+          55,
+          60,
+          61,
+          62,
+          63,
+          71
+        ],
+        "purpose": "纯视觉采集时只留 field 可判的 34 行（image 22 + led_indicator 12）；29 行 field 为空，视觉判不了，必须转人工/QA。"
+      }
+    ],
+    "allow_rows": [
+      14,
+      15,
+      16,
+      17,
+      18,
+      19,
+      20,
+      21,
+      22,
+      23,
+      24,
+      25,
+      26,
+      27,
+      28,
+      29,
+      30,
+      31,
+      32,
+      33,
+      34,
+      35,
+      36,
+      37,
+      38,
+      39,
+      40,
+      41,
+      42,
+      43,
+      44,
+      45,
+      46,
+      47,
+      48,
+      49,
+      50,
+      51,
+      52,
+      53,
+      54,
+      55,
+      56,
+      57,
+      58,
+      59,
+      60,
+      61,
+      62,
+      63,
+      64,
+      65,
+      66,
+      67,
+      68,
+      69,
+      70,
+      71,
+      72,
+      73,
+      74,
+      75,
+      76
+    ],
+    "default": {
+      "keep_rows": 63,
+      "need_narrow": true,
+      "why": "只有“这是 Z5 柜”而没有子单元/模块/文字线索时，不能假装已定位；保留 63 行但置 need_narrow=true，让 UI 追问或补拍门牌。"
+    },
+    "coverage": {
+      "before": 63,
+      "after": {
+        "module_z11_1": {
+          "rows": 18,
+          "pct": 28.6
+        },
+        "module_z11_3": {
+          "rows": 8,
+          "pct": 12.7
+        },
+        "module_z11_4": {
+          "rows": 2,
+          "pct": 3.2
+        },
+        "module_z11_5": {
+          "rows": 2,
+          "pct": 3.2
+        },
+        "sub_unit_z11": {
+          "rows": 38,
+          "pct": 60.3
+        },
+        "sub_unit_z12": {
+          "rows": 22,
+          "pct": 34.9
+        },
+        "route_switch": {
+          "rows": 3,
+          "pct": 4.8
+        },
+        "vision_only": {
+          "rows": 34,
+          "pct": 54.0
+        }
+      },
+      "dropped_by_vision_only": 29
+    },
+    "row_refs": [
+      {
+        "row": 14,
+        "csv_line": 20,
+        "cabinet": "Z5（收发机柜）",
+        "sub_unit": "Z11（收发分机） （I路）",
+        "module": "（Z11-1频综）（无供电）",
+        "step_name": "(操显)-显示画面",
+        "phenomenon": "（下滑）（航向）黄屏",
+        "field": "",
+        "abnormal_value": "",
+        "feature_id": "",
+        "field_align": "empty",
+        "topics": [
+          "other"
+        ]
+      },
+      {
+        "row": 15,
+        "csv_line": 22,
+        "cabinet": "Z5（收发机柜）",
+        "sub_unit": "Z11（收发分机） （I路）",
+        "module": "（Z11-1频综）（无供电）",
+        "step_name": "（I）路-Z11（收发）-[工作]-指示灯",
+        "phenomenon": "（I）路-Z11（收发）-[工作]-指示灯_不亮",
+        "field": "",
+        "abnormal_value": "",
+        "feature_id": "",
+        "field_align": "empty",
+        "topics": [
+          "other"
+        ]
+      },
+      {
+        "row": 16,
+        "csv_line": 24,
+        "cabinet": "Z5（收发机柜）",
+        "sub_unit": "Z11（收发分机） （I路）",
+        "module": "（Z11-1频综）（无供电）",
+        "step_name": "Z20（控制台）-[发射机控制]-[发射机工作]-[I]-指示灯",
+        "phenomenon": "Z20（控制台）-[发射机控制]-[发射机工作]-[I]-指示灯_不亮",
+        "field": "",
+        "abnormal_value": "",
+        "feature_id": "",
+        "field_align": "empty",
+        "topics": [
+          "transmitter_work"
+        ]
+      },
+      {
+        "row": 17,
+        "csv_line": 26,
+        "cabinet": "Z5（收发机柜）",
+        "sub_unit": "Z11（收发分机） （I路）",
+        "module": "（Z11-1频综）（无供电）",
+        "step_name": "",
+        "phenomenon": "无10M",
+        "field": "",
+        "abnormal_value": "",
+        "feature_id": "",
+        "field_align": "empty",
+        "topics": [
+          "other"
+        ]
+      },
+      {
+        "row": 18,
+        "csv_line": 30,
+        "cabinet": "Z5（收发机柜）",
+        "sub_unit": "Z11（收发分机） （I路）",
+        "module": "（Z11-1频综）（10M相参基准）",
+        "step_name": "(操显)-显示画面",
+        "phenomenon": "（下滑）（航向）黄屏",
+        "field": "(image)(operator_display)_display_screen",
+        "abnormal_value": "yellow_screen",
+        "feature_id": "F_(image)(operator_display)_display_screen_yellow_screen",
+        "field_align": "mismatch",
+        "topics": [
+          "other"
+        ]
+      },
+      {
+        "row": 19,
+        "csv_line": 32,
+        "cabinet": "Z5（收发机柜）",
+        "sub_unit": "Z11（收发分机） （I路）",
+        "module": "（Z11-1频综）（10M相参基准）",
+        "step_name": "（I）路-Z11（收发）-[工作]-指示灯",
+        "phenomenon": "（I）路-Z11（收发）-[工作]-指示灯_不亮",
+        "field": "(led_indicator)_route_one_z11_work",
+        "abnormal_value": "off",
+        "feature_id": "F_(led_indicator)_route_one_z11_work_off",
+        "field_align": "mismatch",
+        "topics": [
+          "other"
+        ]
+      },
+      {
+        "row": 20,
+        "csv_line": 34,
+        "cabinet": "Z5（收发机柜）",
+        "sub_unit": "Z11（收发分机） （I路）",
+        "module": "（Z11-1频综）（10M相参基准）",
+        "step_name": "Z20（控制台）-[发射机控制]-[发射机工作]-[I]-指示灯",
+        "phenomenon": "Z20(控制台)->[发射机控制]->[发射机工作]-(I)-不亮",
+        "field": "(led_indicator)_z20_transmitter_work_route_one",
+        "abnormal_value": "off",
+        "feature_id": "F_(led_indicator)_z20_transmitter_work_route_one_off",
+        "field_align": "ok",
+        "topics": [
+          "transmitter_work"
+        ]
+      },
+      {
+        "row": 21,
+        "csv_line": 36,
+        "cabinet": "Z5（收发机柜）",
+        "sub_unit": "Z11（收发分机） （I路）",
+        "module": "（Z11-1频综）（10M相参基准）",
+        "step_name": "",
+        "phenomenon": "无10M",
+        "field": "",
+        "abnormal_value": "",
+        "feature_id": "",
+        "field_align": "empty",
+        "topics": [
+          "other"
+        ]
+      },
+      {
+        "row": 22,
+        "csv_line": 39,
+        "cabinet": "Z5（收发机柜）",
+        "sub_unit": "Z11（收发分机） （I路）",
+        "module": "（Z11-1频综）（400M）",
+        "step_name": "（I）路-Z11（收发）-[工作]-指示灯",
+        "phenomenon": "（I）路-Z11（收发）-[工作]-指示灯_不亮",
+        "field": "(image)(operator_display)_course_echo",
+        "abnormal_value": "no",
+        "feature_id": "F_(image)(operator_display)_course_echo_no",
+        "field_align": "mismatch",
+        "topics": [
+          "other"
+        ]
+      },
+      {
+        "row": 23,
+        "csv_line": 41,
+        "cabinet": "Z5（收发机柜）",
+        "sub_unit": "Z11（收发分机） （I路）",
+        "module": "（Z11-1频综）（400M）",
+        "step_name": "Z20（控制台）-[发射机控制]-[发射机工作]-[I]-指示灯",
+        "phenomenon": "Z20（控制台）-[发射机控制]-[发射机工作]-[I]-指示灯_不亮",
+        "field": "(image)(operator_display)_glide_echo",
+        "abnormal_value": "no",
+        "feature_id": "F_(image)(operator_display)_glide_echo_no",
+        "field_align": "mismatch",
+        "topics": [
+          "transmitter_work"
+        ]
+      },
+      {
+        "row": 24,
+        "csv_line": 43,
+        "cabinet": "Z5（收发机柜）",
+        "sub_unit": "Z11（收发分机） （I路）",
+        "module": "（Z11-1频综）（400M）",
+        "step_name": "（操显）航向回波",
+        "phenomenon": "无回波",
+        "field": "",
+        "abnormal_value": "",
+        "feature_id": "",
+        "field_align": "empty",
+        "topics": [
+          "other"
+        ]
+      },
+      {
+        "row": 25,
+        "csv_line": 45,
+        "cabinet": "Z5（收发机柜）",
+        "sub_unit": "Z11（收发分机） （I路）",
+        "module": "（Z11-1频综）（400M）",
+        "step_name": "（操显）下滑回波",
+        "phenomenon": "无回波",
+        "field": "(led_indicator)_route_one_z11_work",
+        "abnormal_value": "off",
+        "feature_id": "F_(led_indicator)_route_one_z11_work_off",
+        "field_align": "mismatch",
+        "topics": [
+          "other"
+        ]
+      },
+      {
+        "row": 26,
+        "csv_line": 48,
+        "cabinet": "Z5（收发机柜）",
+        "sub_unit": "Z11（收发分机） （I路）",
+        "module": "（Z11-1频综）（9000M）",
+        "step_name": "（I）路-Z11（收发）-[工作]-指示灯",
+        "phenomenon": "（I）路-Z11（收发）-[工作]-指示灯_不亮",
+        "field": "(image)(operator_display)_course_echo",
+        "abnormal_value": "no",
+        "feature_id": "F_(image)(operator_display)_course_echo_no",
+        "field_align": "mismatch",
+        "topics": [
+          "other"
+        ]
+      },
+      {
+        "row": 27,
+        "csv_line": 50,
+        "cabinet": "Z5（收发机柜）",
+        "sub_unit": "Z11（收发分机） （I路）",
+        "module": "（Z11-1频综）（9000M）",
+        "step_name": "Z20（控制台）-[发射机控制]-[发射机工作]-[I]-指示灯",
+        "phenomenon": "Z20（控制台）-[发射机控制]-[发射机工作]-[I]-指示灯_不亮",
+        "field": "(image)(operator_display)_glide_echo",
+        "abnormal_value": "no",
+        "feature_id": "F_(image)(operator_display)_glide_echo_no",
+        "field_align": "mismatch",
+        "topics": [
+          "transmitter_work"
+        ]
+      },
+      {
+        "row": 28,
+        "csv_line": 52,
+        "cabinet": "Z5（收发机柜）",
+        "sub_unit": "Z11（收发分机） （I路）",
+        "module": "（Z11-1频综）（9000M）",
+        "step_name": "（操显）航向回波",
+        "phenomenon": "无回波",
+        "field": "(led_indicator)_route_one_z11_work",
+        "abnormal_value": "off",
+        "feature_id": "F_(led_indicator)_route_one_z11_work_off",
+        "field_align": "mismatch",
+        "topics": [
+          "other"
+        ]
+      },
+      {
+        "row": 29,
+        "csv_line": 54,
+        "cabinet": "Z5（收发机柜）",
+        "sub_unit": "Z11（收发分机） （I路）",
+        "module": "（Z11-1频综）（9000M）",
+        "step_name": "（操显）下滑回波",
+        "phenomenon": "无回波",
+        "field": "(led_indicator)_z20_transmitter_work_route_one",
+        "abnormal_value": "off",
+        "feature_id": "F_(led_indicator)_z20_transmitter_work_route_one_off",
+        "field_align": "mismatch",
+        "topics": [
+          "other"
+        ]
+      },
+      {
+        "row": 30,
+        "csv_line": 57,
+        "cabinet": "Z5（收发机柜）",
+        "sub_unit": "Z11（收发分机） （I路）",
+        "module": "（Z11-1频综）（9400M）",
+        "step_name": "（操显）航向回波",
+        "phenomenon": "航向回波(无)",
+        "field": "(image)(operator_display)_course_echo",
+        "abnormal_value": "no",
+        "feature_id": "F_(image)(operator_display)_course_echo_no",
+        "field_align": "mismatch",
+        "topics": [
+          "other"
+        ]
+      },
+      {
+        "row": 31,
+        "csv_line": 59,
+        "cabinet": "Z5（收发机柜）",
+        "sub_unit": "Z11（收发分机） （I路）",
+        "module": "（Z11-1频综）（9400M）",
+        "step_name": "（操显）下滑回波",
+        "phenomenon": "下滑回波(无）",
+        "field": "(image)(operator_display)_glide_echo",
+        "abnormal_value": "no",
+        "feature_id": "F_(image)(operator_display)_glide_echo_no",
+        "field_align": "mismatch",
+        "topics": [
+          "other"
+        ]
+      },
+      {
+        "row": 32,
+        "csv_line": 61,
+        "cabinet": "Z5（收发机柜）",
+        "sub_unit": "Z11（收发分机） （I路）",
+        "module": "（Z11-4接收前端）（无供电）",
+        "step_name": "（操显）航向回波",
+        "phenomenon": "航向回波(无)",
+        "field": "(image)(operator_display)_course_echo",
+        "abnormal_value": "no",
+        "feature_id": "F_(image)(operator_display)_course_echo_no",
+        "field_align": "mismatch",
+        "topics": [
+          "other"
+        ]
+      },
+      {
+        "row": 33,
+        "csv_line": 63,
+        "cabinet": "Z5（收发机柜）",
+        "sub_unit": "Z11（收发分机） （I路）",
+        "module": "（Z11-4接收前端）（无供电）",
+        "step_name": "（操显）下滑回波",
+        "phenomenon": "下滑回波(无）",
+        "field": "(image)(operator_display)_glide_echo",
+        "abnormal_value": "no",
+        "feature_id": "F_(image)(operator_display)_glide_echo_no",
+        "field_align": "mismatch",
+        "topics": [
+          "other"
+        ]
+      },
+      {
+        "row": 34,
+        "csv_line": 65,
+        "cabinet": "Z5（收发机柜）",
+        "sub_unit": "Z11（收发分机） （I路）",
+        "module": "（Z11-5近程增益控制）（无供电）",
+        "step_name": "（操显）航向回波",
+        "phenomenon": "航向回波(无)",
+        "field": "(image)(operator_display)_course_echo",
+        "abnormal_value": "weak",
+        "feature_id": "F_(image)(operator_display)_course_echo_weak",
+        "field_align": "mismatch",
+        "topics": [
+          "other"
+        ]
+      },
+      {
+        "row": 35,
+        "csv_line": 67,
+        "cabinet": "Z5（收发机柜）",
+        "sub_unit": "Z11（收发分机） （I路）",
+        "module": "（Z11-5近程增益控制）（无供电）",
+        "step_name": "（操显）下滑回波",
+        "phenomenon": "下滑回波(无）",
+        "field": "(image)(operator_display)_glide_echo",
+        "abnormal_value": "weak",
+        "feature_id": "F_(image)(operator_display)_glide_echo_weak",
+        "field_align": "mismatch",
+        "topics": [
+          "other"
+        ]
+      },
+      {
+        "row": 36,
+        "csv_line": 71,
+        "cabinet": "Z5（收发机柜）",
+        "sub_unit": "Z11（收发分机） （I路）",
+        "module": "（Z11-3固态功放）（无供电）",
+        "step_name": "（I）路-Z11（收发）-[工作]-指示灯",
+        "phenomenon": "（I）路-Z11（收发）-[工作]-指示灯_不亮",
+        "field": "(image)(operator_display)_course_echo",
+        "abnormal_value": "no",
+        "feature_id": "F_(image)(operator_display)_course_echo_no",
+        "field_align": "mismatch",
+        "topics": [
+          "other"
+        ]
+      },
+      {
+        "row": 37,
+        "csv_line": 73,
+        "cabinet": "Z5（收发机柜）",
+        "sub_unit": "Z11（收发分机） （I路）",
+        "module": "（Z11-3固态功放）（无供电）",
+        "step_name": "Z20（控制台）-[发射机控制]-[发射机工作]-[I]-指示灯",
+        "phenomenon": "Z20（控制台）-[发射机控制]-[发射机工作]-[I]-指示灯_不亮",
+        "field": "(image)(operator_display)_glide_echo",
+        "abnormal_value": "no",
+        "feature_id": "F_(image)(operator_display)_glide_echo_no",
+        "field_align": "mismatch",
+        "topics": [
+          "transmitter_work"
+        ]
+      },
+      {
+        "row": 38,
+        "csv_line": 75,
+        "cabinet": "Z5（收发机柜）",
+        "sub_unit": "Z11（收发分机） （I路）",
+        "module": "（Z11-3固态功放）（无供电）",
+        "step_name": "（操显）航向回波",
+        "phenomenon": "航向回波(无)",
+        "field": "(led_indicator)_route_one_z11_work",
+        "abnormal_value": "off",
+        "feature_id": "F_(led_indicator)_route_one_z11_work_off",
+        "field_align": "mismatch",
+        "topics": [
+          "other"
+        ]
+      },
+      {
+        "row": 39,
+        "csv_line": 77,
+        "cabinet": "Z5（收发机柜）",
+        "sub_unit": "Z11（收发分机） （I路）",
+        "module": "（Z11-3固态功放）（无供电）",
+        "step_name": "（操显）下滑回波",
+        "phenomenon": "下滑回波(无）",
+        "field": "(led_indicator)_z20_transmitter_work_route_one",
+        "abnormal_value": "off",
+        "feature_id": "F_(led_indicator)_z20_transmitter_work_route_one_off",
+        "field_align": "mismatch",
+        "topics": [
+          "other"
+        ]
+      },
+      {
+        "row": 40,
+        "csv_line": 81,
+        "cabinet": "Z5（收发机柜）",
+        "sub_unit": "Z11（收发分机） （I路）",
+        "module": "（Z11-3固态功放）（发射高频）",
+        "step_name": "（I）路-Z11（收发）-[工作]-指示灯",
+        "phenomenon": "（I）路-Z11（收发）-[工作]-指示灯_不亮",
+        "field": "(image)(operator_display)_course_echo",
+        "abnormal_value": "no",
+        "feature_id": "F_(image)(operator_display)_course_echo_no",
+        "field_align": "mismatch",
+        "topics": [
+          "other"
+        ]
+      },
+      {
+        "row": 41,
+        "csv_line": 83,
+        "cabinet": "Z5（收发机柜）",
+        "sub_unit": "Z11（收发分机） （I路）",
+        "module": "（Z11-3固态功放）（发射高频）",
+        "step_name": "Z20（控制台）-[发射机控制]-[发射机工作]-[I]-指示灯",
+        "phenomenon": "Z20（控制台）-[发射机控制]-[发射机工作]-[I]-指示灯_不亮",
+        "field": "(image)(operator_display)_glide_echo",
+        "abnormal_value": "no",
+        "feature_id": "F_(image)(operator_display)_glide_echo_no",
+        "field_align": "mismatch",
+        "topics": [
+          "transmitter_work"
+        ]
+      },
+      {
+        "row": 42,
+        "csv_line": 85,
+        "cabinet": "Z5（收发机柜）",
+        "sub_unit": "Z11（收发分机） （I路）",
+        "module": "（Z11-3固态功放）（发射高频）",
+        "step_name": "（操显）航向回波",
+        "phenomenon": "航向回波(无)",
+        "field": "(led_indicator)_route_one_z11_work",
+        "abnormal_value": "off",
+        "feature_id": "F_(led_indicator)_route_one_z11_work_off",
+        "field_align": "mismatch",
+        "topics": [
+          "other"
+        ]
+      },
+      {
+        "row": 43,
+        "csv_line": 87,
+        "cabinet": "Z5（收发机柜）",
+        "sub_unit": "Z11（收发分机） （I路）",
+        "module": "（Z11-3固态功放）（发射高频）",
+        "step_name": "（操显）下滑回波",
+        "phenomenon": "下滑回波(无）",
+        "field": "(led_indicator)_z20_transmitter_work_route_one",
+        "abnormal_value": "off",
+        "feature_id": "F_(led_indicator)_z20_transmitter_work_route_one_off",
+        "field_align": "mismatch",
+        "topics": [
+          "other"
+        ]
+      },
+      {
+        "row": 44,
+        "csv_line": 91,
+        "cabinet": "Z5（收发机柜）",
+        "sub_unit": "Z11（收发分机） （I路）",
+        "module": "（发射中频）线断",
+        "step_name": "（I）路-Z11（收发）-[工作]-指示灯",
+        "phenomenon": "（I）路-Z11（收发）-[工作]-指示灯_不亮",
+        "field": "(image)(operator_display)_course_echo",
+        "abnormal_value": "no",
+        "feature_id": "F_(image)(operator_display)_course_echo_no",
+        "field_align": "mismatch",
+        "topics": [
+          "other"
+        ]
+      },
+      {
+        "row": 45,
+        "csv_line": 93,
+        "cabinet": "Z5（收发机柜）",
+        "sub_unit": "Z11（收发分机） （I路）",
+        "module": "（发射中频）线断",
+        "step_name": "Z20（控制台）-[发射机控制]-[发射机工作]-[I]-指示灯",
+        "phenomenon": "Z20（控制台）-[发射机控制]-[发射机工作]-[I]-指示灯_不亮",
+        "field": "(image)(operator_display)_glide_echo",
+        "abnormal_value": "no",
+        "feature_id": "F_(image)(operator_display)_glide_echo_no",
+        "field_align": "mismatch",
+        "topics": [
+          "transmitter_work"
+        ]
+      },
+      {
+        "row": 46,
+        "csv_line": 95,
+        "cabinet": "Z5（收发机柜）",
+        "sub_unit": "Z11（收发分机） （I路）",
+        "module": "（发射中频）线断",
+        "step_name": "（操显）航向回波",
+        "phenomenon": "航向回波(无)",
+        "field": "",
+        "abnormal_value": "",
+        "feature_id": "",
+        "field_align": "empty",
+        "topics": [
+          "other"
+        ]
+      },
+      {
+        "row": 47,
+        "csv_line": 97,
+        "cabinet": "Z5（收发机柜）",
+        "sub_unit": "Z11（收发分机） （I路）",
+        "module": "（发射中频）线断",
+        "step_name": "（操显）下滑回波",
+        "phenomenon": "下滑回波(无）",
+        "field": "",
+        "abnormal_value": "",
+        "feature_id": "",
+        "field_align": "empty",
+        "topics": [
+          "other"
+        ]
+      },
+      {
+        "row": 48,
+        "csv_line": 99,
+        "cabinet": "Z5（收发机柜）",
+        "sub_unit": "Z11（收发分机） （I路）",
+        "module": "（发射中频）线断",
+        "step_name": "",
+        "phenomenon": "测量示波器（Z11-（背板-BNC）Z11-XS4）",
+        "field": "",
+        "abnormal_value": "",
+        "feature_id": "",
+        "field_align": "empty",
+        "topics": [
+          "other"
+        ]
+      },
+      {
+        "row": 49,
+        "csv_line": 103,
+        "cabinet": "Z5（收发机柜）",
+        "sub_unit": "Z11（收发分机） （I路）",
+        "module": "分机不到位",
+        "step_name": "（I）路-Z11（收发）-[故障]-指示灯",
+        "phenomenon": "（I）路-Z11（收发）-[故障]-指示灯_亮",
+        "field": "(image)(operator_display)_course_echo",
+        "abnormal_value": "no",
+        "feature_id": "F_(image)(operator_display)_course_echo_no",
+        "field_align": "mismatch",
+        "topics": [
+          "other"
+        ]
+      },
+      {
+        "row": 50,
+        "csv_line": 105,
+        "cabinet": "Z5（收发机柜）",
+        "sub_unit": "Z11（收发分机） （I路）",
+        "module": "分机不到位",
+        "step_name": "Z20(控制台)->[发射机控制]->[发射控制]-“通”-按键",
+        "phenomenon": "Z20(控制台)->[发射机控制]->[发射控制]-“通”-按键_按键无反应",
+        "field": "",
+        "abnormal_value": "",
+        "feature_id": "",
+        "field_align": "empty",
+        "topics": [
+          "transmit_control"
+        ]
+      },
+      {
+        "row": 51,
+        "csv_line": 107,
+        "cabinet": "Z5（收发机柜）",
+        "sub_unit": "Z11（收发分机） （I路）",
+        "module": "分机不到位",
+        "step_name": "（I）路-Z11（收发）-[发射通]-指示灯",
+        "phenomenon": "",
+        "field": "(image)(operator_display)_glide_echo",
+        "abnormal_value": "no",
+        "feature_id": "F_(image)(operator_display)_glide_echo_no",
+        "field_align": "mismatch",
+        "topics": [
+          "other"
+        ]
+      },
+      {
+        "row": 52,
+        "csv_line": 109,
+        "cabinet": "Z5（收发机柜）",
+        "sub_unit": "两路转换 （两路）",
+        "module": "两路转换开关微动开关",
+        "step_name": "",
+        "phenomenon": "I/II路转换失效",
+        "field": "",
+        "abnormal_value": "",
+        "feature_id": "",
+        "field_align": "empty",
+        "topics": [
+          "other"
+        ]
+      },
+      {
+        "row": 53,
+        "csv_line": 111,
+        "cabinet": "Z5（收发机柜）",
+        "sub_unit": "两路转换 （两路）",
+        "module": "两路转换开关电机",
+        "step_name": "",
+        "phenomenon": "I/II路转换失效",
+        "field": "",
+        "abnormal_value": "",
+        "feature_id": "",
+        "field_align": "empty",
+        "topics": [
+          "other"
+        ]
+      },
+      {
+        "row": 54,
+        "csv_line": 113,
+        "cabinet": "Z5（收发机柜）",
+        "sub_unit": "两路转换 （两路）",
+        "module": "Z5-3转接件",
+        "step_name": "",
+        "phenomenon": "内控失效",
+        "field": "",
+        "abnormal_value": "",
+        "feature_id": "",
+        "field_align": "empty",
+        "topics": [
+          "other"
+        ]
+      },
+      {
+        "row": 55,
+        "csv_line": 121,
+        "cabinet": "Z5（收发机柜）",
+        "sub_unit": "Z12（电源分机） （I路）",
+        "module": "4NIC-X220F-11V",
+        "step_name": "检查：GL1（功放电源）-11V",
+        "phenomenon": "11V显示（0.00或8.1V） 当显示有数值，例如为8.1V或者9.5V时，开天线，开发射之后变为0.00",
+        "field": "(image)z12_i_internal_supply_11v",
+        "abnormal_value": "abnormal",
+        "feature_id": "F_(image)z12_(1)_internal_supply_11v_abnormal",
+        "field_align": "mismatch",
+        "topics": [
+          "other"
+        ]
+      },
+      {
+        "row": 56,
+        "csv_line": 123,
+        "cabinet": "Z5（收发机柜）",
+        "sub_unit": "Z12（电源分机） （I路）",
+        "module": "4NIC-X220F-11V",
+        "step_name": "（I）路-Z11（收发）-[工作]-指示灯",
+        "phenomenon": "（I）路-Z11（收发）-[工作]-指示灯_不亮",
+        "field": "",
+        "abnormal_value": "",
+        "feature_id": "",
+        "field_align": "empty",
+        "topics": [
+          "other"
+        ]
+      },
+      {
+        "row": 57,
+        "csv_line": 125,
+        "cabinet": "Z5（收发机柜）",
+        "sub_unit": "Z12（电源分机） （I路）",
+        "module": "4NIC-X220F-11V",
+        "step_name": "Z20（控制台）-[发射机控制]-[发射机工作]-[I]-指示灯",
+        "phenomenon": "Z20（控制台）-[发射机控制]-[发射机工作]-[I]-指示灯_不亮",
+        "field": "",
+        "abnormal_value": "",
+        "feature_id": "",
+        "field_align": "empty",
+        "topics": [
+          "transmitter_work"
+        ]
+      },
+      {
+        "row": 58,
+        "csv_line": 127,
+        "cabinet": "Z5（收发机柜）",
+        "sub_unit": "Z12（电源分机） （I路）",
+        "module": "4NIC-X220F-11V",
+        "step_name": "（操显）航向回波",
+        "phenomenon": "航向_无回波",
+        "field": "",
+        "abnormal_value": "",
+        "feature_id": "",
+        "field_align": "empty",
+        "topics": [
+          "other"
+        ]
+      },
+      {
+        "row": 59,
+        "csv_line": 129,
+        "cabinet": "Z5（收发机柜）",
+        "sub_unit": "Z12（电源分机） （I路）",
+        "module": "4NIC-X220F-11V",
+        "step_name": "（操显）下滑回波",
+        "phenomenon": "下滑_无回波",
+        "field": "",
+        "abnormal_value": "",
+        "feature_id": "",
+        "field_align": "empty",
+        "topics": [
+          "other"
+        ]
+      },
+      {
+        "row": 60,
+        "csv_line": 131,
+        "cabinet": "Z5（收发机柜）",
+        "sub_unit": "Z12（电源分机） （I路）",
+        "module": "4NIC-X220F-11V",
+        "step_name": "",
+        "phenomenon": "发射功率无，发射频率无",
+        "field": "(led_indicator)_route_one_z11_work",
+        "abnormal_value": "off",
+        "feature_id": "F_(led_indicator)_route_one_z11_work_off",
+        "field_align": "mismatch",
+        "topics": [
+          "other"
+        ]
+      },
+      {
+        "row": 61,
+        "csv_line": 140,
+        "cabinet": "Z5（收发机柜）",
+        "sub_unit": "Z12（电源分机） （I路）",
+        "module": "4NIC-X82.5-（+15V、-15V） 分别拆和同时拆，现象一样",
+        "step_name": "检查：GL2（功放电源）-（+15V、-15V）",
+        "phenomenon": "（+15V）显示（0.00） （-15V）显示（0.00）",
+        "field": "(image)z12_i_internal_supply_(+15V)_and_(-15V)",
+        "abnormal_value": "abnormal",
+        "feature_id": "F_(image)z12_(1)_internal_supply_(+15V)_and_(-15V)_abnormal",
+        "field_align": "mismatch",
+        "topics": [
+          "other"
+        ]
+      },
+      {
+        "row": 62,
+        "csv_line": 143,
+        "cabinet": "Z5（收发机柜）",
+        "sub_unit": "Z12（电源分机） （I路）",
+        "module": "4NIC-X82.5-（+15V、-15V） 分别拆和同时拆，现象一样",
+        "step_name": "（I）路-Z11（收发）-[工作]-指示灯",
+        "phenomenon": "（I）路-Z11（收发）-[工作]-指示灯_不亮",
+        "field": "(led_indicator)_route_one_z11_work",
+        "abnormal_value": "off",
+        "feature_id": "F_(led_indicator)_route_one_z11_work_off",
+        "field_align": "mismatch",
+        "topics": [
+          "other"
+        ]
+      },
+      {
+        "row": 63,
+        "csv_line": 146,
+        "cabinet": "Z5（收发机柜）",
+        "sub_unit": "Z12（电源分机） （I路）",
+        "module": "4NIC-X82.5-（+15V、-15V） 分别拆和同时拆，现象一样",
+        "step_name": "Z20（控制台）-[发射机控制]-[发射机工作]-[I]-指示灯",
+        "phenomenon": "Z20（控制台）-[发射机控制]-[发射机工作]-[I]-指示灯_不亮",
+        "field": "(led_indicator)_z20_transmitter_work_route_one",
+        "abnormal_value": "off",
+        "feature_id": "F_(led_indicator)_z20_transmitter_work_route_one_off",
+        "field_align": "ok",
+        "topics": [
+          "transmitter_work"
+        ]
+      },
+      {
+        "row": 64,
+        "csv_line": 149,
+        "cabinet": "Z5（收发机柜）",
+        "sub_unit": "Z12（电源分机） （I路）",
+        "module": "4NIC-X82.5-（+15V、-15V） 分别拆和同时拆，现象一样",
+        "step_name": "（操显）航向回波",
+        "phenomenon": "航向_无回波",
+        "field": "",
+        "abnormal_value": "",
+        "feature_id": "",
+        "field_align": "empty",
+        "topics": [
+          "other"
+        ]
+      },
+      {
+        "row": 65,
+        "csv_line": 152,
+        "cabinet": "Z5（收发机柜）",
+        "sub_unit": "Z12（电源分机） （I路）",
+        "module": "4NIC-X82.5-（+15V、-15V） 分别拆和同时拆，现象一样",
+        "step_name": "（操显）下滑回波",
+        "phenomenon": "下滑_无回波",
+        "field": "",
+        "abnormal_value": "",
+        "feature_id": "",
+        "field_align": "empty",
+        "topics": [
+          "other"
+        ]
+      },
+      {
+        "row": 66,
+        "csv_line": 155,
+        "cabinet": "Z5（收发机柜）",
+        "sub_unit": "Z12（电源分机） （I路）",
+        "module": "4NIC-X82.5-（+15V、-15V） 分别拆和同时拆，现象一样",
+        "step_name": "",
+        "phenomenon": "发射功率无，发射频率无",
+        "field": "",
+        "abnormal_value": "",
+        "feature_id": "",
+        "field_align": "empty",
+        "topics": [
+          "other"
+        ]
+      },
+      {
+        "row": 67,
+        "csv_line": 167,
+        "cabinet": "Z5（收发机柜）",
+        "sub_unit": "Z12（电源分机） （I路）",
+        "module": "4NIC-X55.5-（+12V、-12V、+5V、-5V）",
+        "step_name": "检查：GL3（其他电源）-（+12V、-12V）",
+        "phenomenon": "（I路）（+12V、-12V）显示（0.00） （II路）（+12V、-12V）显示（0.00）",
+        "field": "",
+        "abnormal_value": "",
+        "feature_id": "",
+        "field_align": "empty",
+        "topics": [
+          "other"
+        ]
+      },
+      {
+        "row": 68,
+        "csv_line": 169,
+        "cabinet": "Z5（收发机柜）",
+        "sub_unit": "Z12（电源分机） （I路）",
+        "module": "4NIC-X55.5-（+12V、-12V、+5V、-5V）",
+        "step_name": "(操显)-显示画面",
+        "phenomenon": "（下滑）（航向）黄屏",
+        "field": "",
+        "abnormal_value": "",
+        "feature_id": "",
+        "field_align": "empty",
+        "topics": [
+          "other"
+        ]
+      },
+      {
+        "row": 69,
+        "csv_line": 171,
+        "cabinet": "Z5（收发机柜）",
+        "sub_unit": "Z12（电源分机） （I路）",
+        "module": "4NIC-X55.5-（+12V、-12V、+5V、-5V）",
+        "step_name": "（I）路-Z11（收发）-[工作]-指示灯",
+        "phenomenon": "（I）路-Z11（收发）-[工作]-指示灯_不亮",
+        "field": "",
+        "abnormal_value": "",
+        "feature_id": "",
+        "field_align": "empty",
+        "topics": [
+          "other"
+        ]
+      },
+      {
+        "row": 70,
+        "csv_line": 173,
+        "cabinet": "Z5（收发机柜）",
+        "sub_unit": "Z12（电源分机） （I路）",
+        "module": "4NIC-X55.5-（+12V、-12V、+5V、-5V）",
+        "step_name": "Z20（控制台）-[发射机控制]-[发射机工作]-[I]-指示灯",
+        "phenomenon": "Z20（控制台）-[发射机控制]-[发射机工作]-[I]-指示灯_不亮",
+        "field": "",
+        "abnormal_value": "",
+        "feature_id": "",
+        "field_align": "empty",
+        "topics": [
+          "transmitter_work"
+        ]
+      },
+      {
+        "row": 71,
+        "csv_line": 175,
+        "cabinet": "Z5（收发机柜）",
+        "sub_unit": "Z12（电源分机） （I路）",
+        "module": "4NIC-X55.5-（+12V、-12V、+5V、-5V）",
+        "step_name": "检查：GL3（其他电源）-（+5V、-5V）",
+        "phenomenon": "数字面板表不亮",
+        "field": "(image)z12_i_internal_supply_(+5V、-5V)",
+        "abnormal_value": "abnormal",
+        "feature_id": "F_(image)z12_(1)_internal_supply_(+5V、-5V)_abnormal",
+        "field_align": "mismatch",
+        "topics": [
+          "other"
+        ]
+      },
+      {
+        "row": 72,
+        "csv_line": 177,
+        "cabinet": "Z5（收发机柜）",
+        "sub_unit": "Z12（电源分机） （I路）",
+        "module": "4NIC-X55.5-（+12V、-12V、+5V、-5V）",
+        "step_name": "",
+        "phenomenon": "Z12（收发）_所有的灯_都不亮",
+        "field": "",
+        "abnormal_value": "",
+        "feature_id": "",
+        "field_align": "empty",
+        "topics": [
+          "other"
+        ]
+      },
+      {
+        "row": 73,
+        "csv_line": 179,
+        "cabinet": "Z5（收发机柜）",
+        "sub_unit": "Z12（电源分机） （I路）",
+        "module": "4NIC-X55.5-（+12V、-12V、+5V、-5V）",
+        "step_name": "（I）路-Z11（收发）-[本路]-指示灯",
+        "phenomenon": "（I）路-Z11（收发）-[本路]-指示灯_不亮",
+        "field": "",
+        "abnormal_value": "",
+        "feature_id": "",
+        "field_align": "empty",
+        "topics": [
+          "other"
+        ]
+      },
+      {
+        "row": 74,
+        "csv_line": 181,
+        "cabinet": "Z5（收发机柜）",
+        "sub_unit": "Z12（电源分机） （I路）",
+        "module": "4NIC-X55.5-（+12V、-12V、+5V、-5V）",
+        "step_name": "（I）路-Z11（收发）-[工作]-指示灯",
+        "phenomenon": "（I）路-Z11（收发）-[工作]-指示灯_不亮",
+        "field": "",
+        "abnormal_value": "",
+        "feature_id": "",
+        "field_align": "empty",
+        "topics": [
+          "other"
+        ]
+      },
+      {
+        "row": 75,
+        "csv_line": 183,
+        "cabinet": "Z5（收发机柜）",
+        "sub_unit": "Z12（电源分机） （I路）",
+        "module": "4NIC-X55.5-（+12V、-12V、+5V、-5V）",
+        "step_name": "Z20（控制台）-[发射机控制]-[发射机工作]-[I]-指示灯",
+        "phenomenon": "Z20（控制台）-[发射机控制]-[发射机工作]-[I]-指示灯_不亮",
+        "field": "",
+        "abnormal_value": "",
+        "feature_id": "",
+        "field_align": "empty",
+        "topics": [
+          "transmitter_work"
+        ]
+      },
+      {
+        "row": 76,
+        "csv_line": 185,
+        "cabinet": "Z5（收发机柜）",
+        "sub_unit": "Z12（电源分机） （I路）",
+        "module": "4NIC-X55.5-（+12V、-12V、+5V、-5V）",
+        "step_name": "（I）路-Z11（收发）-[发射通]-指示灯",
+        "phenomenon": "（I）路-Z11（收发）-[发射通]-指示灯_不亮",
+        "field": "",
+        "abnormal_value": "",
+        "feature_id": "",
+        "field_align": "empty",
+        "topics": [
+          "other"
+        ]
+      }
+    ],
+    "integration": {
+      "semantics": "先 allow_rows（=Z5 全部 63 行），再按 narrow_by 第一条 when 命中的 match 收窄；无规则命中时返回 63 行 + need_narrow=true。",
+      "precedence": "module_* 必须先于 sub_unit_* 判断（z11-1 同时满足 z11）。",
+      "must_not": "不得在只识别到 z5 时把 63 行当“z5 自身故障”；不得忽略 29 行空 field 的不可视觉判定性。"
+    }
+  }
+}

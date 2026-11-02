@@ -1,0 +1,22 @@
+* -text
+
+# 二进制资产：不做文本转换与文本 diff
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.bmp binary
+*.gif binary
+*.bit binary
+*.db binary
+*.npz binary
+*.mif binary
+*.otf binary
+*.ttf binary
+*.pdf binary
+*.docx binary
+*.cwc binary
+*.data binary
+*.pack binary
+*.bid binary
+*.pptx binary
+*.xlsx binary

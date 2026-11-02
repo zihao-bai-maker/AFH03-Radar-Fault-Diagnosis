@@ -1,0 +1,96 @@
+{
+  "_readme": [
+    "部件目录（数据驱动归属）：**标定后的 ROI 组命中哪个部件，就按哪条规则判** —— 不靠 OCR、不靠猜。",
+    "用法：config/led_calib.json 里每个部件的 rois 顺序 = 本目录 lamp_names 顺序；命中即用该部件的 rule。",
+    "colors 用 green/red（灯珠颜色，用于标定核对与颜色交叉校验）；lamp_names 顺序 = 面板上从上到下/从左到右。",
+    "rule 是给人看的摘要；真正的判定由 led_rules.json 的 kind 执行（led_all_on / led_mutex_pair / tx5 / single_red / numeric_range）。",
+    "roi 为 null 表示尚未标定；标定后写 x/y/r 三元组数组。"
+  ],
+  "version": 1,
+  "parts": [
+    {
+      "part": "PS_KONG",
+      "silk": "空调电源指示/市电电源/控制",
+      "layout": "vertical",
+      "expected_count": 3,
+      "colors": ["red", "red", "green"],
+      "lamp_names": ["空调电源指示", "市电电源", "控制"],
+      "rule": "led_all_on（三颗全亮=正常；任一不亮=供电差错）",
+      "rule_key": "PS_KONG",
+      "roi": null,
+      "truth": {"photos": ["150326_1(全亮=正常)", "150527(绿灯灭=故障)"]}
+    },
+    {
+      "part": "PS_WENYA",
+      "silk": "稳压工频电源指示/发电机电源/控制",
+      "layout": "vertical",
+      "expected_count": 3,
+      "colors": ["red", "red", "green"],
+      "lamp_names": ["稳压工频电源指示", "发电机电源", "控制"],
+      "rule": "led_all_on（同版式但丝印不同 → 必须靠 ROI 归属区分）",
+      "rule_key": "PS_WENYA",
+      "roi": null,
+      "truth": {"photos": ["150558(三颗全灭=故障)"]}
+    },
+    {
+      "part": "PS_GONGPIN",
+      "silk": "工频电源",
+      "layout": "single",
+      "expected_count": 1,
+      "colors": ["red"],
+      "lamp_names": ["工频电源"],
+      "rule": "single_red（红灯亮=正常）",
+      "rule_key": "PS_GONGPIN",
+      "roi": null,
+      "truth": {"photos": ["151324(1 红亮，过曝偏白)"]}
+    },
+    {
+      "part": "ANT_DIR",
+      "silk": "位置指示 右向/左向",
+      "layout": "pair",
+      "expected_count": 2,
+      "colors": ["red", "red"],
+      "lamp_names": ["右向", "左向"],
+      "rule": "led_mutex_pair（恰好一亮一灭=正常；两颗都灭=故障）",
+      "rule_key": "ANT_DIR",
+      "roi": null,
+      "truth": {"photos": ["151341(右向亮/左向灭=正常)"]}
+    },
+    {
+      "part": "TX_CTRL",
+      "silk": "发射机工作 I/II",
+      "layout": "pair",
+      "expected_count": 2,
+      "colors": ["red", "red"],
+      "lamp_names": ["发射机工作 I", "发射机工作 II"],
+      "rule": "led_mutex_pair（一亮一灭=正常）",
+      "rule_key": "TX_CTRL",
+      "roi": null,
+      "truth": {"photos": ["151359(I 亮/II 灭=正常)"]}
+    },
+    {
+      "part": "TX_STATE",
+      "silk": "工作/本路/发射通/发射断/故障",
+      "layout": "horizontal",
+      "expected_count": 5,
+      "colors": ["green", "green", "green", "red", "red"],
+      "lamp_names": ["工作", "本路", "发射通", "发射断", "故障"],
+      "rule": "tx5（3 绿全亮 + 红灯全灭=正常；任一红灯亮=故障）",
+      "rule_key": "TX_STATE",
+      "roi": null,
+      "truth": {"photos": ["151448(3 绿亮/2 红灭=正常)"]}
+    },
+    {
+      "part": "ANT_START",
+      "silk": "天线控制/天线启动",
+      "layout": "single",
+      "expected_count": 1,
+      "colors": ["red"],
+      "lamp_names": ["天线启动"],
+      "rule": "single_red（红灯亮=正常）★ 与 TX_STATE 的红灯语义相反 → 只能靠 ROI 归属区分",
+      "rule_key": "ANT_START",
+      "roi": null,
+      "truth": {"photos": ["151820(1 红亮=正常)"]}
+    }
+  ]
+}

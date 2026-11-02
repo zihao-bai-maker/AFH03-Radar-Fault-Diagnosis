@@ -1,0 +1,83 @@
+
+
+`timescale 1ns / 1ps
+
+module ui_ram_zhenghe ( 
+	doa, dia, addra, clka, wea,
+	dob, dib, addrb, clkb, web
+);
+
+	parameter DATA_WIDTH_A = 32; 
+	parameter ADDR_WIDTH_A = 11;
+	parameter DATA_DEPTH_A = 2048;
+	parameter DATA_WIDTH_B = 32;
+	parameter ADDR_WIDTH_B = 11;
+	parameter DATA_DEPTH_B = 2048;
+	parameter REGMODE_A    = "NOREG";
+	parameter REGMODE_B    = "NOREG";
+	parameter WRITEMODE_A  = "NORMAL";
+	parameter WRITEMODE_B  = "READBEFOREWRITE";
+	parameter RESETMODE_A  = "ASYNC";
+	parameter RESETMODE_B  = "ASYNC";
+
+	output [DATA_WIDTH_A-1:0] doa;
+	output [DATA_WIDTH_B-1:0] dob;
+
+	input  [DATA_WIDTH_A-1:0] dia;
+	input  [DATA_WIDTH_B-1:0] dib;
+	input  [ADDR_WIDTH_A-1:0] addra;
+	input  [ADDR_WIDTH_B-1:0] addrb;
+	input  wea;
+	input  web;
+	input  clka;
+	input  clkb;
+
+	PH1_LOGIC_ERAM #( .DATA_WIDTH_A(DATA_WIDTH_A),
+				.DATA_WIDTH_B(DATA_WIDTH_B),
+				.ADDR_WIDTH_A(ADDR_WIDTH_A),
+				.ADDR_WIDTH_B(ADDR_WIDTH_B),
+				.DATA_DEPTH_A(DATA_DEPTH_A),
+				.DATA_DEPTH_B(DATA_DEPTH_B),
+				.MODE("DP"),
+				.REGMODE_A(REGMODE_A),
+				.REGMODE_B(REGMODE_B),
+				.WRITEMODE_A(WRITEMODE_A),
+				.WRITEMODE_B(WRITEMODE_B),
+				.IMPLEMENT("20K(FAST)"),
+				.ECC_ENCODE("DISABLE"),
+				.ECC_DECODE("DISABLE"),
+				.CLKMODE("ASYNC"),
+				.SSROVERCE("DISABLE"),
+				.OREGSET_A("RESET"),
+				.OREGSET_B("RESET"),
+				.RESETMODE_A(RESETMODE_A),
+				.RESETMODE_B(RESETMODE_B),
+				.ASYNC_RESET_RELEASE_A("ASYNC"),
+				.ASYNC_RESET_RELEASE_B("ASYNC"),
+				.INIT_FILE("NONE"),
+				.FILL_ALL("NONE"))
+			inst(
+				.dia(dia),
+				.dib(dib),
+				.addra(addra),
+				.addrb(addrb),
+				.cea(1'b1),
+				.ceb(1'b1),
+				.ocea(1'b0),
+				.oceb(1'b0),
+				.clka(clka),
+				.clkb(clkb),
+				.wea(wea),
+				.web(web),
+				.bea(1'b0),
+				.beb(1'b0),
+				.rsta(1'b0),
+				.rstb(1'b0),
+				.doa(doa),
+				.ecc_sbiterr(open),
+				.ecc_dbiterr(open),
+				.ecc_sbiterrinj('d0),
+				.ecc_dbiterrinj('d0),
+				.dob(dob));
+
+endmodule

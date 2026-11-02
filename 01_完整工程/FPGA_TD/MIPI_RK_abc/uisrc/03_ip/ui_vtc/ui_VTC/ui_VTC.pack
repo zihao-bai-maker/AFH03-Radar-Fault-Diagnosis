@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<PackProject Version="110">
+    <ProjectName Name="ui_VTC" Path="G:/02_Ding/02_AN/L2/fdma_vdma_tpg_20251010_new/soc_prj/uisrc/03_ip/ui_VTC/ui_VTC" Step="0"/>
+    <CompFile Filename="Component.xml"/>
+    <Dependency Filename="Dependency.tcl"/>
+    <Layout Filename="Layout.tcl"/>
+    <AbstractionInfo Count="0"/>
+    <Filesets Path="G:/02_Ding/02_AN/L2/fdma_vdma_tpg_20251010_new/soc_prj/uisrc/03_ip/ui_VTC/ui_VTC">
+        <Fileset Name="ui_VTC_files"/>
+    </Filesets>
+    <Ports>
+        <Port Name="I_vtc_rstn" Width=""/>
+        <Port Name="I_vtc_clk" Width=""/>
+        <Port Name="O_vtc_vs" Width=""/>
+        <Port Name="O_vtc_hs" Width=""/>
+        <Port Name="O_vtc_de_valid" Width=""/>
+        <Port Name="O_vtc_user" Width=""/>
+        <Port Name="O_vtc_last" Width=""/>
+    </Ports>
+</PackProject>
